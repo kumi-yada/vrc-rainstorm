@@ -1,0 +1,379 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &112197192375037110
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2946619660094082820}
+    m_Modifications:
+    - target: {fileID: 1966544031991439368, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 1966544031991439368, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+    - target: {fileID: 1966544031991439368, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializationData.SerializedFormat
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6632331707814651615, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: m_Name
+      value: SkyboxSetter
+      objectReference: {fileID: 0}
+    - target: {fileID: 7291325412061757608, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializedProgramAsset
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7792734429806533365, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7792734429806533365, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+    - target: {fileID: 7792734429806533365, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializationData.SerializedFormat
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8501556773264527406, guid: 0e823f141dae1ec42863c62acc91384c,
+        type: 3}
+      propertyPath: serializedProgramAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: e645676f5867dfcee96a19c987ee49e8,
+        type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0e823f141dae1ec42863c62acc91384c, type: 3}
+--- !u!4 &5953088845312518099 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5986132740930407269, guid: 0e823f141dae1ec42863c62acc91384c,
+    type: 3}
+  m_PrefabInstance: {fileID: 112197192375037110}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6502996208852551280 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6607293405742574278, guid: 0e823f141dae1ec42863c62acc91384c,
+    type: 3}
+  m_PrefabInstance: {fileID: 112197192375037110}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &934756119065798306
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 476144220125653860, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 689889203488931623, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1096654743822591834, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: interactText
+      value: Skybox (Local)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1096654743822591834, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializedProgramAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 116dee0a5ece350cdb8f7d795c5522fc,
+        type: 2}
+    - target: {fileID: 1275617655157258780, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1535488557591926574, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: e8b14fcfd2a85ff4f9a0f640d94803dd, type: 2}
+    - target: {fileID: 1677814665001132373, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_text
+      value: Skybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 1677814665001132373, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_fontSize
+      value: 0.011
+      objectReference: {fileID: 0}
+    - target: {fileID: 1677814665001132373, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_fontSizeBase
+      value: 0.011
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2639600098288507487, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 2639600098288507487, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+    - target: {fileID: 2639600098288507487, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.SerializedFormat
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2868646539736829202, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_text
+      value: Skybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 2868646539736829202, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_fontSize
+      value: 0.011
+      objectReference: {fileID: 0}
+    - target: {fileID: 2868646539736829202, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_fontSizeBase
+      value: 0.011
+      objectReference: {fileID: 0}
+    - target: {fileID: 3335915434507379440, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913241980648594612, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379402593767664780, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: switchText
+      value: Skybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: persistanceKey
+      value: Switch_Skybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: targets.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: targets.Array.data[0]
+      value: 
+      objectReference: {fileID: 6502996208852551280}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: switch_InteractionText
+      value: Skybox (Local)
+      objectReference: {fileID: 0}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+    - target: {fileID: 4559732556743268512, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.SerializedFormat
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5440014956582031072, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializedProgramAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 94835e3fdb4b6eeccac745a781c23f0f,
+        type: 2}
+    - target: {fileID: 5771807944941545074, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6105343973724086827, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6151700545467944775, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6324685253564578746, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6799890425185727992, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_Name
+      value: Switch_Skybox
+      objectReference: {fileID: 0}
+    - target: {fileID: 6799890425185727992, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7580096306554487200, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: interactText
+      value: Skybox (Local)
+      objectReference: {fileID: 0}
+    - target: {fileID: 7580096306554487200, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializedProgramAsset
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7681660840159429451, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 17350acc1363418428929761eb002832,
+        type: 3}
+    - target: {fileID: 8475292616590773101, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8475292616590773101, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+    - target: {fileID: 8475292616590773101, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: serializationData.SerializedFormat
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8588497634392233411, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5953088845312518099}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd, type: 3}
+--- !u!4 &2946619660094082820 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2602118807436470694, guid: c65b8f1f1bfc9444ca997fd09fb3c3cd,
+    type: 3}
+  m_PrefabInstance: {fileID: 934756119065798306}
+  m_PrefabAsset: {fileID: 0}
