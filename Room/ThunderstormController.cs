@@ -17,6 +17,9 @@ public class ThunderstormController : UdonSharpBehaviour
 
     [Tooltip("Skybox exposure during lightning flash")]
     public float skyboxExposure = 1.5f;
+
+    [Tooltip("Duration of the smooth fade-out after the lightning flash (seconds)")]
+    public float flashFadeDuration = 0.4f;
     
     [Header("Timing")]
     [Tooltip("Minimum time between lightning strikes (seconds)")]
@@ -151,10 +154,22 @@ public class ThunderstormController : UdonSharpBehaviour
                 }
                 else
                 {
+                    flashPhase = 3;
+                }
+                break;
+
+            case 3: // Fade-out
+                float fadeElapsed = flashTimer - (flash1Duration + flash1GapDuration + flash2Duration);
+                float t = Mathf.Clamp01(fadeElapsed / flashFadeDuration);
+                lightningLight.intensity = Mathf.Lerp(flashIntensity * flash2Intensity, 0f, t);
+                if (RenderSettings.skybox != null)
+                    RenderSettings.skybox.SetFloat("_Exposure", Mathf.Lerp(skyboxExposure * flash2Intensity, skyboxBaseExposure, t));
+                if (t >= 1f)
+                {
                     lightningLight.intensity = 0f;
                     if (RenderSettings.skybox != null)
                         RenderSettings.skybox.SetFloat("_Exposure", skyboxBaseExposure);
-                    flashPhase = 3;
+                    flashPhase = 4;
                     isFlashing = false;
                 }
                 break;

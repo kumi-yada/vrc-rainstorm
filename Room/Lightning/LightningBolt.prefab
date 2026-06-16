@@ -175,7 +175,7 @@ MonoBehaviour:
   boltColor: {r: 0.8, g: 0.92, b: 1, a: 1}
   fadeInTime: 0.05
   holdTime: 0.15
-  fadeOutTime: 0.25
+  fadeOutTime: 1
   branchChance: 0.3
   maxBranches: 3
 --- !u!114 &2044302270221601381
