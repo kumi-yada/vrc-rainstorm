@@ -6,6 +6,8 @@ using VRC.Udon;
 
 public class NightToggle : UdonSharpBehaviour
 {
+    [SerializeField] private GameObject lightObject;
+
     void Start()
     {
         
@@ -17,5 +19,6 @@ public class NightToggle : UdonSharpBehaviour
         bool isOff = RenderSettings.ambientIntensity < 0.1f;
         RenderSettings.ambientIntensity = isOff ? 0.3f : 0f;
         RenderSettings.skybox.SetFloat("_Exposure", isOff ? 0.3f : 0f);
+        lightObject.SetActive(isOff);
     }
 }
