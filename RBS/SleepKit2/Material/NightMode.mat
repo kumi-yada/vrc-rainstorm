@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: NightMode
-  m_Shader: {fileID: 4800000, guid: ed9f6c2dd7d7a4c46b36fa494e70a7dc, type: 3}
+  m_Shader: {fileID: 4800000, guid: 8ee94c001bd596248b345a3e6711b7d8, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
