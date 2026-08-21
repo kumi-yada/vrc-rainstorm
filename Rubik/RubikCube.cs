@@ -1,0 +1,293 @@
+﻿using UdonSharp;
+using UnityEngine;
+using VRC.SDKBase;
+using VRC.Udon;
+
+/// <summary>
+/// Transform-based Rubik's cube. Setup:
+/// 1. Root GameObject carries this UdonBehaviour + VRCPickup + a BoxCollider
+///    big enough to cover the whole 3x3x3 volume.
+/// 2. Add 26 cubie children (cube mesh each, no Rigidbody). Place them on the
+///    -1/0/+1 grid, skipping the center (0,0,0). Cubie local position and
+///    rotation are read at Start as the solved state.
+/// 3. Optionally assign `cubies` in the Inspector; if empty, the script uses
+///    the root's children in hierarchy order.
+/// </summary>
+[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
+public class RubikCube : UdonSharpBehaviour
+{
+    private const int CUBIE_COUNT = 26;
+    private const float STEP_ANGLE = 6f;
+
+    [Header("Cubies (optional; falls back to root children)")]
+    public Transform[] cubies;
+
+    [Header("Input")]
+    public bool keyboardControls = true;
+
+    private Transform[] _cubies;
+    private Vector3[] _homePos;
+    private Quaternion[] _homeRot;
+    private Vector3[] _basePos;
+    private Quaternion[] _baseRot;
+    private bool[] _inLayer = new bool[CUBIE_COUNT];
+    private int _cubieCount;
+
+    private bool _isMoving;
+    private int _moveAxis;
+    private int _moveLayer;
+    private int _moveDir;
+    private float _moveAngle;
+
+    private bool _hasReceivedState;
+    private int _appliedCounter;
+
+    [UdonSynced] private Vector3[] _cubiePos = new Vector3[CUBIE_COUNT];
+    [UdonSynced] private Quaternion[] _cubieRot = new Quaternion[CUBIE_COUNT];
+    [UdonSynced] private int _lastMoveAxis;
+    [UdonSynced] private int _lastMoveLayer;
+    [UdonSynced] private int _lastMoveDir;
+    [UdonSynced] private int _moveCounter;
+
+    void Start()
+    {
+        _BuildCubies();
+    }
+
+    private void _BuildCubies()
+    {
+        if (cubies != null && cubies.Length > 0)
+        {
+            _cubieCount = cubies.Length;
+            if (_cubieCount > CUBIE_COUNT) _cubieCount = CUBIE_COUNT;
+            _cubies = new Transform[_cubieCount];
+            for (int i = 0; i < _cubieCount; i++) _cubies[i] = cubies[i];
+        }
+        else
+        {
+            _cubieCount = transform.childCount;
+            if (_cubieCount > CUBIE_COUNT) _cubieCount = CUBIE_COUNT;
+            _cubies = new Transform[_cubieCount];
+            for (int i = 0; i < _cubieCount; i++) _cubies[i] = transform.GetChild(i);
+        }
+
+        _homePos = new Vector3[_cubieCount];
+        _homeRot = new Quaternion[_cubieCount];
+        _basePos = new Vector3[_cubieCount];
+        _baseRot = new Quaternion[_cubieCount];
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            _homePos[i] = _cubies[i].localPosition;
+            _homeRot[i] = _cubies[i].localRotation;
+        }
+    }
+
+    public void _RotateFace(int axis, int layer, int dir)
+    {
+        if (_isMoving) return;
+        if (axis < 0 || axis > 2) return;
+        if (layer < -1 || layer > 1) return;
+        if (dir != 1 && dir != -1) return;
+        if (!Networking.IsOwner(gameObject))
+            Networking.SetOwner(Networking.LocalPlayer, gameObject);
+        _BeginRotation(axis, layer, dir);
+    }
+
+    private void _BeginRotation(int axis, int layer, int dir)
+    {
+        if (_isMoving) return;
+        _moveAxis = axis;
+        _moveLayer = layer;
+        _moveDir = dir;
+        _moveAngle = 0f;
+
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            _basePos[i] = _cubies[i].localPosition;
+            _baseRot[i] = _cubies[i].localRotation;
+            _inLayer[i] = Mathf.RoundToInt(_AxisComponent(_cubies[i].localPosition, axis)) == layer;
+        }
+
+        _isMoving = true;
+        _RotationStep();
+    }
+
+    private void _RotationStep()
+    {
+        _moveAngle += STEP_ANGLE;
+        float a = _moveAngle;
+        if (a > 90f) a = 90f;
+
+        Quaternion q = Quaternion.AngleAxis(a * _moveDir, _GetAxis(_moveAxis));
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            if (!_inLayer[i]) continue;
+            _cubies[i].localPosition = q * _basePos[i];
+            _cubies[i].localRotation = q * _baseRot[i];
+        }
+
+        if (_moveAngle >= 90f)
+        {
+            _FinishRotation();
+            return;
+        }
+        SendCustomEventDelayedFrames(nameof(_RotationStep), 1);
+    }
+
+    private void _FinishRotation()
+    {
+        _SnapTransforms();
+        _isMoving = false;
+
+        if (Networking.IsOwner(gameObject))
+        {
+            _WriteState();
+            RequestSerialization();
+        }
+        else
+        {
+            _ApplyState();
+        }
+    }
+
+    private void _WriteState()
+    {
+        _lastMoveAxis = _moveAxis;
+        _lastMoveLayer = _moveLayer;
+        _lastMoveDir = _moveDir;
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            _cubiePos[i] = _cubies[i].localPosition;
+            _cubieRot[i] = _cubies[i].localRotation;
+        }
+        _moveCounter = _moveCounter + 1;
+        _hasReceivedState = true;
+        _appliedCounter = _moveCounter;
+    }
+
+    private void _ApplyState()
+    {
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            _cubies[i].localPosition = _cubiePos[i];
+            _cubies[i].localRotation = _cubieRot[i];
+        }
+    }
+
+    private void _SnapTransforms()
+    {
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            Vector3 p = _cubies[i].localPosition;
+            p.x = Mathf.Round(p.x);
+            p.y = Mathf.Round(p.y);
+            p.z = Mathf.Round(p.z);
+            _cubies[i].localPosition = p;
+            _cubies[i].localRotation = _SnapQuaternion(_cubies[i].localRotation);
+        }
+    }
+
+    private Quaternion _SnapQuaternion(Quaternion q)
+    {
+        return new Quaternion(
+            _SnapComponent(q.x),
+            _SnapComponent(q.y),
+            _SnapComponent(q.z),
+            _SnapComponent(q.w)
+        );
+    }
+
+    private float _SnapComponent(float v)
+    {
+        if (v > 0.85f) return 1f;
+        if (v < -0.85f) return -1f;
+        if (v > 0.35f) return 0.70710678f;
+        if (v < -0.35f) return -0.70710678f;
+        return 0f;
+    }
+
+    private Vector3 _GetAxis(int axis)
+    {
+        if (axis == 0) return Vector3.right;
+        if (axis == 1) return Vector3.up;
+        return Vector3.forward;
+    }
+
+    private float _AxisComponent(Vector3 v, int axis)
+    {
+        if (axis == 0) return v.x;
+        if (axis == 1) return v.y;
+        return v.z;
+    }
+
+    public override void OnDeserialization()
+    {
+        if (!_hasReceivedState)
+        {
+            _hasReceivedState = true;
+            _appliedCounter = _moveCounter;
+            if (_moveCounter > 0) _ApplyState();
+            return;
+        }
+        if (_moveCounter != _appliedCounter)
+        {
+            _appliedCounter = _moveCounter;
+            if (!_isMoving)
+                _BeginRotation(_lastMoveAxis, _lastMoveLayer, _lastMoveDir);
+            else
+                _ApplyState();
+        }
+    }
+
+    public override void OnPickup()
+    {
+        Networking.SetOwner(Networking.LocalPlayer, gameObject);
+    }
+
+    public override void OnPickupUseDown()
+    {
+        _RotateFace(2, 1, 1);
+    }
+
+    public override void OnPickupUseUp()
+    {
+        _RotateFace(2, 1, -1);
+    }
+
+    public bool IsSolved()
+    {
+        for (int i = 0; i < _cubieCount; i++)
+        {
+            Vector3 p = _cubies[i].localPosition;
+            if (Mathf.RoundToInt(p.x) != Mathf.RoundToInt(_homePos[i].x)) return false;
+            if (Mathf.RoundToInt(p.y) != Mathf.RoundToInt(_homePos[i].y)) return false;
+            if (Mathf.RoundToInt(p.z) != Mathf.RoundToInt(_homePos[i].z)) return false;
+
+            Quaternion r = _cubies[i].localRotation;
+            Quaternion h = _homeRot[i];
+            float dot = r.x * h.x + r.y * h.y + r.z * h.z + r.w * h.w;
+            if (dot < 0.99f) return false;
+        }
+        return true;
+    }
+
+    void Update()
+    {
+        if (!keyboardControls) return;
+
+        if (Input.GetKeyDown(KeyCode.R)) _RotateFace(0, 1, 1);
+        if (Input.GetKeyDown(KeyCode.T)) _RotateFace(0, 1, -1);
+        if (Input.GetKeyDown(KeyCode.F)) _RotateFace(0, -1, 1);
+        if (Input.GetKeyDown(KeyCode.G)) _RotateFace(0, -1, -1);
+
+        if (Input.GetKeyDown(KeyCode.U)) _RotateFace(1, 1, 1);
+        if (Input.GetKeyDown(KeyCode.J)) _RotateFace(1, 1, -1);
+        if (Input.GetKeyDown(KeyCode.M)) _RotateFace(1, -1, 1);
+        if (Input.GetKeyDown(KeyCode.N)) _RotateFace(1, -1, -1);
+
+        if (Input.GetKeyDown(KeyCode.K)) _RotateFace(2, 1, 1);
+        if (Input.GetKeyDown(KeyCode.L)) _RotateFace(2, 1, -1);
+        if (Input.GetKeyDown(KeyCode.V)) _RotateFace(2, -1, 1);
+        if (Input.GetKeyDown(KeyCode.B)) _RotateFace(2, -1, -1);
+    }
+}

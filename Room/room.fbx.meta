@@ -7,8 +7,23 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Emission
+    second: {fileID: 2100000, guid: 6e1302e025d02a7298af64ed33a34d82, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material
+    second: {fileID: 2100000, guid: 3134a4aa01b48d00d9c90a091727ee56, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Room
     second: {fileID: 2100000, guid: 3134a4aa01b48d00d9c90a091727ee56, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tatami
+    second: {fileID: 2100000, guid: 4baa8759b7e57a172911b6d40d8d9b27, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
