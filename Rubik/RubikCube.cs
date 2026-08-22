@@ -25,6 +25,17 @@ public class RubikCube : UdonSharpBehaviour
     [Header("Input")]
     public bool keyboardControls = true;
 
+    [Header("Shuffle")]
+    public KeyCode shuffleKey = KeyCode.Q;
+    public float shuffleHoldSeconds = 2f;
+    public int shuffleMoveCount = 20;
+
+    private bool _shuffleActive;
+    private int _shuffleRemaining;
+    private float _keyHoldTime;
+    private bool _keyShuffleFired;
+    private bool _useHeld;
+
     private Transform[] _cubies;
     private Vector3[] _homePos;
     private Quaternion[] _homeRot;
@@ -52,6 +63,12 @@ public class RubikCube : UdonSharpBehaviour
     void Start()
     {
         _BuildCubies();
+
+        VRC_Pickup pickup = GetComponent<VRC_Pickup>();
+        if (pickup != null)
+            pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
+                ? VRC_Pickup.AutoHoldMode.No
+                : VRC_Pickup.AutoHoldMode.Yes;
     }
 
     private void _BuildCubies()
@@ -112,7 +129,7 @@ public class RubikCube : UdonSharpBehaviour
         _RotationStep();
     }
 
-    private void _RotationStep()
+    public void _RotationStep()
     {
         _moveAngle += STEP_ANGLE;
         float a = _moveAngle;
@@ -148,6 +165,34 @@ public class RubikCube : UdonSharpBehaviour
         {
             _ApplyState();
         }
+
+        if (_shuffleActive && Networking.IsOwner(gameObject))
+            _ShuffleNextMove();
+    }
+
+    public void _StartShuffle()
+    {
+        if (_shuffleActive) return;
+        if (!Networking.IsOwner(gameObject))
+            Networking.SetOwner(Networking.LocalPlayer, gameObject);
+        _shuffleActive = true;
+        _shuffleRemaining = shuffleMoveCount;
+        if (!_isMoving) _ShuffleNextMove();
+    }
+
+    private void _ShuffleNextMove()
+    {
+        if (!_shuffleActive) return;
+        if (_shuffleRemaining <= 0)
+        {
+            _shuffleActive = false;
+            return;
+        }
+        _shuffleRemaining--;
+        int axis = Random.Range(0, 3);
+        int layer = Random.Range(-1, 2);
+        int dir = Random.Range(0, 2) == 0 ? -1 : 1;
+        _RotateFace(axis, layer, dir);
     }
 
     private void _WriteState()
@@ -247,11 +292,19 @@ public class RubikCube : UdonSharpBehaviour
     public override void OnPickupUseDown()
     {
         _RotateFace(2, 1, 1);
+        _useHeld = true;
+        SendCustomEventDelayedSeconds(nameof(_ShuffleHoldCheck), shuffleHoldSeconds);
     }
 
     public override void OnPickupUseUp()
     {
         _RotateFace(2, 1, -1);
+        _useHeld = false;
+    }
+
+    public void _ShuffleHoldCheck()
+    {
+        if (_useHeld) _StartShuffle();
     }
 
     public bool IsSolved()
@@ -275,19 +328,37 @@ public class RubikCube : UdonSharpBehaviour
     {
         if (!keyboardControls) return;
 
-        if (Input.GetKeyDown(KeyCode.R)) _RotateFace(0, 1, 1);
-        if (Input.GetKeyDown(KeyCode.T)) _RotateFace(0, 1, -1);
-        if (Input.GetKeyDown(KeyCode.F)) _RotateFace(0, -1, 1);
-        if (Input.GetKeyDown(KeyCode.G)) _RotateFace(0, -1, -1);
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Keypad8)) _RotateFace(1, 1, 1);
+        if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.Keypad2)) _RotateFace(1, 1, -1);
+        if (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.Keypad9)) _RotateFace(1, -1, 1);
+        if (Input.GetKeyDown(KeyCode.PageDown) || Input.GetKeyDown(KeyCode.Keypad3)) _RotateFace(1, -1, -1);
 
-        if (Input.GetKeyDown(KeyCode.U)) _RotateFace(1, 1, 1);
-        if (Input.GetKeyDown(KeyCode.J)) _RotateFace(1, 1, -1);
-        if (Input.GetKeyDown(KeyCode.M)) _RotateFace(1, -1, 1);
-        if (Input.GetKeyDown(KeyCode.N)) _RotateFace(1, -1, -1);
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.Keypad4)) _RotateFace(0, -1, 1);
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.Keypad6)) _RotateFace(0, -1, -1);
+        if (Input.GetKeyDown(KeyCode.Home) || Input.GetKeyDown(KeyCode.Keypad7)) _RotateFace(0, 1, 1);
+        if (Input.GetKeyDown(KeyCode.End) || Input.GetKeyDown(KeyCode.Keypad1)) _RotateFace(0, 1, -1);
 
-        if (Input.GetKeyDown(KeyCode.K)) _RotateFace(2, 1, 1);
-        if (Input.GetKeyDown(KeyCode.L)) _RotateFace(2, 1, -1);
-        if (Input.GetKeyDown(KeyCode.V)) _RotateFace(2, -1, 1);
-        if (Input.GetKeyDown(KeyCode.B)) _RotateFace(2, -1, -1);
+        if (Input.GetKeyDown(KeyCode.Insert) || Input.GetKeyDown(KeyCode.Keypad0)) _RotateFace(2, 1, 1);
+        if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.KeypadPeriod)) _RotateFace(2, 1, -1);
+        if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) _RotateFace(2, -1, 1);
+        if (Input.GetKeyDown(KeyCode.Slash) || Input.GetKeyDown(KeyCode.KeypadDivide)) _RotateFace(2, -1, -1);
+
+        if (Input.GetKey(shuffleKey))
+        {
+            if (!_keyShuffleFired)
+            {
+                _keyHoldTime += Time.deltaTime;
+                if (_keyHoldTime >= shuffleHoldSeconds)
+                {
+                    _keyShuffleFired = true;
+                    _StartShuffle();
+                }
+            }
+        }
+        else
+        {
+            _keyShuffleFired = false;
+            _keyHoldTime = 0f;
+        }
     }
 }
