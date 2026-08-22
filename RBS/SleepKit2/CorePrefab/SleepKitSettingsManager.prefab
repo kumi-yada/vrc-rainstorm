@@ -423,7 +423,7 @@ MonoBehaviour:
   - material: {fileID: 2100000, guid: dc14f145318bd19459c9efb541e3ecf7, type: 2}
     pcShader: {fileID: 4800000, guid: ed9f6c2dd7d7a4c46b36fa494e70a7dc, type: 3}
     questShader: {fileID: 4800000, guid: 8ee94c001bd596248b345a3e6711b7d8, type: 3}
-    currentShaderName: RBS/Mobile/NightMode
+    currentShaderName: RBS/NightModev3
   enableLogging: 1
 --- !u!1 &7666301442032257946
 GameObject:

@@ -22,6 +22,9 @@ public class RubikCube : UdonSharpBehaviour
     [Header("Cubies (optional; falls back to root children)")]
     public Transform[] cubies;
 
+    [Header("Canvas (toggled by holding hand trigger / desktop click)")]
+    public GameObject canvas;
+
     [Header("Input")]
     public bool keyboardControls = true;
 
@@ -34,7 +37,8 @@ public class RubikCube : UdonSharpBehaviour
     private int _shuffleRemaining;
     private float _keyHoldTime;
     private bool _keyShuffleFired;
-    private bool _useHeld;
+
+    private VRC_Pickup _pickup;
 
     private Transform[] _cubies;
     private Vector3[] _homePos;
@@ -64,9 +68,9 @@ public class RubikCube : UdonSharpBehaviour
     {
         _BuildCubies();
 
-        VRC_Pickup pickup = GetComponent<VRC_Pickup>();
-        if (pickup != null)
-            pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
+        _pickup = GetComponent<VRC_Pickup>();
+        if (_pickup != null)
+            _pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
                 ? VRC_Pickup.AutoHoldMode.No
                 : VRC_Pickup.AutoHoldMode.Yes;
     }
@@ -82,10 +86,18 @@ public class RubikCube : UdonSharpBehaviour
         }
         else
         {
-            _cubieCount = transform.childCount;
-            if (_cubieCount > CUBIE_COUNT) _cubieCount = CUBIE_COUNT;
+            int childCount = transform.childCount;
+            Transform[] candidates = new Transform[childCount];
+            int count = 0;
+            for (int i = 0; i < childCount; i++)
+            {
+                Transform child = transform.GetChild(i);
+                if (child.GetComponent<MeshRenderer>() != null && count < CUBIE_COUNT)
+                    candidates[count++] = child;
+            }
+            _cubieCount = count;
             _cubies = new Transform[_cubieCount];
-            for (int i = 0; i < _cubieCount; i++) _cubies[i] = transform.GetChild(i);
+            for (int i = 0; i < _cubieCount; i++) _cubies[i] = candidates[i];
         }
 
         _homePos = new Vector3[_cubieCount];
@@ -287,24 +299,37 @@ public class RubikCube : UdonSharpBehaviour
     public override void OnPickup()
     {
         Networking.SetOwner(Networking.LocalPlayer, gameObject);
+        if (_pickup != null) _pickup.pickupable = false;
+    }
+
+    public override void OnDrop()
+    {
+        if (_pickup != null) _pickup.pickupable = true;
     }
 
     public override void OnPickupUseDown()
     {
-        _RotateFace(2, 1, 1);
-        _useHeld = true;
-        SendCustomEventDelayedSeconds(nameof(_ShuffleHoldCheck), shuffleHoldSeconds);
+        _ToggleCanvas();
     }
 
-    public override void OnPickupUseUp()
+    public void _ToggleCanvas()
     {
-        _RotateFace(2, 1, -1);
-        _useHeld = false;
+        if (canvas != null)
+            canvas.SetActive(!canvas.activeSelf);
     }
 
-    public void _ShuffleHoldCheck()
+    private void _PollOtherHandRotate()
     {
-        if (_useHeld) _StartShuffle();
+        if (_pickup == null) return;
+        VRC_Pickup.PickupHand hand = _pickup.currentHand;
+        if (hand == VRC_Pickup.PickupHand.None) return;
+
+        string button = hand == VRC_Pickup.PickupHand.Right
+            ? "Oculus_CrossPlatform_PrimaryHandTrigger"
+            : "Oculus_CrossPlatform_SecondaryHandTrigger";
+
+        if (Input.GetButtonDown(button))
+            _RotateFace(2, 1, 1);
     }
 
     public bool IsSolved()
@@ -326,6 +351,8 @@ public class RubikCube : UdonSharpBehaviour
 
     void Update()
     {
+        _PollOtherHandRotate();
+
         if (!keyboardControls) return;
 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Keypad8)) _RotateFace(1, 1, 1);
