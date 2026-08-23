@@ -25,6 +25,10 @@ public class RubikCube : UdonSharpBehaviour
     [Header("Canvas (toggled by holding hand trigger / desktop click)")]
     public GameObject canvas;
 
+    [Header("Shuffle Hold Indicator (scales X 0-1 while holding)")]
+    public Transform shuffleIndicatorPivot;
+    public Transform shuffleIndicator;
+
     [Header("Input")]
     public bool keyboardControls = true;
 
@@ -57,6 +61,8 @@ public class RubikCube : UdonSharpBehaviour
     private bool _hasReceivedState;
     private int _appliedCounter;
 
+    private Vector3 _indicatorOriginalScale;
+
     [UdonSynced] private Vector3[] _cubiePos = new Vector3[CUBIE_COUNT];
     [UdonSynced] private Quaternion[] _cubieRot = new Quaternion[CUBIE_COUNT];
     [UdonSynced] private int _lastMoveAxis;
@@ -73,6 +79,15 @@ public class RubikCube : UdonSharpBehaviour
             _pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
                 ? VRC_Pickup.AutoHoldMode.No
                 : VRC_Pickup.AutoHoldMode.Yes;
+
+        if (shuffleIndicator != null)
+        {
+            _indicatorOriginalScale = shuffleIndicator.localScale;
+            shuffleIndicator.localScale = new Vector3(_indicatorOriginalScale.x, _indicatorOriginalScale.y, _indicatorOriginalScale.z);
+            shuffleIndicator.gameObject.SetActive(false);
+        }
+        if (shuffleIndicatorPivot != null)
+            shuffleIndicatorPivot.gameObject.SetActive(false);
     }
 
     private void _BuildCubies()
@@ -328,8 +343,49 @@ public class RubikCube : UdonSharpBehaviour
             ? "Oculus_CrossPlatform_PrimaryHandTrigger"
             : "Oculus_CrossPlatform_SecondaryHandTrigger";
 
-        if (Input.GetButtonDown(button))
-            _RotateFace(2, 1, 1);
+        if (!Input.GetButtonDown(button)) return;
+
+        VRCPlayerApi.TrackingDataType trackType = hand == VRC_Pickup.PickupHand.Right
+            ? VRCPlayerApi.TrackingDataType.LeftHand
+            : VRCPlayerApi.TrackingDataType.RightHand;
+
+        VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
+        Vector3 localPos = transform.InverseTransformPoint(td.position);
+
+        if (localPos.magnitude < 0.1f) return;
+
+        Vector3 localFwd = transform.InverseTransformDirection(td.rotation * Vector3.forward);
+
+        float absX = Mathf.Abs(localPos.x);
+        float absY = Mathf.Abs(localPos.y);
+        float absZ = Mathf.Abs(localPos.z);
+
+        int axis;
+        float dominantVal;
+        if (absX >= absY && absX >= absZ)
+        {
+            axis = 0;
+            dominantVal = localPos.x;
+        }
+        else if (absY >= absX && absY >= absZ)
+        {
+            axis = 1;
+            dominantVal = localPos.y;
+        }
+        else
+        {
+            axis = 2;
+            dominantVal = localPos.z;
+        }
+
+        int layer = Mathf.Clamp(Mathf.RoundToInt(dominantVal), -1, 1);
+
+        Vector3 radial = localPos.normalized;
+        Vector3 cross = Vector3.Cross(radial, localFwd);
+        float axisComp = _AxisComponent(cross, axis);
+        int dir = axisComp >= 0f ? 1 : -1;
+
+        _RotateFace(axis, layer, dir);
     }
 
     public bool IsSolved()
@@ -375,6 +431,19 @@ public class RubikCube : UdonSharpBehaviour
             if (!_keyShuffleFired)
             {
                 _keyHoldTime += Time.deltaTime;
+                if (shuffleIndicator != null)
+                {
+                    shuffleIndicator.gameObject.SetActive(true);
+                    float t = Mathf.Clamp01(_keyHoldTime / shuffleHoldSeconds);
+                    float x = Mathf.Lerp(_indicatorOriginalScale.x, 0f, t);
+                    shuffleIndicator.localScale = new Vector3(x, _indicatorOriginalScale.y, _indicatorOriginalScale.z);
+                }
+                if (shuffleIndicatorPivot != null)
+                {
+                    shuffleIndicatorPivot.gameObject.SetActive(true);
+                    VRCPlayerApi.TrackingData head = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+                    shuffleIndicatorPivot.LookAt(head.position, Vector3.up);
+                }
                 if (_keyHoldTime >= shuffleHoldSeconds)
                 {
                     _keyShuffleFired = true;
@@ -386,6 +455,13 @@ public class RubikCube : UdonSharpBehaviour
         {
             _keyShuffleFired = false;
             _keyHoldTime = 0f;
+            if (shuffleIndicator != null)
+            {
+                shuffleIndicator.localScale = _indicatorOriginalScale;
+                shuffleIndicator.gameObject.SetActive(false);
+            }
+            if (shuffleIndicatorPivot != null)
+                shuffleIndicatorPivot.gameObject.SetActive(false);
         }
     }
 }
