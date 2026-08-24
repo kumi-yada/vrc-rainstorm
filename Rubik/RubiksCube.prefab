@@ -471,11 +471,11 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "VR: Grip\nDesktop: Numpad Keys\n\n    Front: Insert (0) - Delete (.)\n   
-    Top: Up Arrow (8) - Down Arrow (2)\n    Bottom: Page Up (9) - Page Down (3)\n   
-    Left: Left Arrow (4) - Right Arrow (6)\n    Right: Home (7) - End (1)\n    Back:
-    Minus - Slash\n\nShuffle: hold trigger / Q for 2 seconds\nHide/Show: trigger
-    on holding hand"
+  m_text: "VR: Grip on free hand and twist\nDesktop: Numpad Keys\n\n    Front: Insert
+    (0) - Delete (.)\n    Top: Up Arrow (8) - Down Arrow (2)\n    Bottom: Page Up
+    (9) - Page Down (3)\n    Left: Left Arrow (4) - Right Arrow (6)\n    Right: Home
+    (7) - End (1)\n    Back: Minus - Slash\n\nShuffle: hold trigger / Q for 2 seconds\nHide/Show:
+    trigger on holding hand"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

@@ -18,6 +18,7 @@ public class RubikCube : UdonSharpBehaviour
 {
     private const int CUBIE_COUNT = 26;
     private const float STEP_ANGLE = 6f;
+    private const float GESTURE_MIN_ANGLE = 0.30f;
 
     [Header("Cubies (optional; falls back to root children)")]
     public Transform[] cubies;
@@ -62,6 +63,12 @@ public class RubikCube : UdonSharpBehaviour
     private int _appliedCounter;
 
     private Vector3 _indicatorOriginalScale;
+
+    private bool _gestureActive;
+    private int _gestureAxis;
+    private int _gestureLayer;
+    private Vector3 _gesturePrevUp;
+    private float _gestureAngle;
 
     [UdonSynced] private Vector3[] _cubiePos = new Vector3[CUBIE_COUNT];
     [UdonSynced] private Quaternion[] _cubieRot = new Quaternion[CUBIE_COUNT];
@@ -337,24 +344,42 @@ public class RubikCube : UdonSharpBehaviour
     {
         if (_pickup == null) return;
         VRC_Pickup.PickupHand hand = _pickup.currentHand;
-        if (hand == VRC_Pickup.PickupHand.None) return;
+        if (hand == VRC_Pickup.PickupHand.None)
+        {
+            _gestureActive = false;
+            return;
+        }
 
         string button = hand == VRC_Pickup.PickupHand.Right
             ? "Oculus_CrossPlatform_PrimaryHandTrigger"
             : "Oculus_CrossPlatform_SecondaryHandTrigger";
 
-        if (!Input.GetButtonDown(button)) return;
-
         VRCPlayerApi.TrackingDataType trackType = hand == VRC_Pickup.PickupHand.Right
             ? VRCPlayerApi.TrackingDataType.LeftHand
             : VRCPlayerApi.TrackingDataType.RightHand;
+
+        if (Input.GetButtonDown(button))
+        {
+            _BeginRotateGesture(trackType);
+        }
+        else if (Input.GetButton(button) && _gestureActive)
+        {
+            _UpdateRotateGesture(trackType);
+        }
+        else if (Input.GetButtonUp(button) && _gestureActive)
+        {
+            _EndRotateGesture();
+        }
+    }
+
+    private void _BeginRotateGesture(VRCPlayerApi.TrackingDataType trackType)
+    {
+        if (_gestureActive) return;
 
         VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
         Vector3 localPos = transform.InverseTransformPoint(td.position);
 
         if (localPos.magnitude < 0.1f) return;
-
-        Vector3 localFwd = transform.InverseTransformDirection(td.rotation * Vector3.forward);
 
         float absX = Mathf.Abs(localPos.x);
         float absY = Mathf.Abs(localPos.y);
@@ -378,14 +403,40 @@ public class RubikCube : UdonSharpBehaviour
             dominantVal = localPos.z;
         }
 
-        int layer = Mathf.Clamp(Mathf.RoundToInt(dominantVal), -1, 1);
+        _gestureAxis = axis;
+        _gestureLayer = Mathf.Clamp(Mathf.RoundToInt(dominantVal), -1, 1);
+        _gestureAngle = 0f;
+        _gesturePrevUp = _LocalHandUp(td);
+        _gestureActive = true;
+    }
 
-        Vector3 radial = localPos.normalized;
-        Vector3 cross = Vector3.Cross(radial, localFwd);
-        float axisComp = _AxisComponent(cross, axis);
-        int dir = axisComp >= 0f ? 1 : -1;
+    private void _UpdateRotateGesture(VRCPlayerApi.TrackingDataType trackType)
+    {
+        VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
+        Vector3 up = _LocalHandUp(td);
+        Vector3 axis = _GetAxis(_gestureAxis);
+        _gestureAngle += _SignedAngle(_gesturePrevUp, up, axis);
+        _gesturePrevUp = up;
+    }
 
-        _RotateFace(axis, layer, dir);
+    private void _EndRotateGesture()
+    {
+        _gestureActive = false;
+        if (Mathf.Abs(_gestureAngle) < GESTURE_MIN_ANGLE) return;
+        int dir = _gestureAngle > 0f ? 1 : -1;
+        _RotateFace(_gestureAxis, _gestureLayer, dir);
+    }
+
+    private Vector3 _LocalHandUp(VRCPlayerApi.TrackingData td)
+    {
+        return transform.InverseTransformDirection(td.rotation * Vector3.up);
+    }
+
+    private float _SignedAngle(Vector3 from, Vector3 to, Vector3 axis)
+    {
+        Vector3 fromP = from - axis * Vector3.Dot(from, axis);
+        Vector3 toP = to - axis * Vector3.Dot(to, axis);
+        return Mathf.Atan2(Vector3.Dot(axis, Vector3.Cross(fromP, toP)), Vector3.Dot(fromP, toP));
     }
 
     public bool IsSolved()
