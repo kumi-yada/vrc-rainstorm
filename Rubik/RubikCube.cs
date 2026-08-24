@@ -464,18 +464,18 @@ public class RubikCube : UdonSharpBehaviour
 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Keypad8)) _RotateFace(1, 1, 1);
         if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.Keypad2)) _RotateFace(1, 1, -1);
-        if (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.Keypad9)) _RotateFace(1, -1, 1);
-        if (Input.GetKeyDown(KeyCode.PageDown) || Input.GetKeyDown(KeyCode.Keypad3)) _RotateFace(1, -1, -1);
+        if (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.Keypad9)) _RotateFace(0, 1, 1);
+        if (Input.GetKeyDown(KeyCode.PageDown) || Input.GetKeyDown(KeyCode.Keypad3)) _RotateFace(0, 1, -1);
 
-        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.Keypad4)) _RotateFace(0, -1, 1);
-        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.Keypad6)) _RotateFace(0, -1, -1);
-        if (Input.GetKeyDown(KeyCode.Home) || Input.GetKeyDown(KeyCode.Keypad7)) _RotateFace(0, 1, 1);
-        if (Input.GetKeyDown(KeyCode.End) || Input.GetKeyDown(KeyCode.Keypad1)) _RotateFace(0, 1, -1);
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.Keypad4)) _RotateFace(1, -1, 1);
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.Keypad6)) _RotateFace(1, -1, -1);
+        if (Input.GetKeyDown(KeyCode.Home) || Input.GetKeyDown(KeyCode.Keypad7)) _RotateFace(0, -1, 1);
+        if (Input.GetKeyDown(KeyCode.End) || Input.GetKeyDown(KeyCode.Keypad1)) _RotateFace(0, -1, -1);
 
-        if (Input.GetKeyDown(KeyCode.Insert) || Input.GetKeyDown(KeyCode.Keypad0)) _RotateFace(2, 1, 1);
-        if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.KeypadPeriod)) _RotateFace(2, 1, -1);
-        if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) _RotateFace(2, -1, 1);
-        if (Input.GetKeyDown(KeyCode.Slash) || Input.GetKeyDown(KeyCode.KeypadDivide)) _RotateFace(2, -1, -1);
+        if (Input.GetKeyDown(KeyCode.Insert) || Input.GetKeyDown(KeyCode.Keypad0)) _RotateFace(2, -1, 1);
+        if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.KeypadPeriod)) _RotateFace(2, -1, -1);
+        if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) _RotateFace(2, 1, 1);
+        if (Input.GetKeyDown(KeyCode.Slash) || Input.GetKeyDown(KeyCode.KeypadDivide)) _RotateFace(2, 1, -1);
 
         if (Input.GetKey(shuffleKey))
         {
