@@ -42,6 +42,9 @@ public class RubikCube : UdonSharpBehaviour
     private int _shuffleRemaining;
     private float _keyHoldTime;
     private bool _keyShuffleFired;
+    private float _useHoldTime;
+    private bool _useHeld;
+    private bool _useShuffleFired;
 
     private VRC_Pickup _pickup;
 
@@ -331,7 +334,19 @@ public class RubikCube : UdonSharpBehaviour
 
     public override void OnPickupUseDown()
     {
-        _ToggleCanvas();
+        _useHeld = true;
+        _useShuffleFired = false;
+        _useHoldTime = 0f;
+        _ShowIndicator(0f);
+    }
+
+    public override void OnPickupUseUp()
+    {
+        if (!_useHeld) return;
+        _useHeld = false;
+        _HideIndicator();
+        if (!_useShuffleFired)
+            _ToggleCanvas();
     }
 
     public void _ToggleCanvas()
@@ -460,6 +475,19 @@ public class RubikCube : UdonSharpBehaviour
     {
         _PollOtherHandRotate();
 
+        if (_useHeld && !_useShuffleFired)
+        {
+            _useHoldTime += Time.deltaTime;
+            float t = Mathf.Clamp01(_useHoldTime / shuffleHoldSeconds);
+            _ShowIndicator(t);
+            if (_useHoldTime >= shuffleHoldSeconds)
+            {
+                _useShuffleFired = true;
+                _StartShuffle();
+                _HideIndicator();
+            }
+        }
+
         if (!keyboardControls) return;
 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Keypad8)) _RotateFace(1, 1, 1);
@@ -482,23 +510,12 @@ public class RubikCube : UdonSharpBehaviour
             if (!_keyShuffleFired)
             {
                 _keyHoldTime += Time.deltaTime;
-                if (shuffleIndicator != null)
-                {
-                    shuffleIndicator.gameObject.SetActive(true);
-                    float t = Mathf.Clamp01(_keyHoldTime / shuffleHoldSeconds);
-                    float x = Mathf.Lerp(_indicatorOriginalScale.x, 0f, t);
-                    shuffleIndicator.localScale = new Vector3(x, _indicatorOriginalScale.y, _indicatorOriginalScale.z);
-                }
-                if (shuffleIndicatorPivot != null)
-                {
-                    shuffleIndicatorPivot.gameObject.SetActive(true);
-                    VRCPlayerApi.TrackingData head = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
-                    shuffleIndicatorPivot.LookAt(head.position, Vector3.up);
-                }
+                _ShowIndicator(Mathf.Clamp01(_keyHoldTime / shuffleHoldSeconds));
                 if (_keyHoldTime >= shuffleHoldSeconds)
                 {
                     _keyShuffleFired = true;
                     _StartShuffle();
+                    _HideIndicator();
                 }
             }
         }
@@ -506,13 +523,35 @@ public class RubikCube : UdonSharpBehaviour
         {
             _keyShuffleFired = false;
             _keyHoldTime = 0f;
-            if (shuffleIndicator != null)
-            {
-                shuffleIndicator.localScale = _indicatorOriginalScale;
-                shuffleIndicator.gameObject.SetActive(false);
-            }
-            if (shuffleIndicatorPivot != null)
-                shuffleIndicatorPivot.gameObject.SetActive(false);
+            if (!_useHeld)
+                _HideIndicator();
         }
+    }
+
+    private void _ShowIndicator(float t)
+    {
+        if (shuffleIndicator != null)
+        {
+            shuffleIndicator.gameObject.SetActive(true);
+            float x = Mathf.Lerp(_indicatorOriginalScale.x, 0f, t);
+            shuffleIndicator.localScale = new Vector3(x, _indicatorOriginalScale.y, _indicatorOriginalScale.z);
+        }
+        if (shuffleIndicatorPivot != null)
+        {
+            shuffleIndicatorPivot.gameObject.SetActive(true);
+            VRCPlayerApi.TrackingData head = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+            shuffleIndicatorPivot.LookAt(head.position, Vector3.up);
+        }
+    }
+
+    private void _HideIndicator()
+    {
+        if (shuffleIndicator != null)
+        {
+            shuffleIndicator.localScale = _indicatorOriginalScale;
+            shuffleIndicator.gameObject.SetActive(false);
+        }
+        if (shuffleIndicatorPivot != null)
+            shuffleIndicatorPivot.gameObject.SetActive(false);
     }
 }
