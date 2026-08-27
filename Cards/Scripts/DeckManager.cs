@@ -7,7 +7,7 @@ using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common.Interfaces;
 
-namespace Vowgan.DeckOfCards
+namespace org.kumagee
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class DeckManager : UdonSharpBehaviour
@@ -53,9 +53,21 @@ namespace Vowgan.DeckOfCards
             {
                 cards[i] = Pool.Pool[i].GetComponentInChildren<CardLogic>();
                 cards[i].UseGravity = UseGravity;
+                
+                if (i < CardLogic.RankDefinitionsCount * 4)
+                {
+                    int col = i % CardLogic.RankDefinitionsCount;
+                    int suitIndex = i / CardLogic.RankDefinitionsCount;
+                    Debug.Log($"DeckManager: Assigning card {cards[i].name} to rank {col + 1}, suit {suitIndex}");
+                    Rank rank = (Rank)(col + 1);
+                    cards[i].SetCardIdentity(rank, (Suit)suitIndex);
+                }
+                else
+                {
+                    cards[i].SetJoker(i - CardLogic.RankDefinitionsCount * 4);
+                }
+                cards[i].ApplyFaceTexture();
             }
-            
-            if (Networking.IsOwner(gameObject)) SendCustomEventDelayedSeconds(nameof(_ResetDeck), 1);
         }
         
         public void NextCard()
@@ -72,10 +84,17 @@ namespace Vowgan.DeckOfCards
                 
                 Networking.SetOwner(playerLocal, Pool.gameObject);
                 currentCard = Pool.TryToSpawn();
+                Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}");
                 Networking.SetOwner(playerLocal, currentCard);
                 
                 SetCurrentCardToTop();
             }
+        }
+
+        public GameObject DrawNext()
+        {
+            NextCard();
+            return currentCard;
         }
         
         public void _ResetDeck()
@@ -96,7 +115,6 @@ namespace Vowgan.DeckOfCards
             CardCount = Pool.Pool.Length;
             
             Pool.Shuffle();
-            NextCard();
         }
 
         public void _ReturnCard(GameObject card)

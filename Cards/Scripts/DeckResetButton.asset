@@ -21,7 +21,7 @@ MonoBehaviour:
   compiledVersion: 2
   behaviourSyncMode: 1
   hasInteractEvent: 1
-  scriptID: 1996460309591359148
+  scriptID: 4996288407510793013
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -62,7 +62,7 @@ MonoBehaviour:
       Data: 3|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: Vowgan.DeckOfCards.DeckManager, Assembly-CSharp
+      Data: org.kumagee.DeckManager, Assembly-CSharp
     - Name: 
       Entry: 8
       Data: 

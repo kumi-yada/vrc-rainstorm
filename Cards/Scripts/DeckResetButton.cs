@@ -4,7 +4,7 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 
-namespace Vowgan.DeckOfCards
+namespace org.kumagee
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class DeckResetButton : UdonSharpBehaviour
