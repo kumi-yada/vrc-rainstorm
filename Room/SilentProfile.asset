@@ -1323,7 +1323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1cb7e9e120078f43bce4f0b1be547a7, type: 3}
   m_Name: AmbientOcclusion
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   enabled:
     overrideState: 1
     value: 1
@@ -1380,6 +1380,7 @@ MonoBehaviour:
   - {fileID: -6756887602505641454}
   - {fileID: 114254744475804696}
   - {fileID: -4291657650066656595}
+  - {fileID: 2840351806319747967}
 --- !u!114 &114254744475804696
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1398,7 +1399,7 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 0.01
+    value: 0.2
   threshold:
     overrideState: 1
     value: 0
@@ -1439,7 +1440,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3f6f3f7c722b4544b97e3c75840aa33, type: 3}
   m_Name: AutoExposure
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   enabled:
     overrideState: 1
     value: 1
@@ -1464,3 +1465,31 @@ MonoBehaviour:
   speedDown:
     overrideState: 1
     value: 1
+--- !u!114 &2840351806319747967
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d65e486e4de6e5448a8fbb43dc8756a0, type: 3}
+  m_Name: Grain
+  m_EditorClassIdentifier: 
+  active: 0
+  enabled:
+    overrideState: 1
+    value: 1
+  colored:
+    overrideState: 1
+    value: 1
+  intensity:
+    overrideState: 1
+    value: 0
+  size:
+    overrideState: 0
+    value: 1
+  lumContrib:
+    overrideState: 0
+    value: 0.8

@@ -45,6 +45,8 @@ namespace org.kumagee
         private const int HiddenColIndex = 2;
         
         public DeckManager DeckManager;
+        public Solitaire Solitaire;
+        [HideInInspector] public Transform CardRoot;
         [SerializeField] private Rank _rank;
         [SerializeField] private Suit _suit;
         
@@ -97,6 +99,7 @@ namespace org.kumagee
                     ? VRC_Pickup.AutoHoldMode.No
                     : VRC_Pickup.AutoHoldMode.Yes;
             }
+            CardRoot = pickup != null ? pickup.transform : transform;
         }
         
         private void ResolveFaceMaterial()
@@ -211,6 +214,7 @@ namespace org.kumagee
             FaceVisible = up;
             RequestSerialization();
             ApplyFaceTexture();
+            if (currentSlot != null) currentSlot._Repack();
         }
         
         public override void OnPickup()
@@ -220,6 +224,7 @@ namespace org.kumagee
             Grabbed = true;
             toBeReturned = false;
             if (sync != null) sync.SetKinematic(!UseGravity);
+            if (Solitaire != null) Solitaire._OnCardPickup(this);
             ApplyFaceTexture();
         }
         
@@ -269,10 +274,21 @@ namespace org.kumagee
             if (!initialized) Init();
             if (pickup != null) pickup.Drop();
         }
+
+        public CardSlot _GetCurrentSlot()
+        {
+            return currentSlot;
+        }
         
         public override void OnDrop()
         {
             if (!initialized) Init();
+            if (Solitaire != null && Solitaire._OnCardDrop(this))
+            {
+                Grabbed = false;
+                ApplyFaceTexture();
+                return;
+            }
             Grabbed = false;
             if (toBeReturned)
             {

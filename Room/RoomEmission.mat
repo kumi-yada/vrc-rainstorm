@@ -104,7 +104,7 @@ Material:
     - _DetailUV: 0
     - _DstBlend: 0
     - _EmissionHueShift: 0
-    - _EmissionStrength: 0
+    - _EmissionStrength: 2
     - _EmissionUV: 0
     - _GlossMapChannel: 3
     - _GlossMapScale: 1
@@ -146,6 +146,6 @@ Material:
     - _ColorMaskColor2: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor3: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor4: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 0.36320752, g: 0.62087315, b: 1, a: 1}
+    - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

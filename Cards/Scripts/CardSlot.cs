@@ -21,10 +21,6 @@ namespace org.kumagee
         [Tooltip("Snap the card's rotation to this slot's rotation when it is released.")]
         public bool AlignRotation = true;
 
-        [Header("Rules")]
-        public bool OnlyLastPickable = true;
-        public bool IsPickable = true;
-
         [Header("Events")]
         [Tooltip("UdonBehaviour notified via SendCustomEvent when a card is placed in this slot.")]
         public UdonBehaviour PlacedTarget;
@@ -140,6 +136,31 @@ namespace org.kumagee
             return _GetCardAt(cardCount - 1);
         }
 
+        public int _GetCardIndex(CardLogic logic)
+        {
+            Initialize();
+            if (logic == null) return -1;
+            for (int i = 0; i < cardCount; i++)
+            {
+                if (cards[i] == logic) return i;
+            }
+            return -1;
+        }
+
+        public CardLogic[] _GetStackFrom(CardLogic logic)
+        {
+            Initialize();
+            int index = _GetCardIndex(logic);
+            if (index < 0) return null;
+            int count = cardCount - index;
+            CardLogic[] stack = new CardLogic[count];
+            for (int i = 0; i < count; i++)
+            {
+                stack[i] = cards[index + i];
+            }
+            return stack;
+        }
+
         public bool _PlaceCard(CardLogic logic)
         {
             Initialize();
@@ -156,6 +177,34 @@ namespace org.kumagee
             if (logic == null) return false;
             if (!Add(logic, true)) return false;
             Repack();
+            return true;
+        }
+
+        public bool _PlaceCardStack(CardLogic[] stack)
+        {
+            Initialize();
+            if (stack == null || stack.Length == 0) return false;
+            if (MaxCards > 0 && cardCount + stack.Length > MaxCards)
+            {
+                Debug.Log($"CardSlot: Stack of {stack.Length} cards exceeds max {MaxCards} for slot {name}");
+                return false;
+            }
+            if (cardCount + stack.Length > Capacity) return false;
+            if (rule != null)
+            {
+                if (!rule.AllowedToPlace(BuildStack(), stack[0]))
+                {
+                    Debug.Log($"CardSlot: Stack of {stack.Length} cards not allowed to be placed in slot {name}");
+                    return false;
+                }
+            }
+            for (int i = 0; i < stack.Length; i++)
+            {
+                if (stack[i] == null) return false;
+                if (!Add(stack[i], true)) return false;
+            }
+            Repack();
+            SendPlacedEvent();
             return true;
         }
 
@@ -184,10 +233,9 @@ namespace org.kumagee
             }
         }
 
-        public void _SetPickable(bool value)
+        public void _Repack()
         {
             Initialize();
-            IsPickable = value;
             Repack();
         }
 
@@ -205,28 +253,17 @@ namespace org.kumagee
         private void Repack()
         {
             int index = 0;
-            int lastIndex = GetLastCardIndex();
-            Debug.Log($"CardSlot: Repacking cards in slot {name}, cardCount={cardCount}, lastIndex={lastIndex}");
+            Debug.Log($"CardSlot: Repacking cards in slot {name}, cardCount={cardCount}");
             for (int i = 0; i < MaxCards; i++)
             {
                 CardLogic logic = cards[i];
                 if (logic == null) continue;
-                // if (logic.Grabbed) continue;
-                PlaceCard(logic, index, i == lastIndex || !OnlyLastPickable);
+                PlaceCard(logic, index);
                 index++;
             }
         }
 
-        private int GetLastCardIndex()
-        {
-            for (int i = cardCount - 1; i >= 0; i--)
-            {
-                if (cards[i] != null) return i;
-            }
-            return -1;
-        }
-
-        private void PlaceCard(CardLogic logic, int index, bool pickup = false)
+        private void PlaceCard(CardLogic logic, int index)
         {
             Transform mover = logic.transform;
             if (mover == null) mover = logic.transform;
@@ -244,12 +281,6 @@ namespace org.kumagee
             {
                 sync.SetKinematic(true);
                 sync.FlagDiscontinuity();
-            }
-
-            VRCPickup pickupComponent = mover.GetComponent<VRCPickup>();
-            if (pickupComponent != null)
-            {
-                pickupComponent.pickupable = IsPickable && pickup;
             }
         }
     }
