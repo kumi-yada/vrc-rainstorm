@@ -117,7 +117,6 @@ GameObject:
   - component: {fileID: 2231634621623266665}
   - component: {fileID: 979165927811614136}
   - component: {fileID: 7717505352953037845}
-  - component: {fileID: 7533613880411148316}
   m_Layer: 0
   m_Name: RubiksCube
   m_TagString: Untagged
@@ -305,20 +304,6 @@ MonoBehaviour:
   pickupable: 1
   proximity: 2
   version: 1
---- !u!114 &7533613880411148316
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2637499312578527282}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1783056023, guid: 661092b4961be7145bfbe56e1e62337b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  AllowCollisionOwnershipTransfer: 0
-  ForceKinematicOnRemote: 0
 --- !u!1 &4798063476178674916
 GameObject:
   m_ObjectHideFlags: 0

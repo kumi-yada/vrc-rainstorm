@@ -18,7 +18,6 @@ public class RubikCube : UdonSharpBehaviour
 {
     private const int CUBIE_COUNT = 26;
     private const float STEP_ANGLE = 6f;
-    private const float GESTURE_MIN_ANGLE = 0.30f;
 
     [Header("Cubies (optional; falls back to root children)")]
     public Transform[] cubies;
@@ -61,6 +60,8 @@ public class RubikCube : UdonSharpBehaviour
     private int _moveLayer;
     private int _moveDir;
     private float _moveAngle;
+    private float _moveTarget;
+    private float _moveSpeed;
 
     private bool _hasReceivedState;
     private int _appliedCounter;
@@ -144,48 +145,58 @@ public class RubikCube : UdonSharpBehaviour
         if (dir != 1 && dir != -1) return;
         if (!Networking.IsOwner(gameObject))
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
-        _BeginRotation(axis, layer, dir);
+        _moveDir = dir;
+        _BeginRotation(axis, layer, dir * 90f);
     }
 
-    private void _BeginRotation(int axis, int layer, int dir)
+    private void _BeginRotation(int axis, int layer, float targetAngle)
     {
         if (_isMoving) return;
         _moveAxis = axis;
         _moveLayer = layer;
-        _moveDir = dir;
         _moveAngle = 0f;
+        _moveTarget = targetAngle;
+        _moveSpeed = targetAngle > 0f ? STEP_ANGLE : -STEP_ANGLE;
+        _CaptureBases(axis, layer);
 
+        _isMoving = true;
+        _RotationStep();
+    }
+
+    private void _CaptureBases(int axis, int layer)
+    {
         for (int i = 0; i < _cubieCount; i++)
         {
             _basePos[i] = _cubies[i].localPosition;
             _baseRot[i] = _cubies[i].localRotation;
             _inLayer[i] = Mathf.RoundToInt(_AxisComponent(_cubies[i].localPosition, axis)) == layer;
         }
-
-        _isMoving = true;
-        _RotationStep();
     }
 
     public void _RotationStep()
     {
-        _moveAngle += STEP_ANGLE;
-        float a = _moveAngle;
-        if (a > 90f) a = 90f;
+        float remaining = _moveTarget - _moveAngle;
+        float step = Mathf.Abs(remaining) < STEP_ANGLE ? remaining : _moveSpeed;
+        _moveAngle += step;
+        _ApplyRotation();
 
-        Quaternion q = Quaternion.AngleAxis(a * _moveDir, _GetAxis(_moveAxis));
+        if (Mathf.Abs(_moveTarget - _moveAngle) < 0.01f)
+        {
+            _FinishRotation();
+            return;
+        }
+        SendCustomEventDelayedFrames(nameof(_RotationStep), 1);
+    }
+
+    private void _ApplyRotation()
+    {
+        Quaternion q = Quaternion.AngleAxis(_moveAngle, _GetAxis(_moveAxis));
         for (int i = 0; i < _cubieCount; i++)
         {
             if (!_inLayer[i]) continue;
             _cubies[i].localPosition = q * _basePos[i];
             _cubies[i].localRotation = q * _baseRot[i];
         }
-
-        if (_moveAngle >= 90f)
-        {
-            _FinishRotation();
-            return;
-        }
-        SendCustomEventDelayedFrames(nameof(_RotationStep), 1);
     }
 
     private void _FinishRotation()
@@ -195,8 +206,11 @@ public class RubikCube : UdonSharpBehaviour
 
         if (Networking.IsOwner(gameObject))
         {
-            _WriteState();
-            RequestSerialization();
+            if (Mathf.Abs(_moveTarget) > 0.5f)
+            {
+                _WriteState();
+                RequestSerialization();
+            }
         }
         else
         {
@@ -315,7 +329,7 @@ public class RubikCube : UdonSharpBehaviour
         {
             _appliedCounter = _moveCounter;
             if (!_isMoving)
-                _BeginRotation(_lastMoveAxis, _lastMoveLayer, _lastMoveDir);
+                _BeginRotation(_lastMoveAxis, _lastMoveLayer, _lastMoveDir * 90f);
             else
                 _ApplyState();
         }
@@ -361,7 +375,7 @@ public class RubikCube : UdonSharpBehaviour
         VRC_Pickup.PickupHand hand = _pickup.currentHand;
         if (hand == VRC_Pickup.PickupHand.None)
         {
-            _gestureActive = false;
+            if (_gestureActive) _EndRotateGesture();
             return;
         }
 
@@ -390,6 +404,7 @@ public class RubikCube : UdonSharpBehaviour
     private void _BeginRotateGesture(VRCPlayerApi.TrackingDataType trackType)
     {
         if (_gestureActive) return;
+        if (_isMoving) return;
 
         VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
         Vector3 localPos = transform.InverseTransformPoint(td.position);
@@ -423,23 +438,43 @@ public class RubikCube : UdonSharpBehaviour
         _gestureAngle = 0f;
         _gesturePrevUp = _LocalHandUp(td);
         _gestureActive = true;
+
+        _moveAxis = axis;
+        _moveLayer = _gestureLayer;
+        _moveAngle = 0f;
+        _CaptureBases(axis, _gestureLayer);
+        _isMoving = true;
     }
 
     private void _UpdateRotateGesture(VRCPlayerApi.TrackingDataType trackType)
     {
+        if (!_isMoving || !_gestureActive) return;
         VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
         Vector3 up = _LocalHandUp(td);
         Vector3 axis = _GetAxis(_gestureAxis);
         _gestureAngle += _SignedAngle(_gesturePrevUp, up, axis);
         _gesturePrevUp = up;
+        _moveAngle = _gestureAngle;
+        _ApplyRotation();
     }
 
     private void _EndRotateGesture()
     {
+        if (!_gestureActive) return;
         _gestureActive = false;
-        if (Mathf.Abs(_gestureAngle) < GESTURE_MIN_ANGLE) return;
-        int dir = _gestureAngle > 0f ? 1 : -1;
-        _RotateFace(_gestureAxis, _gestureLayer, dir);
+        if (!_isMoving) return;
+
+        _moveTarget = Mathf.Round(_gestureAngle / 90f) * 90f;
+        _moveDir = _moveTarget >= 0f ? 1 : -1;
+
+        if (Mathf.Abs(_moveTarget - _moveAngle) < 0.01f)
+        {
+            _FinishRotation();
+            return;
+        }
+
+        _moveSpeed = _moveTarget > _moveAngle ? STEP_ANGLE : -STEP_ANGLE;
+        _RotationStep();
     }
 
     private Vector3 _LocalHandUp(VRCPlayerApi.TrackingData td)
