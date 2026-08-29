@@ -31,12 +31,16 @@ public class RubikCube : UdonSharpBehaviour
     [Header("Cubies (optional; falls back to root children)")]
     public Transform[] cubies;
 
-    [Header("Canvas (toggled by holding hand trigger / desktop click)")]
+    [Header("Canvas (toggled by a single click on the hand trigger)")]
     public GameObject canvas;
+    [Tooltip("Release the trigger within this many seconds to count as a single click / tap.")]
+    public float tapSeconds = 0.25f;
 
     [Header("Shuffle Hold Indicator (scales X 0-1 while holding)")]
     public Transform shuffleIndicatorPivot;
     public Transform shuffleIndicator;
+    [Tooltip("Hold the trigger this long before the scale indicator appears.")]
+    public float indicatorDelay = 0.4f;
 
     [Header("Input")]
     public bool keyboardControls = true;
@@ -402,7 +406,6 @@ public class RubikCube : UdonSharpBehaviour
         _useHeld = true;
         _useShuffleFired = false;
         _useHoldTime = 0f;
-        _ShowIndicator(0f);
     }
 
     public override void OnPickupUseUp()
@@ -410,7 +413,7 @@ public class RubikCube : UdonSharpBehaviour
         if (!_useHeld) return;
         _useHeld = false;
         _HideIndicator();
-        if (!_useShuffleFired)
+        if (!_useShuffleFired && _useHoldTime <= tapSeconds)
             _ToggleCanvas();
     }
 
@@ -613,7 +616,8 @@ public class RubikCube : UdonSharpBehaviour
         {
             _useHoldTime += Time.deltaTime;
             float t = Mathf.Clamp01(_useHoldTime / shuffleHoldSeconds);
-            _ShowIndicator(t);
+            if (_useHoldTime >= indicatorDelay)
+                _ShowIndicator(t);
             if (_useHoldTime >= shuffleHoldSeconds)
             {
                 _useShuffleFired = true;
