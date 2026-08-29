@@ -52,7 +52,19 @@ namespace org.kumagee
             {
                 gameOwnerId = playerId;
                 RequestSerialization();
+                _RefreshInteractable();
             }
+        }
+
+        // The stock deck only invites an interact once a game is actually running.
+        // Disabling the collider stops VRChat from offering the prompt at all;
+        // the checks inside Interact() are a backstop for the moment ownership
+        // changes before the collider swaps.
+        public void _RefreshInteractable()
+        {
+            if (interactCollider == null) return;
+            bool interactable = Solitaire != null && Solitaire._IsGameStarted();
+            interactCollider.enabled = interactable;
         }
         
         [Header("References")]
@@ -65,12 +77,14 @@ namespace org.kumagee
         private VRCPlayerApi playerLocal;
         private CardLogic[] cards;
         private GameObject currentCard;
+        private Collider interactCollider;
         
         
         private void Start()
         {
             playerLocal = Networking.LocalPlayer;
             Pool = GetComponent<VRCObjectPool>();
+            interactCollider = GetComponent<Collider>();
             
             cards = new CardLogic[Pool.Pool.Length];
             for (int i = 0; i < cards.Length; i++)
@@ -96,6 +110,7 @@ namespace org.kumagee
 
             // Pool is only known now, so the derived count is only meaningful now.
             RefreshDeckVisual();
+            _RefreshInteractable();
         }
         
         // Every pool object has been handed out, so there is nothing left to draw.
@@ -120,6 +135,7 @@ namespace org.kumagee
             if (Solitaire == null || !Solitaire._IsGameStarted())
             {
                 Debug.Log("DeckManager: Game hasn't started yet; stock interaction disabled.");
+                _RefreshInteractable();
                 return;
             }
             if (!Solitaire._IsLocalGameOwner())
@@ -128,6 +144,11 @@ namespace org.kumagee
                 return;
             }
             Solitaire._OnStockClicked();
+        }
+
+        public override void OnDeserialization()
+        {
+            _RefreshInteractable();
         }
 
         public void NextCard()

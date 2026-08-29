@@ -257,6 +257,16 @@ namespace org.kumagee
             if (!initialized) Init();
             bool allowed = FaceUp || Solitaire == null || !Solitaire._IsTableauChain(PrevSlot);
 
+            // Pile pick-up policy comes from the base slot: all face-up cards, just
+            // the top, or none. Face-down tableau cards stay blocked regardless.
+            CardSlot pileSlot = PrevSlot;
+            if (allowed && pileSlot != null)
+            {
+                CardPickupMode mode = pileSlot._GetPickupMode();
+                if (mode == CardPickupMode.None) allowed = false;
+                else if (mode == CardPickupMode.TopOnly && pileSlot._GetTopCard() != this) allowed = false;
+            }
+
             // Only the player who started the game may grab cards. Everyone else
             // sees them as anchored so VRChat never offers the pickup.
             if (Solitaire != null)

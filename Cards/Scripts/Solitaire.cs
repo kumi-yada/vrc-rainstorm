@@ -1,5 +1,6 @@
 using UdonSharp;
 using UnityEngine;
+using TMPro;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -36,6 +37,13 @@ namespace org.kumagee
         [Header("Win")]
         [Tooltip("Optional object activated when all 4 foundations are complete.")]
         public GameObject WinMessage;
+
+        [Header("UI")]
+        [Tooltip("Label on the start/quit trigger. Shows \"Start\" before a game, \"Quit\" while one is running.")]
+        public TextMeshProUGUI StartButtonLabel;
+
+        [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
+        public GameObject ConfirmDialog;
 
         private CardLogic[] cards;
         private CardSlot[] slotsById;
@@ -152,6 +160,9 @@ namespace org.kumagee
                 cards[i]._RefreshPickupable();
             }
 
+            RefreshStartLabel();
+            if (WinMessage != null) WinMessage.SetActive(false);
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             Debug.Log($"Solitaire: Initialized with {n} cards and {baseSlotCount} base slots.");
         }
 
@@ -207,9 +218,39 @@ namespace org.kumagee
             }
         }
 
-        public override void Interact()
+        // The interactable lives on the start button now (driven by GameInteract,
+        // which forwards presses here), so only that button lights up on hover.
+        public void _OnStartPressed()
         {
+            if (!initialized) Init();
+
+            // The button doubles as Quit once a game is running. Quitting asks for
+            // confirmation while the game is still in progress, but a finished
+            // (won) game just resets straight back to the pre-deal state.
+            if (gameStarted)
+            {
+                if (!won)
+                {
+                    if (ConfirmDialog != null) ConfirmDialog.SetActive(true);
+                    return;
+                }
+                _ResetGame();
+                return;
+            }
             Deal();
+        }
+
+        // User confirmed quitting; tear the game down to the pre-deal state.
+        public void _ConfirmNewGame()
+        {
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            _ResetGame();
+        }
+
+        // User backed out; just close the confirmation dialog.
+        public void _CancelNewGame()
+        {
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
         }
 
         public void Deal()
@@ -256,6 +297,8 @@ namespace org.kumagee
             DeckOfCards._SetGameOwner(local.playerId);
             dealing = true;
             gameStarted = true;
+            RefreshStartLabel();
+            DeckOfCards._RefreshInteractable();
             Debug.Log($"Solitaire: Dealing cards for {local.displayName} ({local.playerId})");
             ResetCards();
 
@@ -365,6 +408,39 @@ namespace org.kumagee
             if (WinMessage != null) WinMessage.SetActive(false);
         }
 
+        private void RefreshStartLabel()
+        {
+            if (StartButtonLabel == null) return;
+            StartButtonLabel.text = gameStarted ? "Quit" : "Start";
+        }
+
+        // Tear the running game back down to the pre-deal state: every card back in
+        // the pool, no game owner, nobody may interact until someone deals anew.
+        public void _ResetGame()
+        {
+            if (!initialized) Init();
+            if (DeckOfCards == null || cards == null) return;
+
+            ResetCards();
+            DeckOfCards._SetGameOwner(-1);
+
+            gameStarted = false;
+            dealing = false;
+            won = false;
+            RefreshStartLabel();
+            DeckOfCards._RefreshInteractable();
+            if (WinMessage != null) WinMessage.SetActive(false);
+            Debug.Log("Solitaire: Game reset to initial state.");
+        }
+
+        public override void OnPlayerLeft(VRCPlayerApi player)
+        {
+            if (DeckOfCards == null) return;
+            if (player == null || DeckOfCards.GameOwnerId != player.playerId) return;
+            Debug.Log($"Solitaire: Game owner {player.displayName} left; resetting game.");
+            _ResetGame();
+        }
+
         public void _OnCardPickup(CardLogic card)
         {
             if (card == null) return;
@@ -384,6 +460,15 @@ namespace org.kumagee
             // _RefreshPickupable should already have blocked this; it's a backstop
             // for the window between a card being uncovered and being turned over.
             if (!card.FaceUp)
+            {
+                card._Reject();
+                return;
+            }
+
+            // Same backstop for the base slot's pick-up policy (top-only / none).
+            CardPickupMode pickupMode = below._GetPickupMode();
+            if (pickupMode == CardPickupMode.None
+                || (pickupMode == CardPickupMode.TopOnly && below._GetTopCard() != card))
             {
                 card._Reject();
                 return;

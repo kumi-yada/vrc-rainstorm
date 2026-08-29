@@ -60,6 +60,7 @@ MonoBehaviour:
   Offset: {x: 0, y: 0.001, z: 0}
   InitialOffset: 1
   AlignRotation: 1
+  AllowDrop: 1
   SlotId: -1
   Solitaire: {fileID: 0}
   Owner: {fileID: 0}

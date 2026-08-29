@@ -4,6 +4,20 @@ using VRC.Udon;
 
 namespace org.kumagee
 {
+    public enum CardPickupMode
+    {
+        AllFaceUp = 0, // baseline: any face-up card in the pile can be grabbed
+        TopOnly = 1,   // only the pile's topmost card can be grabbed
+        None = 2       // nothing in this pile can be grabbed
+    }
+
+    public enum CardDropMode
+    {
+        All = 0,    // one card or a whole fan may be dropped
+        Single = 1, // only one card at a time; a fan is rejected
+        None = 2    // no drops at all; ForceAdd/dealer still work
+    }
+
     // A single landing spot for one card. Two flavours share this component:
     //
     //   * Base slots sit in the scene (tableau columns, foundations, waste). They
@@ -31,6 +45,12 @@ namespace org.kumagee
 
         [Tooltip("Snap the card's rotation to this slot's when it lands.")]
         public bool AlignRotation = true;
+
+        [Tooltip("Which drops this pile accepts. All lets fans and singles through, Single rejects any drop carrying more than one card, None blocks player drops entirely (ForceAdd and the dealer bypass it). Read from the base slot.")]
+        public CardDropMode Drop = CardDropMode.All;
+
+        [Tooltip("Which cards in this pile players may pick up. Read from the base slot, like the pickup rule and layout.")]
+        public CardPickupMode Pickup = CardPickupMode.AllFaceUp;
 
         [Header("Runtime")]
         [Tooltip("Network identity for this slot, assigned by Solitaire at startup. This is what cards actually sync.")]
@@ -96,6 +116,13 @@ namespace org.kumagee
             CardSlot root = _GetRootSlot();
             if (root == null) return AlignRotation;
             return root.AlignRotation;
+        }
+
+        public CardPickupMode _GetPickupMode()
+        {
+            CardSlot root = _GetRootSlot();
+            if (root == null) return Pickup;
+            return root.Pickup;
         }
 
         public CardLogic _GetCardAbove()
@@ -189,6 +216,8 @@ namespace org.kumagee
         public const int RejectOccupied = 4;
         public const int RejectNoPile = 5;
         public const int RejectRule = 6;
+        public const int RejectDropDisabled = 7;
+        public const int RejectGroupDrop = 8;
 
         // Single source of truth for placement; _CanAccept is just the boolean view
         // and the code is what the drop diagnostics report.
@@ -206,6 +235,16 @@ namespace org.kumagee
             // A card slot only takes cards while its own card is part of a pile.
             CardSlot root = _GetRootSlot();
             if (root == null) return RejectNoPile;
+
+            // Dropping into this slot can be switched off or limited to one card via
+            // DropMode. ForceAdd still works because it bypasses this. The base
+            // slot's mode decides for the whole pile, like rule and offset.
+            CardDropMode dropMode = root.Drop;
+            if (dropMode == CardDropMode.None) return RejectDropDisabled;
+            if (dropMode == CardDropMode.Single && card.Slot != null && card.Slot._IsOccupied())
+            {
+                return RejectGroupDrop;
+            }
 
             SlotRule slotRule = root.ResolveRule();
             if (slotRule == null) return AcceptOk;
@@ -227,6 +266,8 @@ namespace org.kumagee
             if (code == RejectOccupied) return "occupied";
             if (code == RejectNoPile) return "not in a pile";
             if (code == RejectRule) return "rule rejected";
+            if (code == RejectDropDisabled) return "drop disabled";
+            if (code == RejectGroupDrop) return "group drop";
             return "unknown";
         }
     }
