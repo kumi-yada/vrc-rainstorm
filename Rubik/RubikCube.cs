@@ -2,6 +2,8 @@
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
+using VRC.Udon.Common;
+using MMMaellon;
 
 /// <summary>
 /// Transform-based Rubik's cube. Setup:
@@ -12,6 +14,13 @@ using VRC.Udon;
 ///    rotation are read at Start as the solved state.
 /// 3. Optionally assign `cubies` in the Inspector; if empty, the script uses
 ///    the root's children in hierarchy order.
+///
+/// VR twist gesture: hold the cube in one hand, then squeeze grip with the
+/// other hand near a face. The cube is made non-pickupable while held so the
+/// second grip cannot steal it; instead that hand's wrist twist drives the
+/// layer under it. The layer lifts out to show what is selected and tracks the
+/// wrist 1:1, clicking haptically as it crosses each quarter turn; it only
+/// snaps to the nearest quarter turn once the grip is released.
 /// </summary>
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class RubikCube : UdonSharpBehaviour
@@ -32,6 +41,16 @@ public class RubikCube : UdonSharpBehaviour
     [Header("Input")]
     public bool keyboardControls = true;
 
+    [Header("Twist Gesture (grip with the hand that is not holding the cube)")]
+    public bool twistGesture = true;
+    [Tooltip("Hand must be at least this far from the cube centre, in cubie units.")]
+    public float twistMinDistance = 0.8f;
+    [Tooltip("Hand must be no further than this from the cube centre, in cubie units. Controller tracking sits behind the fingers, so leave some slack.")]
+    public float twistMaxDistance = 6f;
+    [Tooltip("How far the selected layer lifts out of the cube while twisting, in cubie units.")]
+    public float layerLiftAmount = 0.08f;
+    public bool twistHaptics = true;
+
     [Header("Shuffle")]
     public KeyCode shuffleKey = KeyCode.Q;
     public float shuffleHoldSeconds = 2f;
@@ -46,6 +65,8 @@ public class RubikCube : UdonSharpBehaviour
     private bool _useShuffleFired;
 
     private VRC_Pickup _pickup;
+    private SmartObjectSync _sync;
+    private VRCPlayerApi _localPlayer;
 
     private Transform[] _cubies;
     private Vector3[] _homePos;
@@ -71,8 +92,11 @@ public class RubikCube : UdonSharpBehaviour
     private bool _gestureActive;
     private int _gestureAxis;
     private int _gestureLayer;
-    private Vector3 _gesturePrevUp;
     private float _gestureAngle;
+    private int _gestureDetent;
+    private Quaternion _gesturePrevRot;
+    private VRC_Pickup.PickupHand _gestureHand;
+    private VRCPlayerApi.TrackingDataType _gestureTrack;
 
     [UdonSynced] private Vector3[] _cubiePos = new Vector3[CUBIE_COUNT];
     [UdonSynced] private Quaternion[] _cubieRot = new Quaternion[CUBIE_COUNT];
@@ -85,9 +109,17 @@ public class RubikCube : UdonSharpBehaviour
     {
         _BuildCubies();
 
-        _pickup = GetComponent<VRC_Pickup>();
-        if (_pickup != null)
-            _pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
+        _localPlayer = Networking.LocalPlayer;
+
+        // SmartObjectSync owns `pickupable` at runtime (it rewrites the VRCPickup
+        // field every time the hold state changes), so it has to be the thing we
+        // talk to when locking the cube into one hand.
+        _sync = GetComponent<SmartObjectSync>();
+        if (_sync != null && _sync.pickup != null) _pickup = _sync.pickup;
+        else _pickup = GetComponent<VRC_Pickup>();
+
+        if (_pickup != null && Utilities.IsValid(_localPlayer))
+            _pickup.AutoHold = _localPlayer.IsUserInVR()
                 ? VRC_Pickup.AutoHoldMode.No
                 : VRC_Pickup.AutoHoldMode.Yes;
 
@@ -190,11 +222,17 @@ public class RubikCube : UdonSharpBehaviour
 
     private void _ApplyRotation()
     {
-        Quaternion q = Quaternion.AngleAxis(_moveAngle, _GetAxis(_moveAxis));
+        Vector3 axis = _GetAxis(_moveAxis);
+        Quaternion q = Quaternion.AngleAxis(_moveAngle, axis);
+        // While twisting, push the selected layer out along its axis so it is
+        // obvious which slice the gesture grabbed. The offset is parallel to the
+        // rotation axis, so it survives the turn unchanged and vanishes as soon
+        // as the gesture ends.
+        Vector3 lift = _gestureActive ? axis * (_moveLayer * layerLiftAmount) : Vector3.zero;
         for (int i = 0; i < _cubieCount; i++)
         {
             if (!_inLayer[i]) continue;
-            _cubies[i].localPosition = q * _basePos[i];
+            _cubies[i].localPosition = q * _basePos[i] + lift;
             _cubies[i].localRotation = q * _baseRot[i];
         }
     }
@@ -338,12 +376,25 @@ public class RubikCube : UdonSharpBehaviour
     public override void OnPickup()
     {
         Networking.SetOwner(Networking.LocalPlayer, gameObject);
-        if (_pickup != null) _pickup.pickupable = false;
+        _SetPickupable(false);
     }
 
     public override void OnDrop()
     {
-        if (_pickup != null) _pickup.pickupable = true;
+        _EndRotateGesture();
+        _SetPickupable(true);
+    }
+
+    /// <summary>
+    /// Setting VRCPickup.pickupable directly is not enough: SmartObjectSync
+    /// re-applies `pickup.pickupable = pickupable &amp;&amp; allowTheftFromSelf` when the
+    /// object enters a held state, which is what let the free hand rip the cube
+    /// out of the holding hand. Route through SmartObjectSync so the value sticks.
+    /// </summary>
+    private void _SetPickupable(bool value)
+    {
+        if (_sync != null) _sync.pickupable = value;
+        else if (_pickup != null) _pickup.pickupable = value;
     }
 
     public override void OnPickupUseDown()
@@ -369,47 +420,45 @@ public class RubikCube : UdonSharpBehaviour
             canvas.SetActive(!canvas.activeSelf);
     }
 
-    private void _PollOtherHandRotate()
+    /// <summary>
+    /// Grip on the hand that is *not* holding the cube starts/ends a twist.
+    /// This is a raw input event, so it fires even though the cube itself is
+    /// locked non-pickupable and cannot be grabbed by that hand.
+    /// </summary>
+    public override void InputGrab(bool value, UdonInputEventArgs args)
     {
+        if (!twistGesture) return;
+        if (!Utilities.IsValid(_localPlayer) || !_localPlayer.IsUserInVR()) return;
         if (_pickup == null) return;
-        VRC_Pickup.PickupHand hand = _pickup.currentHand;
-        if (hand == VRC_Pickup.PickupHand.None)
-        {
-            if (_gestureActive) _EndRotateGesture();
-            return;
-        }
 
-        string button = hand == VRC_Pickup.PickupHand.Right
-            ? "Oculus_CrossPlatform_PrimaryHandTrigger"
-            : "Oculus_CrossPlatform_SecondaryHandTrigger";
+        VRC_Pickup.PickupHand holdHand = _pickup.currentHand;
+        if (holdHand == VRC_Pickup.PickupHand.None) return;
+        if (_localPlayer.GetPickupInHand(holdHand) != _pickup) return;
 
-        VRCPlayerApi.TrackingDataType trackType = hand == VRC_Pickup.PickupHand.Right
-            ? VRCPlayerApi.TrackingDataType.LeftHand
-            : VRCPlayerApi.TrackingDataType.RightHand;
+        VRC_Pickup.PickupHand grabHand = args.handType == HandType.LEFT
+            ? VRC_Pickup.PickupHand.Left
+            : VRC_Pickup.PickupHand.Right;
+        if (grabHand == holdHand) return;
 
-        if (Input.GetButtonDown(button))
-        {
-            _BeginRotateGesture(trackType);
-        }
-        else if (Input.GetButton(button) && _gestureActive)
-        {
-            _UpdateRotateGesture(trackType);
-        }
-        else if (Input.GetButtonUp(button) && _gestureActive)
-        {
-            _EndRotateGesture();
-        }
+        if (value) _BeginRotateGesture(grabHand);
+        else _EndRotateGesture();
     }
 
-    private void _BeginRotateGesture(VRCPlayerApi.TrackingDataType trackType)
+    private void _BeginRotateGesture(VRC_Pickup.PickupHand hand)
     {
         if (_gestureActive) return;
         if (_isMoving) return;
 
-        VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
+        VRCPlayerApi.TrackingDataType trackType = hand == VRC_Pickup.PickupHand.Left
+            ? VRCPlayerApi.TrackingDataType.LeftHand
+            : VRCPlayerApi.TrackingDataType.RightHand;
+
+        VRCPlayerApi.TrackingData td = _localPlayer.GetTrackingData(trackType);
         Vector3 localPos = transform.InverseTransformPoint(td.position);
 
-        if (localPos.magnitude < 0.1f) return;
+        // Ignore grips that are not aimed at the cube at all.
+        float dist = localPos.magnitude;
+        if (dist < twistMinDistance || dist > twistMaxDistance) return;
 
         float absX = Mathf.Abs(localPos.x);
         float absY = Mathf.Abs(localPos.y);
@@ -433,27 +482,57 @@ public class RubikCube : UdonSharpBehaviour
             dominantVal = localPos.z;
         }
 
+        int layer = Mathf.Clamp(Mathf.RoundToInt(dominantVal), -1, 1);
+        if (layer == 0) layer = dominantVal >= 0f ? 1 : -1;
+
+        if (!Networking.IsOwner(gameObject))
+            Networking.SetOwner(_localPlayer, gameObject);
+
         _gestureAxis = axis;
-        _gestureLayer = Mathf.Clamp(Mathf.RoundToInt(dominantVal), -1, 1);
+        _gestureLayer = layer;
         _gestureAngle = 0f;
-        _gesturePrevUp = _LocalHandUp(td);
+        _gestureDetent = 0;
+        _gestureHand = hand;
+        _gestureTrack = trackType;
+        _gesturePrevRot = _LocalHandRot(td);
         _gestureActive = true;
 
         _moveAxis = axis;
-        _moveLayer = _gestureLayer;
+        _moveLayer = layer;
         _moveAngle = 0f;
-        _CaptureBases(axis, _gestureLayer);
+        _CaptureBases(axis, layer);
         _isMoving = true;
+        _ApplyRotation();
+        _Haptic(0.4f);
     }
 
-    private void _UpdateRotateGesture(VRCPlayerApi.TrackingDataType trackType)
+    private void _UpdateRotateGesture()
     {
-        if (!_isMoving || !_gestureActive) return;
-        VRCPlayerApi.TrackingData td = Networking.LocalPlayer.GetTrackingData(trackType);
-        Vector3 up = _LocalHandUp(td);
-        Vector3 axis = _GetAxis(_gestureAxis);
-        _gestureAngle += _SignedAngle(_gesturePrevUp, up, axis);
-        _gesturePrevUp = up;
+        if (!_gestureActive) return;
+        if (_pickup == null || _pickup.currentHand == VRC_Pickup.PickupHand.None)
+        {
+            _EndRotateGesture();
+            return;
+        }
+
+        VRCPlayerApi.TrackingData td = _localPlayer.GetTrackingData(_gestureTrack);
+        Quaternion rot = _LocalHandRot(td);
+        Quaternion delta = rot * Quaternion.Inverse(_gesturePrevRot);
+        _gesturePrevRot = rot;
+
+        _gestureAngle = Mathf.Clamp(
+            _gestureAngle + _TwistAngle(delta, _GetAxis(_gestureAxis)), -180f, 180f);
+
+        // Detents are felt, not seen: nudging the displayed angle toward one
+        // would jump ~30 degrees every time the nearest detent changes. The
+        // layer tracks the wrist 1:1 and only snaps once the grip is released.
+        int detent = Mathf.RoundToInt(_gestureAngle / 90f);
+        if (detent != _gestureDetent)
+        {
+            _gestureDetent = detent;
+            _Haptic(1f);
+        }
+
         _moveAngle = _gestureAngle;
         _ApplyRotation();
     }
@@ -465,7 +544,11 @@ public class RubikCube : UdonSharpBehaviour
         if (!_isMoving) return;
 
         _moveTarget = Mathf.Round(_gestureAngle / 90f) * 90f;
-        _moveDir = _moveTarget >= 0f ? 1 : -1;
+        // Quarter-turn count, not just a sign: a 180 degree twist has to replay
+        // as 180 degrees on remote clients too.
+        _moveDir = Mathf.RoundToInt(_moveTarget / 90f);
+
+        _ApplyRotation(); // drop the layer lift before animating to the snap
 
         if (Mathf.Abs(_moveTarget - _moveAngle) < 0.01f)
         {
@@ -477,16 +560,32 @@ public class RubikCube : UdonSharpBehaviour
         _RotationStep();
     }
 
-    private Vector3 _LocalHandUp(VRCPlayerApi.TrackingData td)
+    private Quaternion _LocalHandRot(VRCPlayerApi.TrackingData td)
     {
-        return transform.InverseTransformDirection(td.rotation * Vector3.up);
+        return Quaternion.Inverse(transform.rotation) * td.rotation;
     }
 
-    private float _SignedAngle(Vector3 from, Vector3 to, Vector3 axis)
+    /// <summary>
+    /// Swing-twist decomposition: the component of `delta` about `axis`, in
+    /// degrees. Robust regardless of how the wrist is oriented, unlike
+    /// projecting a single reference vector which degenerates when that vector
+    /// lines up with the axis.
+    /// </summary>
+    private float _TwistAngle(Quaternion delta, Vector3 axis)
     {
-        Vector3 fromP = from - axis * Vector3.Dot(from, axis);
-        Vector3 toP = to - axis * Vector3.Dot(to, axis);
-        return Mathf.Atan2(Vector3.Dot(axis, Vector3.Cross(fromP, toP)), Vector3.Dot(fromP, toP));
+        float d = delta.x * axis.x + delta.y * axis.y + delta.z * axis.z;
+        float angle = 2f * Mathf.Atan2(d, delta.w) * Mathf.Rad2Deg;
+        if (angle > 180f) angle -= 360f;
+        else if (angle < -180f) angle += 360f;
+        return angle;
+    }
+
+    private void _Haptic(float amplitude)
+    {
+        if (!twistHaptics) return;
+        if (_gestureHand == VRC_Pickup.PickupHand.None) return;
+        if (!Utilities.IsValid(_localPlayer)) return;
+        _localPlayer.PlayHapticEventInHand(_gestureHand, 0.05f, amplitude, 100f);
     }
 
     public bool IsSolved()
@@ -508,7 +607,7 @@ public class RubikCube : UdonSharpBehaviour
 
     void Update()
     {
-        _PollOtherHandRotate();
+        _UpdateRotateGesture();
 
         if (_useHeld && !_useShuffleFired)
         {
