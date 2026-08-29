@@ -24,6 +24,8 @@ namespace org.kumagee
 
         public override void Interact()
         {
+            if (DeckOfCards == null || DeckOfCards.Solitaire == null) return;
+            if (!DeckOfCards.Solitaire._IsGameStarted() || !DeckOfCards.Solitaire._IsLocalGameOwner()) return;
             DeckOfCards._ResetDeck();
             anim.SetTrigger(hashTrigger);
         }

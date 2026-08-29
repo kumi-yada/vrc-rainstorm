@@ -10,13 +10,14 @@ namespace org.kumagee
     {
         private const int RankAce = 1;
 
-        public override bool AllowedToPlace(CardLogic[] cards, CardLogic card)
+        public override bool AllowedToPlace(CardLogic cardBelow, CardLogic card)
         {
-            if (cards == null || card == null || card.IsJoker) return false;
-            if (cards.Length == 0) return (int)card.CardRank == RankAce;
-            CardLogic top = cards[cards.Length - 1];
-            return (int)top.CardSuit == (int)card.CardSuit
-                && (int)top.CardRank == (int)card.CardRank + 1;
+            if (card == null || card.IsJoker) return false;
+            if (cardBelow == null) return (int)card.CardRank == RankAce;
+            // Foundations build up in suit: ace, two, three... so the incoming card
+            // is one rank above the one it lands on.
+            return (int)cardBelow.CardSuit == (int)card.CardSuit
+                && (int)card.CardRank == (int)cardBelow.CardRank + 1;
         }
     }
 }

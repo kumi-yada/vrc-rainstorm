@@ -1,287 +1,233 @@
-﻿
 using UdonSharp;
 using UnityEngine;
-using UnityEngine.Serialization;
-using VRC.SDK3.Components;
-using VRC.SDKBase;
 using VRC.Udon;
 
 namespace org.kumagee
 {
+    // A single landing spot for one card. Two flavours share this component:
+    //
+    //   * Base slots sit in the scene (tableau columns, foundations, waste). They
+    //     anchor a pile, carry its layout and its SlotRule, and have a null Owner.
+    //   * Card slots ride along on every card and represent the spot directly on
+    //     top of that card. They inherit layout and rule from the base slot at the
+    //     bottom of their chain.
+    //
+    // A pile is a linked list built upward: every card points its PrevSlot at the
+    // slot it landed in, so the chain from any card walks down to a base slot.
+    // Nothing here is synced - CardLogic syncs the link and everyone rebuilds the
+    // same structure from it.
     [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class CardSlot : UdonSharpBehaviour
     {
+        // A pile can never exceed the deck size, so anything past this is a cycle.
+        private const int ChainGuard = 64;
+
         [Header("Layout")]
-        [Tooltip("Offset between each stacked card, in this slot's local X (right), Y (up) and Z (forward).")]
+        [Tooltip("Where the card above sits, relative to this slot. Only read off the base slot of a pile; card slots inherit it.")]
         public Vector3 Offset = new Vector3(0f, 0.002f, 0f);
 
-        [Tooltip("Maximum number of cards this slot holds. 0 = unlimited.")]
-        public int MaxCards = 12;
+        [Tooltip("Whether the first card placed directly on this slot is offset. Turn off to have it sit flush on the anchor, so the fan starts from the second card. Only meaningful on a base slot.")]
+        public bool InitialOffset = true;
 
-        [Tooltip("Snap the card's rotation to this slot's rotation when it is released.")]
+        [Tooltip("Snap the card's rotation to this slot's when it lands.")]
         public bool AlignRotation = true;
 
-        [Header("Events")]
-        [Tooltip("UdonBehaviour notified via SendCustomEvent when a card is placed in this slot.")]
-        public UdonBehaviour PlacedTarget;
+        [Header("Runtime")]
+        [Tooltip("Network identity for this slot, assigned by Solitaire at startup. This is what cards actually sync.")]
+        [HideInInspector] public int SlotId = -1;
 
-        [Tooltip("Event name sent to PlacedTarget when a card is placed.")]
-        public string PlacedEvent = "_OnCardPlaced";
+        [Tooltip("Assigned by Solitaire at startup.")]
+        [HideInInspector] public Solitaire Solitaire;
 
-        [Tooltip("UdonBehaviour notified via SendCustomEvent when a card is removed from this slot.")]
-        public UdonBehaviour RemovedTarget;
+        [Tooltip("The card this slot sits on top of. Null on the base slots placed in the scene.")]
+        [HideInInspector] public CardLogic Owner;
 
-        [Tooltip("Event name sent to RemovedTarget when a card is removed.")]
-        public string RemovedEvent = "_OnCardRemoved";
-
-        private const int Capacity = 64;
-
-        private CardLogic[] cards;
-        private int cardCount;
-        private bool initialized;
         private SlotRule rule;
+        private bool ruleResolved;
 
-        private void Start()
+        public bool IsBaseSlot => Owner == null;
+
+        // The base slot at the bottom of this slot's chain, or null when the chain
+        // doesn't reach one - which means the card carrying this slot is loose.
+        public CardSlot _GetRootSlot()
         {
-            Initialize();
+            CardSlot current = this;
+            int guard = 0;
+            while (current != null && guard < ChainGuard)
+            {
+                if (current.Owner == null) return current;
+                current = current.Owner.PrevSlot;
+                guard++;
+            }
+            return null;
         }
 
-        private void Initialize()
+        private SlotRule ResolveRule()
         {
-            if (initialized) return;
-            initialized = true;
-            if (cards == null) cards = new CardLogic[Capacity];
-            if (rule == null) rule = GetComponent<SlotRule>();
+            if (!ruleResolved)
+            {
+                ruleResolved = true;
+                rule = GetComponent<SlotRule>();
+            }
+            return rule;
         }
 
-        private bool Add(CardLogic logic, bool force = false)
+        public SlotRule _GetRule()
         {
-            if (MaxCards > 0 && cardCount >= MaxCards) return false;
-            if (cardCount >= Capacity) return false;
-
-            int firstFreeIndex = -1;
-            for (int i = 0; i < MaxCards; i++)
-            {
-                if (cards[i] == null && firstFreeIndex < 0) firstFreeIndex = i;
-                if (cards[i] == logic) return false;
-            }
-            if (firstFreeIndex < 0) {
-                Debug.Log($"CardSlot: No free index found for card {logic.name} in slot {name}, but cardCount={cardCount}. Adding at end.");
-                return false;
-            }
-
-            if (!force && rule != null)
-            {
-                if (!rule.AllowedToPlace(BuildStack(), logic))
-                {
-                    Debug.Log($"CardSlot: Card {logic.name} not allowed to be placed in slot {name}");
-                    return false;
-                }
-            }
-
-            cards[firstFreeIndex] = logic;
-            cardCount++;
-            Debug.Log($"CardSlot: Added card {logic.name} to slot {name} at index {firstFreeIndex}");
-            return true;
+            CardSlot root = _GetRootSlot();
+            if (root == null) return null;
+            return root.ResolveRule();
         }
 
-        private CardLogic[] BuildStack()
+        // Layout comes from the pile's base slot, so a card fans the same way no
+        // matter which pile it was dealt into.
+        public Vector3 _GetOffsetForNext()
         {
-            CardLogic[] stack = new CardLogic[cardCount];
-            for (int i = 0; i < cardCount; i++)
-            {
-                stack[i] = cards[i];
-            }
-            return stack;
+            CardSlot root = _GetRootSlot();
+            if (root == null) root = this;
+            // A base slot marks where its own first card sits, so that card can land
+            // flush on the anchor and let the fan start from the one above it.
+            if (IsBaseSlot && !InitialOffset) return Vector3.zero;
+            return root.Offset;
         }
 
-        private bool Remove(CardLogic logic)
+        public bool _GetAlignRotation()
         {
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (cards[i] == logic)
-                {
-                    ShiftCardsLeft(i);
-                    cardCount--;
-                    return true;
-                }
-            }
-            return false;
+            CardSlot root = _GetRootSlot();
+            if (root == null) return AlignRotation;
+            return root.AlignRotation;
         }
 
-        private void ShiftCardsLeft(int startIndex)
+        public CardLogic _GetCardAbove()
         {
-            for (int i = startIndex; i < cardCount - 1; i++)
+            if (Solitaire == null) return null;
+            return Solitaire._GetCardOn(this);
+        }
+
+        public bool _IsOccupied()
+        {
+            return _GetCardAbove() != null;
+        }
+
+        // Highest free slot in this pile - where the next card would land.
+        public CardSlot _GetTopSlot()
+        {
+            CardSlot current = this;
+            int guard = 0;
+            while (guard < ChainGuard)
             {
-                cards[i] = cards[i + 1];
+                CardLogic above = current._GetCardAbove();
+                if (above == null) return current;
+                if (above.Slot == null) return current;
+                current = above.Slot;
+                guard++;
             }
-            cards[cardCount - 1] = null;
+            return current;
+        }
+
+        // Topmost card of this pile, or null when the pile is empty.
+        public CardLogic _GetTopCard()
+        {
+            return _GetTopSlot().Owner;
         }
 
         public int _GetCardCount()
         {
-            Initialize();
-            return cardCount;
+            int count = 0;
+            CardSlot current = this;
+            int guard = 0;
+            while (guard < ChainGuard)
+            {
+                CardLogic above = current._GetCardAbove();
+                if (above == null) break;
+                count++;
+                if (above.Slot == null) break;
+                current = above.Slot;
+                guard++;
+            }
+            return count;
         }
 
         public CardLogic _GetCardAt(int index)
         {
-            Initialize();
-            if (index < 0 || index >= cardCount) return null;
-            return cards[index];
-        }
-
-        public CardLogic _GetTopCard()
-        {
-            return _GetCardAt(cardCount - 1);
-        }
-
-        public int _GetCardIndex(CardLogic logic)
-        {
-            Initialize();
-            if (logic == null) return -1;
-            for (int i = 0; i < cardCount; i++)
-            {
-                if (cards[i] == logic) return i;
-            }
-            return -1;
-        }
-
-        public CardLogic[] _GetStackFrom(CardLogic logic)
-        {
-            Initialize();
-            int index = _GetCardIndex(logic);
             if (index < 0) return null;
-            int count = cardCount - index;
-            CardLogic[] stack = new CardLogic[count];
-            for (int i = 0; i < count; i++)
+            CardSlot current = this;
+            int guard = 0;
+            while (guard < ChainGuard)
             {
-                stack[i] = cards[index + i];
+                CardLogic above = current._GetCardAbove();
+                if (above == null) return null;
+                if (index == 0) return above;
+                index--;
+                if (above.Slot == null) return null;
+                current = above.Slot;
+                guard++;
             }
-            return stack;
+            return null;
         }
 
-        public bool _PlaceCard(CardLogic logic)
+        // True when this slot sits somewhere above the given card. Placing that card
+        // here would make it its own ancestor, so it has to be rejected.
+        private bool DescendsFrom(CardLogic card)
         {
-            Initialize();
-            if (logic == null) return false;
-            if (!Add(logic)) return false;
-            Repack();
-            SendPlacedEvent();
-            return true;
-        }
-
-        public bool _ForceAdd(CardLogic logic)
-        {
-            Initialize();
-            if (logic == null) return false;
-            if (!Add(logic, true)) return false;
-            Repack();
-            return true;
-        }
-
-        public bool _PlaceCardStack(CardLogic[] stack)
-        {
-            Initialize();
-            if (stack == null || stack.Length == 0) return false;
-            if (MaxCards > 0 && cardCount + stack.Length > MaxCards)
+            CardSlot current = this;
+            int guard = 0;
+            while (current != null && guard < ChainGuard)
             {
-                Debug.Log($"CardSlot: Stack of {stack.Length} cards exceeds max {MaxCards} for slot {name}");
-                return false;
+                if (current.Owner == null) return false;
+                if (current.Owner == card) return true;
+                current = current.Owner.PrevSlot;
+                guard++;
             }
-            if (cardCount + stack.Length > Capacity) return false;
-            if (rule != null)
-            {
-                if (!rule.AllowedToPlace(BuildStack(), stack[0]))
-                {
-                    Debug.Log($"CardSlot: Stack of {stack.Length} cards not allowed to be placed in slot {name}");
-                    return false;
-                }
-            }
-            for (int i = 0; i < stack.Length; i++)
-            {
-                if (stack[i] == null) return false;
-                if (!Add(stack[i], true)) return false;
-            }
-            Repack();
-            SendPlacedEvent();
-            return true;
+            return false;
         }
 
-        public void _RemoveCard(CardLogic logic)
+        public const int AcceptOk = 0;
+        public const int RejectNoCard = 1;
+        public const int RejectOwnSlot = 2;
+        public const int RejectAboveDragged = 3;
+        public const int RejectOccupied = 4;
+        public const int RejectNoPile = 5;
+        public const int RejectRule = 6;
+
+        // Single source of truth for placement; _CanAccept is just the boolean view
+        // and the code is what the drop diagnostics report.
+        public int _CheckAccept(CardLogic card)
         {
-            Initialize();
-            if (logic == null) return;
-            if (!Remove(logic)) return;
-            Repack();
-            SendRemovedEvent();
+            if (card == null) return RejectNoCard;
+            // Putting a card back exactly where it already was is always legal. It
+            // also has to short-circuit the occupancy test below, which would
+            // otherwise see the card itself sitting here and turn it away.
+            if (card.PrevSlot == this) return AcceptOk;
+            if (card.Slot == this) return RejectOwnSlot;
+            if (DescendsFrom(card)) return RejectAboveDragged;
+            if (_IsOccupied()) return RejectOccupied;
+
+            // A card slot only takes cards while its own card is part of a pile.
+            CardSlot root = _GetRootSlot();
+            if (root == null) return RejectNoPile;
+
+            SlotRule slotRule = root.ResolveRule();
+            if (slotRule == null) return AcceptOk;
+            if (!slotRule.AllowedToPlace(Owner, card)) return RejectRule;
+            return AcceptOk;
         }
 
-        private void SendPlacedEvent()
+        public bool _CanAccept(CardLogic card)
         {
-            if (PlacedTarget != null && !string.IsNullOrEmpty(PlacedEvent))
-            {
-                PlacedTarget.SendCustomEvent(PlacedEvent);
-            }
+            return _CheckAccept(card) == AcceptOk;
         }
 
-        private void SendRemovedEvent()
+        public string _DescribeReject(int code)
         {
-            if (RemovedTarget != null && !string.IsNullOrEmpty(RemovedEvent))
-            {
-                RemovedTarget.SendCustomEvent(RemovedEvent);
-            }
-        }
-
-        public void _Repack()
-        {
-            Initialize();
-            Repack();
-        }
-
-        public void _Clear()
-        {
-            Initialize();
-            for (int i = 0; i < MaxCards; i++)
-            {
-                if (cards[i] == null) continue;
-                cards[i] = null;
-            }
-            cardCount = 0;
-        }
-
-        private void Repack()
-        {
-            int index = 0;
-            Debug.Log($"CardSlot: Repacking cards in slot {name}, cardCount={cardCount}");
-            for (int i = 0; i < MaxCards; i++)
-            {
-                CardLogic logic = cards[i];
-                if (logic == null) continue;
-                PlaceCard(logic, index);
-                index++;
-            }
-        }
-
-        private void PlaceCard(CardLogic logic, int index)
-        {
-            Transform mover = logic.transform;
-            if (mover == null) mover = logic.transform;
-
-            Vector3 worldOffset = transform.TransformDirection(
-                new Vector3(Offset.x * index, Offset.y * index, Offset.z * index));
-            Vector3 pos = transform.position + worldOffset;
-            mover.position = pos;
-            Debug.Log($"CardSlot: Placing card {logic.name} at position {pos} in slot {name}");
-
-            if (AlignRotation) mover.rotation = transform.rotation;
-
-            VRCObjectSync sync = mover.GetComponent<VRCObjectSync>();
-            if (sync != null)
-            {
-                sync.SetKinematic(true);
-                sync.FlagDiscontinuity();
-            }
+            if (code == AcceptOk) return "ok";
+            if (code == RejectNoCard) return "no card";
+            if (code == RejectOwnSlot) return "own slot";
+            if (code == RejectAboveDragged) return "above dragged card";
+            if (code == RejectOccupied) return "occupied";
+            if (code == RejectNoPile) return "not in a pile";
+            if (code == RejectRule) return "rule rejected";
+            return "unknown";
         }
     }
 }

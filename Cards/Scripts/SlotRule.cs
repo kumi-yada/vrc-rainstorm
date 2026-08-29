@@ -7,6 +7,6 @@ namespace org.kumagee
 {
     public abstract class SlotRule : UdonSharpBehaviour
     {
-        public abstract bool AllowedToPlace(CardLogic[] cards, CardLogic card);
+        public abstract bool AllowedToPlace(CardLogic cardBelow, CardLogic card);
     }
 }
