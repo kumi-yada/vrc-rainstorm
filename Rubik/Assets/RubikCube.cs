@@ -108,6 +108,7 @@ public class RubikCube : UdonSharpBehaviour
     [UdonSynced] private int _lastMoveLayer;
     [UdonSynced] private int _lastMoveDir;
     [UdonSynced] private int _moveCounter;
+    [UdonSynced] private bool _canvasOpen;
 
     void Start()
     {
@@ -135,6 +136,12 @@ public class RubikCube : UdonSharpBehaviour
         }
         if (shuffleIndicatorPivot != null)
             shuffleIndicatorPivot.gameObject.SetActive(false);
+
+        if (canvas != null)
+        {
+            _canvasOpen = canvas.activeSelf;
+            _ApplyCanvasState();
+        }
     }
 
     private void _BuildCubies()
@@ -360,6 +367,7 @@ public class RubikCube : UdonSharpBehaviour
 
     public override void OnDeserialization()
     {
+        _ApplyCanvasState();
         if (!_hasReceivedState)
         {
             _hasReceivedState = true;
@@ -419,8 +427,18 @@ public class RubikCube : UdonSharpBehaviour
 
     public void _ToggleCanvas()
     {
+        if (canvas == null) return;
+        if (!Networking.IsOwner(gameObject))
+            Networking.SetOwner(Networking.LocalPlayer, gameObject);
+        _canvasOpen = !_canvasOpen;
+        RequestSerialization();
+        _ApplyCanvasState();
+    }
+
+    private void _ApplyCanvasState()
+    {
         if (canvas != null)
-            canvas.SetActive(!canvas.activeSelf);
+            canvas.SetActive(_canvasOpen);
     }
 
     /// <summary>
