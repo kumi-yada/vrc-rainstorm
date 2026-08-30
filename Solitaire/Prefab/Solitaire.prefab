@@ -899,7 +899,7 @@ MonoBehaviour:
   interactTextPlacement: {fileID: 0}
   interactText: Use
   interactTextGO: {fileID: 0}
-  proximity: 2
+  proximity: 1
   SynchronizePosition: 0
   AllowCollisionOwnershipTransfer: 0
   Reliable: 0
@@ -929,7 +929,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.05
+  m_Radius: 0.02
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3216510739271835431
 GameObject:
@@ -958,7 +958,7 @@ Transform:
   m_GameObject: {fileID: 3216510739271835431}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.001, z: 0}
+  m_LocalPosition: {x: -0, y: 0.0009, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1641,8 +1641,10 @@ MonoBehaviour:
   - {fileID: 3240455537038468780}
   WasteSlot: {fileID: 3720284341765331391}
   SnapDistance: 0.12
+  DealDelay: 0.2
   WinMessage: {fileID: 5531238642168917453}
   StartButtonLabel: {fileID: 8457560857869641023}
+  StartButtonInteract: {fileID: 741970329349615829}
   ConfirmDialog: {fileID: 5256320913056188737}
 --- !u!114 &3657767045078619495
 MonoBehaviour:
@@ -2498,7 +2500,6 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 5926450978521246911}
   cardCurrent: -1
-  UseGravity: 0
   Deck: {fileID: 1240841691936608318}
   Pool: {fileID: 0}
   Solitaire: {fileID: 0}
@@ -2515,9 +2516,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactTextPlacement: {fileID: 0}
-  interactText: Use
+  interactText: 
   interactTextGO: {fileID: 0}
-  proximity: 2
+  proximity: 0.5
   SynchronizePosition: 0
   AllowCollisionOwnershipTransfer: 0
   Reliable: 1
@@ -2614,8 +2615,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.10786551, y: 0.00125, z: 0.15000057}
-  m_Center: {x: 0, y: 0.001, z: 0}
+  m_Size: {x: 0.1, y: 0.03, z: 0.14}
+  m_Center: {x: 0, y: 0.015, z: 0}
 --- !u!1 &7427247813755826341
 GameObject:
   m_ObjectHideFlags: 0
@@ -7594,6 +7595,16 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: d7bab1f412849c9bebbc27163356f204,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: d7bab1f412849c9bebbc27163356f204,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: d7bab1f412849c9bebbc27163356f204,
+        type: 3}
+      propertyPath: m_ReceiveShadows
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d7bab1f412849c9bebbc27163356f204,

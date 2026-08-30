@@ -34,6 +34,9 @@ namespace org.kumagee
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
         public float SnapDistance = 0.12f;
 
+        [Tooltip("Seconds to wait between dealing each card. Each card costs a pool spawn, an ownership transfer and two serializations, so this is really a throttle on outgoing network traffic - going much below 0.15 risks VRChat dropping writes faster than the retries can recover them.")]
+        public float DealDelay = 0.2f;
+
         [Header("Win")]
         [Tooltip("Optional object activated when all 4 foundations are complete.")]
         public GameObject WinMessage;
@@ -41,6 +44,9 @@ namespace org.kumagee
         [Header("UI")]
         [Tooltip("Label on the start/quit trigger. Shows \"Start\" before a game, \"Quit\" while one is running.")]
         public TextMeshProUGUI StartButtonLabel;
+
+        [Tooltip("Interact collider on the start/quit button. While a game is running by another player it is disabled so they cannot start a competing game.")]
+        public Collider StartButtonInteract;
 
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
         public GameObject ConfirmDialog;
@@ -53,6 +59,9 @@ namespace org.kumagee
         private bool gameStarted;
         private bool initialized;
         private bool won;
+        private int dealCol;
+        private int dealDepth;
+        private VRCPlayerApi dealOwner;
 
         // True once a deal has happened; input that depends on a running game
         // (like drawing from the stock) is gated on this.
@@ -161,6 +170,7 @@ namespace org.kumagee
             }
 
             RefreshStartLabel();
+            _RefreshStartInteractable();
             if (WinMessage != null) WinMessage.SetActive(false);
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             Debug.Log($"Solitaire: Initialized with {n} cards and {baseSlotCount} base slots.");
@@ -226,12 +236,31 @@ namespace org.kumagee
 
             // The button doubles as Quit once a game is running. Quitting asks for
             // confirmation while the game is still in progress, but a finished
-            // (won) game just resets straight back to the pre-deal state.
+            // (won) game just resets straight back to the pre-deal state. The
+            // interactable is disabled for anyone else while a game is running,
+            // but this syncs a beat late, so hard-block presses that slip through.
+            if (DeckOfCards != null)
+            {
+                int ownerId = DeckOfCards.GameOwnerId;
+                VRCPlayerApi local = Networking.LocalPlayer;
+                if (ownerId != -1 && Utilities.IsValid(local) && ownerId != local.playerId)
+                {
+                    return;
+                }
+            }
             if (gameStarted)
             {
                 if (!won)
                 {
-                    if (ConfirmDialog != null) ConfirmDialog.SetActive(true);
+                    if (ConfirmDialog != null)
+                    {
+                        if (ConfirmDialog.activeSelf)
+                        {
+                            ConfirmDialog.SetActive(false);
+                            return;
+                        }
+                        ConfirmDialog.SetActive(true);
+                    }
                     return;
                 }
                 _ResetGame();
@@ -287,7 +316,10 @@ namespace org.kumagee
 
             // Only the current game owner may deal. Anyone can deal a fresh game,
             // but once one is running it's locked to the player who started it.
-            if (gameStarted && DeckOfCards.GameOwnerId != local.playerId)
+            // The ownerId is synced, so this holds for late-joining clients whose
+            // local gameStarted flag is still false.
+            int gameOwnerId = DeckOfCards.GameOwnerId;
+            if (gameOwnerId != -1 && gameOwnerId != local.playerId)
             {
                 Debug.Log("Solitaire: Game already started by someone else; only they may deal.");
                 return;
@@ -298,15 +330,36 @@ namespace org.kumagee
             dealing = true;
             gameStarted = true;
             RefreshStartLabel();
+            _RefreshStartInteractable();
             DeckOfCards._RefreshInteractable();
             Debug.Log($"Solitaire: Dealing cards for {local.displayName} ({local.playerId})");
             ResetCards();
+            dealCol = 0;
+            dealDepth = 0;
+            dealOwner = local;
+            SendCustomEventDelayedSeconds("_DealNextCard", DealDelay);
+        }
 
-            for (int col = 0; col < TableauSlots.Length && col < 7; col++)
+        // Deals exactly one card per call, then schedules the next after DealDelay.
+        // The tableau is dealt column by column, each column one deeper than the last.
+        public void _DealNextCard()
+        {
+            if (!dealing) return;
+            if (dealOwner == null || DeckOfCards == null || TableauSlots == null)
             {
-                CardSlot slot = TableauSlots[col];
-                if (slot == null) continue;
-                for (int depth = 0; depth <= col; depth++)
+                FinalizeDeal();
+                return;
+            }
+
+            if (dealCol < TableauSlots.Length && dealCol < 7)
+            {
+                CardSlot slot = TableauSlots[dealCol];
+                if (slot == null)
+                {
+                    dealCol++;
+                    dealDepth = 0;
+                }
+                else
                 {
                     GameObject cardGO = DeckOfCards.DrawNext();
                     if (cardGO == null)
@@ -315,12 +368,27 @@ namespace org.kumagee
                         return;
                     }
                     CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
-                    if (card == null) continue;
-                    Networking.SetOwner(local, cardGO);
-                    card._ForcePlace(slot._GetTopSlot(), depth == col);
+                    if (card != null)
+                    {
+                        Networking.SetOwner(dealOwner, cardGO);
+                        card._ForcePlace(slot._GetTopSlot(), dealDepth == dealCol);
+                    }
+                    dealDepth++;
+                    if (dealDepth > dealCol)
+                    {
+                        dealCol++;
+                        dealDepth = 0;
+                    }
                 }
             }
-            FinalizeDeal();
+            if (dealCol < TableauSlots.Length && dealCol < 7)
+            {
+                SendCustomEventDelayedSeconds("_DealNextCard", DealDelay);
+            }
+            else
+            {
+                FinalizeDeal();
+            }
         }
 
         // One click on the stock: deal the next card, or turn the waste back over
@@ -328,7 +396,7 @@ namespace org.kumagee
         public void _OnStockClicked()
         {
             if (!initialized) Init();
-            if (DeckOfCards == null) return;
+            if (DeckOfCards == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
             if (DeckOfCards._IsStockEmpty()) _RecycleWaste();
@@ -339,7 +407,7 @@ namespace org.kumagee
         public void _RecycleWaste()
         {
             if (!initialized) Init();
-            if (DeckOfCards == null || WasteSlot == null) return;
+            if (DeckOfCards == null || WasteSlot == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
             VRCPlayerApi local = Networking.LocalPlayer;
@@ -376,7 +444,7 @@ namespace org.kumagee
         public void _DrawFromStock()
         {
             if (!initialized) Init();
-            if (DeckOfCards == null || WasteSlot == null) return;
+            if (DeckOfCards == null || WasteSlot == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
             VRCPlayerApi local = Networking.LocalPlayer;
@@ -408,10 +476,34 @@ namespace org.kumagee
             if (WinMessage != null) WinMessage.SetActive(false);
         }
 
+        // The label mirrors the interactable: hidden while another player is
+        // mid-game, so a spectator sees neither the "Start" prompt nor a button
+        // that they can't press anyway.
         private void RefreshStartLabel()
         {
             if (StartButtonLabel == null) return;
-            StartButtonLabel.text = gameStarted ? "Quit" : "Start";
+            int ownerId = DeckOfCards != null ? DeckOfCards.GameOwnerId : -1;
+            bool running = gameStarted || ownerId != -1;
+            bool localOwner = false;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
+            StartButtonLabel.text = (running && !localOwner) ? "" : (gameStarted ? "Quit" : "Start");
+        }
+
+        // The start/quit button only invites an interact when no game is running
+        // (anyone may deal) or the local player owns the current one (Quit). While
+        // another player is mid-game the collider drops so they can't start a
+        // competing deal. Runs locally on each client; the synced ownerId drives it.
+        public void _RefreshStartInteractable()
+        {
+            if (StartButtonInteract == null) return;
+            int ownerId = DeckOfCards != null ? DeckOfCards.GameOwnerId : -1;
+            bool running = gameStarted || ownerId != -1;
+            bool localOwner = false;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
+            StartButtonInteract.enabled = !running || localOwner;
+            RefreshStartLabel();
         }
 
         // Tear the running game back down to the pre-deal state: every card back in
@@ -428,6 +520,7 @@ namespace org.kumagee
             dealing = false;
             won = false;
             RefreshStartLabel();
+            _RefreshStartInteractable();
             DeckOfCards._RefreshInteractable();
             if (WinMessage != null) WinMessage.SetActive(false);
             Debug.Log("Solitaire: Game reset to initial state.");
@@ -448,7 +541,7 @@ namespace org.kumagee
 
             // Backstop for the pickupable gate: even if a grab slips through, only
             // the player who started the game may handle cards.
-            if (!_IsLocalGameOwner())
+            if (!_IsLocalGameOwner() || dealing)
             {
                 card._Reject();
                 return;

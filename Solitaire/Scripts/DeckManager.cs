@@ -5,6 +5,7 @@ using UnityEngine;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
+using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 using MMMaellon;
 
@@ -38,8 +39,6 @@ namespace org.kumagee
                 return remaining > 0 ? remaining : 0;
             }
         }
-
-        [UdonSynced] public bool UseGravity;
 
         // Player id of whoever started (dealt) the current game. Only they are
         // allowed to interact with the deck and cards. -1 means no game yet.
@@ -91,8 +90,7 @@ namespace org.kumagee
             {
                 // Pool objects are already inactive by this point.
                 cards[i] = Pool.Pool[i].GetComponentInChildren<CardLogic>(true);
-                cards[i].UseGravity = UseGravity;
-                
+
                 if (i < CardLogic.RankDefinitionsCount * 4)
                 {
                     int col = i % CardLogic.RankDefinitionsCount;
@@ -149,6 +147,7 @@ namespace org.kumagee
         public override void OnDeserialization()
         {
             _RefreshInteractable();
+            if (Solitaire != null) Solitaire._RefreshStartInteractable();
         }
 
         public void NextCard()
@@ -162,13 +161,13 @@ namespace org.kumagee
             {
                 CardCurrent += 1;
                 RequestSerialization();
-                
+
                 Networking.SetOwner(playerLocal, Pool.gameObject);
                 currentCard = Pool.TryToSpawn();
                 if (currentCard == null) return;
                 Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}");
                 Networking.SetOwner(playerLocal, currentCard);
-                
+
                 SetCurrentCardToTop();
             }
         }
@@ -178,7 +177,33 @@ namespace org.kumagee
             NextCard();
             return currentCard;
         }
-        
+
+        private const int MaxSerializationRetries = 5;
+        private int serializationRetries;
+
+        // Losing this behaviour's state loses the whole game: the stock index and
+        // the game owner drive what every other client is allowed to do. A throttled
+        // serialization is dropped silently, so keep asking until it lands.
+        public override void OnPostSerialization(SerializationResult result)
+        {
+            if (result.success)
+            {
+                serializationRetries = 0;
+                return;
+            }
+            if (serializationRetries >= MaxSerializationRetries) return;
+            serializationRetries++;
+            SendCustomEventDelayedSeconds(nameof(_RetrySerialization), 0.25f * serializationRetries);
+        }
+
+        public void _RetrySerialization()
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+            if (!Networking.IsOwner(local, gameObject)) return;
+            RequestSerialization();
+        }
+
         public void _ResetDeck()
         {
             Networking.SetOwner(playerLocal, gameObject);

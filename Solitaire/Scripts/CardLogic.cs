@@ -4,6 +4,7 @@ using UnityEngine;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
+using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
 using MMMaellon;
 
@@ -45,6 +46,8 @@ namespace org.kumagee
         private const int JokerRowIndex = 4;
         private const int HiddenColIndex = 2;
 
+        private const int MaxSerializationRetries = 5;
+
         public DeckManager DeckManager;
         public Solitaire Solitaire;
         [HideInInspector] public Transform CardRoot;
@@ -73,7 +76,6 @@ namespace org.kumagee
         [HideInInspector] public bool IsJoker;
         [HideInInspector] public int JokerIndex;
         [HideInInspector] [UdonSynced] public bool Grabbed;
-        [HideInInspector] public bool UseGravity;
 
         private VRCPickup pickup;
         private SmartObjectSync sync;
@@ -82,6 +84,7 @@ namespace org.kumagee
         private int faceMaterialIndex;
         private bool initialized;
         private bool rejecting;
+        private int serializationRetries;
 
         // The slot this card is stacked on. Resolved from the synced PrevSlotId, so
         // every client walks the same chain without the reference itself going over
@@ -103,6 +106,40 @@ namespace org.kumagee
             _RefreshPickupable();
         }
 
+        // The pool activating this card and its synced placement arriving are two
+        // independent network messages with no ordering guarantee. When the data
+        // wins the race the behaviour is still disabled, so OnDeserialization never
+        // fires and the card would sit on the stock forever - which is exactly what
+        // a fast deal produces. Re-deriving on enable closes the gap: whichever of
+        // the two lands second does the placement.
+        //
+        // The catch-up has to be deferred. This fires from inside the pool's
+        // TryToSpawn, which the dealer calls from inside Solitaire's own event, and
+        // every part of the catch-up reads back from Solitaire. Udon restores the
+        // program counter across a re-entrant call but not the heap, and UdonSharp
+        // keeps method locals on the heap - so calling Solitaire from here would
+        // scribble over the locals of the deal loop that is still running up the
+        // stack. A zero-frame delay runs it once that stack has unwound.
+        private void OnEnable()
+        {
+            SendCustomEventDelayedFrames(nameof(_OnSpawned), 0);
+        }
+
+        public void _OnSpawned()
+        {
+            if (!initialized) Init();
+            // The dealer placed this card in the frame it spawned, so re-applying
+            // would only cost it a second teleport. A mismatched parent is what
+            // marks the client that still needs the catch-up.
+            CardSlot slot = PrevSlot;
+            if (slot != null && CardRoot != null && CardRoot.parent != slot.transform)
+            {
+                _ApplyPlacement();
+            }
+            ApplyFaceTexture();
+            _RefreshPickupable();
+        }
+
         private void Init()
         {
             initialized = true;
@@ -117,14 +154,27 @@ namespace org.kumagee
             if (pickup != null) sync = pickup.GetComponent<SmartObjectSync>();
             if (sync != null)
             {
+                // SmartObjectSync defaults sleep and physics to world space, and a
+                // card's position only means anything relative to the slot it is
+                // parented under, so all three have to be local space. These aren't
+                // synced fields, which is why every client sets them here rather
+                // than the owner setting them once.
                 sync.worldSpaceTeleport = false;
                 sync.worldSpaceSleep = false;
                 sync.worldSpacePhysics = false;
                 sync.respawnIntoStartingState = false;
             }
-            if (pickup != null)
+
+            // The card rigidbody must stay kinematic. It is what keeps a card at
+            // rest silent: SmartObjectSync's collision handlers all bail on a
+            // kinematic body, so a resting card can't be knocked into FALLING or
+            // INTERPOLATING, and its update loop - the only thing that serializes
+            // repeatedly - stays off. Make the cards dynamic and a full tableau
+            // turns into a pile of colliding rigidbodies all syncing every frame.
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (pickup != null && Utilities.IsValid(local))
             {
-                pickup.AutoHold = Networking.LocalPlayer.IsUserInVR()
+                pickup.AutoHold = local.IsUserInVR()
                     ? VRC_Pickup.AutoHoldMode.No
                     : VRC_Pickup.AutoHoldMode.Yes;
             }
@@ -399,6 +449,33 @@ namespace org.kumagee
         public override void OnOwnershipTransferred(VRCPlayerApi player)
         {
             ApplyFaceTexture();
+        }
+
+        // A serialization that loses out to VRChat's rate limiter is dropped, not
+        // queued, and this card's link is the only copy of where it belongs - so if
+        // we don't resend it, nobody else ever learns the card moved. A deal writes
+        // every card within a couple of seconds, which is precisely when the limiter
+        // starts refusing.
+        public override void OnPostSerialization(SerializationResult result)
+        {
+            if (result.success)
+            {
+                serializationRetries = 0;
+                return;
+            }
+            if (serializationRetries >= MaxSerializationRetries) return;
+            serializationRetries++;
+            // Back off, so a whole deal's worth of failures doesn't retry in lockstep.
+            SendCustomEventDelayedSeconds(nameof(_RetrySerialization), 0.25f * serializationRetries);
+        }
+
+        public void _RetrySerialization()
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+            // Someone else took the card in the meantime; their state is the truth now.
+            if (!Networking.IsOwner(local, gameObject)) return;
+            RequestSerialization();
         }
 
         public override void OnDeserialization()
