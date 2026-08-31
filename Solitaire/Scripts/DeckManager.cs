@@ -45,6 +45,13 @@ namespace org.kumagee
         [UdonSynced] private int gameOwnerId = -1;
         public int GameOwnerId => gameOwnerId;
 
+        // True while this deck is the one a running game is dealt from. Derived from
+        // the synced owner id rather than kept as its own field, so it can't drift out
+        // of step with who the deck actually belongs to. Note this is deliberately not
+        // Solitaire._IsGameStarted(): that flag is local-only and reads false on every
+        // client except the dealer's, whereas gameOwnerId arrives everywhere.
+        public bool InActiveGame => gameOwnerId != -1;
+
         public void _SetGameOwner(int playerId)
         {
             if (gameOwnerId != playerId)

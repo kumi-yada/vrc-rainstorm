@@ -266,16 +266,6 @@ namespace org.kumagee
             Debug.Log($"Solitaire: no deck PlayerObject matched DeckKey {DeckKey}. Decks on this player:{seen}. Fallback DeckOfCards is {fallback}.");
         }
 
-        // Picks the player's deck for *this* table. A world with two card games gives
-        // every player one deck per game, so matching on the key is what keeps them
-        // apart - without it whichever deck enumerated first would win.
-        //
-        // This has to scan *every* DeckManager under each player object, not just the
-        // first: the decks may be parented under one shared PlayerObject root, in
-        // which case GetPlayerObjects returns that single root and a singular
-        // GetComponentInChildren would only ever see one of them. Likewise a key
-        // mismatch keeps scanning rather than giving up - the deck we want is very
-        // likely a later entry.
         private DeckManager FindDeck(VRCPlayerApi player)
         {
             var objects = Networking.GetPlayerObjects(player);
@@ -292,6 +282,32 @@ namespace org.kumagee
                 }
             }
             return null;
+        }
+
+        private bool FindActiveDeckFor(VRCPlayerApi player)
+        {
+            if (!Utilities.IsValid(player)) return false;
+
+            var objects = Networking.GetPlayerObjects(player);
+            // Null for a player whose objects have not spawned yet, which is normal for
+            // someone still loading in.
+            if (objects == null) return false;
+
+            for (int i = 0; i < objects.Length; i++)
+            {
+                if (!Utilities.IsValid(objects[i])) continue;
+                // Same reason as FindDeck: the decks may share one PlayerObject root,
+                // so every DeckManager under it has to be tested.
+                DeckManager[] found = objects[i].GetComponentsInChildren<DeckManager>(true);
+                if (found == null) continue;
+                for (int d = 0; d < found.Length; d++)
+                {
+                    if (!Utilities.IsValid(found[d])) continue;
+                    if (found[d].InActiveGame) return true;
+                    return false;
+                }
+            }
+            return false;
         }
 
         private void RegisterBaseSlot(CardSlot slot, int id)
@@ -435,6 +451,18 @@ namespace org.kumagee
             if (dealing)
             {
                 Debug.Log("Solitaire: Already dealing cards.");
+                return;
+            }
+
+            // The dealer may not already have a game of their own running. Checked
+            // before Init, because Init repoints resolvedDeck and rebuilds the whole
+            // slot registry - a refused deal should not have moved anything, not even
+            // locally. An invalid owner falls through to the explicit check below.
+            bool busy = FindActiveDeckFor(owner);
+            if (busy)
+            {
+                string who = Utilities.IsValid(owner) ? owner.displayName : "this player";
+                Debug.Log($"Solitaire: {who} already has a game running, it has to be quit before dealing another.");
                 return;
             }
 
