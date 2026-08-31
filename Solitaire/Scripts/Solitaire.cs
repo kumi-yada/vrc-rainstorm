@@ -17,17 +17,24 @@ namespace org.kumagee
     [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class Solitaire : UdonSharpBehaviour
     {
+        // A pile can never be deeper than the deck, so anything past this is a
+        // cycle. Sized for a 104-card deck, not just the 52-card one.
+        private const int ChainGuard = 128;
+
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
         public DeckManager DeckOfCards;
 
+        [Tooltip("Which deck this table claims. Must match the DeckKey on the DeckManager: a player carries one deck PlayerObject per game, and the key is what stops this table from picking up another game's deck. Leave at 0 unless there is more than one.")]
+        public int DeckKey = 0;
+
         [Tooltip("Where the deck (DeckManager root) is moved to when a game is dealt.")]
         public Transform CardHome;
 
-        [Tooltip("7 tableau columns, left to right. Cards stack face-down except the top.")]
+        [Tooltip("Tableau columns, left to right. Cards stack face-down except the top. 7 for Klondike, 10 for Spider.")]
         public CardSlot[] TableauSlots = new CardSlot[7];
 
-        [Tooltip("4 foundation piles. Build ace to king, one suit per pile (top card only).")]
+        [Tooltip("Foundation piles, each completed by 13 cards. 4 for Klondike (ace to king, one suit each), 8 for Spider (one per finished run).")]
         public CardSlot[] FoundationSlots = new CardSlot[4];
 
         [Tooltip("Waste pile next to the stock; drawn cards land here.")]
@@ -39,6 +46,10 @@ namespace org.kumagee
 
         [Tooltip("Seconds to wait between dealing each card. Each card costs a pool spawn, an ownership transfer and two serializations, so this is really a throttle on outgoing network traffic - going much below 0.15 risks VRChat dropping writes faster than the retries can recover them.")]
         public float DealDelay = 0.2f;
+
+        [Header("Deal")]
+        [Tooltip("How many cards go into each tableau column on the opening deal, in column order. {1,2,3,4,5,6,7} is Klondike; Spider two-suit wants {6,6,6,6,5,5,5,5,5,5}. Columns past the end of this array, and entries of 0, are skipped. Only the card that ends up on top of a column is dealt face-up.")]
+        public int[] DealCounts = new int[] { 1, 2, 3, 4, 5, 6, 7 };
 
         [Header("Win")]
         [Tooltip("Optional object activated when all 4 foundations are complete.")]
@@ -61,6 +72,15 @@ namespace org.kumagee
         private DeckManager resolvedDeck;
         private CardLogic[] cards;
         private CardSlot[] slotsById;
+
+        // Reverse of the linked list: cardOnSlot[id] is the card whose PrevSlotId is
+        // id. Rebuilt lazily because a scan per link is what _GetCardOn used to cost,
+        // and every chain walk calls it once per level - so a drop, which tests every
+        // slot in the game, paid cards x slots. Cheap at 52 cards, a frame hitch at
+        // 104.
+        private CardLogic[] cardOnSlot;
+        private bool indexDirty = true;
+
         private int baseSlotCount;
         private Transform cardHome;
         private bool dealing;
@@ -152,6 +172,10 @@ namespace org.kumagee
                 slotsById[id] = slot;
             }
 
+            // slotsById was just replaced, so any index built against the old one is
+            // meaningless. Has to happen before the catch-up loop below reads it.
+            indexDirty = true;
+
             // Anything that deserialized before we were ready gets caught up here.
             for (int i = 0; i < n; i++)
             {
@@ -172,12 +196,24 @@ namespace org.kumagee
             DeckManager deck = FindDeck(Networking.GetOwner(gameObject));
             if (Utilities.IsValid(deck))
             {
-                Debug.Log("Solitaire: Using local player's deck PlayerObject.");
+                Debug.Log($"Solitaire: Using local player's deck PlayerObject for key {DeckKey}.");
                 return deck;
+            }
+            // The scene reference is assigned by hand, so it is this table's deck by
+            // definition - but a mismatched key means the PlayerObject lookup will
+            // never find it either, and that is worth saying out loud.
+            if (DeckOfCards != null && DeckOfCards.DeckKey != DeckKey)
+            {
+                Debug.Log($"Solitaire: Fallback deck {DeckOfCards.name} has DeckKey {DeckOfCards.DeckKey} but this table wants {DeckKey}. Fix one of them or the per-player deck will never resolve.");
             }
             return DeckOfCards;
         }
 
+        // Picks the player's deck for *this* table. A world with two card games gives
+        // every player one deck PlayerObject per game, so matching on the key is what
+        // keeps them apart - without it whichever deck enumerated first would win.
+        // A mismatch has to keep scanning rather than give up: the deck we want is
+        // very likely a later entry.
         private DeckManager FindDeck(VRCPlayerApi player)
         {
             var objects = Networking.GetPlayerObjects(player);
@@ -185,7 +221,9 @@ namespace org.kumagee
             {
                 if (!Utilities.IsValid(objects[i])) continue;
                 DeckManager foundScript = objects[i].GetComponentInChildren<DeckManager>();
-                if (Utilities.IsValid(foundScript)) return foundScript;
+                if (!Utilities.IsValid(foundScript)) continue;
+                if (foundScript.DeckKey != DeckKey) continue;
+                return foundScript;
             }
             return null;
         }
@@ -206,21 +244,61 @@ namespace org.kumagee
             return slotsById[id];
         }
 
-        // Reverse lookup for the linked list: who points at this slot? At 54 cards a
-        // linear scan is cheaper than maintaining a second synced structure.
+        // Reverse lookup for the linked list: who points at this slot? Served from
+        // the index, so this is O(1) no matter how big the deck gets.
         public CardLogic _GetCardOn(CardSlot slot)
         {
             if (slot == null || cards == null) return null;
             int id = slot.SlotId;
             if (id < 0) return null;
+            if (indexDirty) RebuildCardIndex();
+            if (cardOnSlot == null || id >= cardOnSlot.Length) return null;
+
+            CardLogic card = cardOnSlot[id];
+            if (card == null) return null;
+            // The pool deactivating a card and its link clearing are two independent
+            // network messages. If the deactivation lands first the index still holds
+            // the card, so activity is re-tested on read rather than trusted from
+            // build time.
+            if (!card.gameObject.activeInHierarchy) return null;
+            return card;
+        }
+
+        // Every card's link changes on placement, and any of them can invalidate the
+        // index, so CardLogic calls this instead of the index being rebuilt eagerly.
+        // A deal touches every card, and only the first read after it pays.
+        public void _InvalidateCardIndex()
+        {
+            indexDirty = true;
+        }
+
+        private void RebuildCardIndex()
+        {
+            // Cleared first: nothing below re-enters Solitaire, so this can't recurse,
+            // and clearing up front means it can't loop if that ever changes.
+            indexDirty = false;
+            if (slotsById == null || cards == null) return;
+
+            if (cardOnSlot == null || cardOnSlot.Length != slotsById.Length)
+            {
+                cardOnSlot = new CardLogic[slotsById.Length];
+            }
+            else
+            {
+                for (int i = 0; i < cardOnSlot.Length; i++) cardOnSlot[i] = null;
+            }
+
             for (int i = 0; i < cards.Length; i++)
             {
                 CardLogic card = cards[i];
                 if (card == null) continue;
                 if (!card.gameObject.activeInHierarchy) continue;
-                if (card.PrevSlotId == id) return card;
+                int id = card.PrevSlotId;
+                if (id < 0 || id >= cardOnSlot.Length) continue;
+                // Two cards claiming one slot only happens mid-deserialization. First
+                // in pool order wins, which is what the old linear scan returned.
+                if (cardOnSlot[id] == null) cardOnSlot[id] = card;
             }
-            return null;
         }
 
         // Re-snap everything stacked above a card, after something changed the
@@ -230,7 +308,7 @@ namespace org.kumagee
             if (card == null || card.Slot == null) return;
             CardSlot current = card.Slot;
             int guard = 0;
-            while (guard < 64)
+            while (guard < ChainGuard)
             {
                 CardLogic above = _GetCardOn(current);
                 if (above == null) return;
@@ -335,11 +413,64 @@ namespace org.kumagee
             dealCol = 0;
             dealDepth = 0;
             dealOwner = owner;
-            SendCustomEventDelayedSeconds("_DealNextCard", DealDelay);
+            CheckDealPlan();
+            SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+        }
+
+        // A bad deal plan fails quietly in both directions: too many cards and the
+        // deal stops mid-way when DrawNext dries up, which reads as a dropped network
+        // write; too few and the table just comes up empty. Neither is obvious from
+        // the symptom, so both get named here, once, before any card moves.
+        private void CheckDealPlan()
+        {
+            int columns = TableauSlots != null ? TableauSlots.Length : 0;
+            int total = 0;
+            for (int col = 0; col < columns; col++) total += DealCountFor(col);
+
+            if (total <= 0)
+            {
+                Debug.Log($"Solitaire: DealCounts deals no cards ({(DealCounts == null ? "null" : DealCounts.Length + " entries")}, {columns} tableau slots). Klondike wants {{1,2,3,4,5,6,7}}.");
+                return;
+            }
+
+            int available = resolvedDeck != null && resolvedDeck.Pool != null
+                ? resolvedDeck.Pool.Pool.Length
+                : 0;
+            if (total > available)
+            {
+                Debug.Log($"Solitaire: DealCounts asks for {total} cards but the deck only holds {available}. The deal will stop short.");
+            }
+        }
+
+        // How many cards column `col` wants on the opening deal. Columns with no slot
+        // assigned, or past the end of DealCounts, want none - which is what lets the
+        // same loop deal a 7-column Klondike table and a 10-column Spider one.
+        private int DealCountFor(int col)
+        {
+            if (TableauSlots == null || col < 0 || col >= TableauSlots.Length) return 0;
+            if (TableauSlots[col] == null) return 0;
+            if (DealCounts == null || col >= DealCounts.Length) return 0;
+            int want = DealCounts[col];
+            return want > 0 ? want : 0;
+        }
+
+        // Walks dealCol forward past every column that wants nothing more, so the
+        // dealer never has to special-case a null slot or a zero count. Terminates
+        // because each pass either returns or advances dealCol.
+        private bool AdvanceToNextDealColumn()
+        {
+            int columns = TableauSlots != null ? TableauSlots.Length : 0;
+            while (dealCol < columns)
+            {
+                if (dealDepth < DealCountFor(dealCol)) return true;
+                dealCol++;
+                dealDepth = 0;
+            }
+            return false;
         }
 
         // Deals exactly one card per call, then schedules the next after DealDelay.
-        // The tableau is dealt column by column, each column one deeper than the last.
+        // The tableau is dealt column by column, as deep as DealCounts asks for.
         public void _DealNextCard()
         {
             if (!dealing) return;
@@ -349,39 +480,32 @@ namespace org.kumagee
                 return;
             }
 
-            if (dealCol < TableauSlots.Length && dealCol < 7)
+            if (!AdvanceToNextDealColumn())
             {
-                CardSlot slot = TableauSlots[dealCol];
-                if (slot == null)
-                {
-                    dealCol++;
-                    dealDepth = 0;
-                }
-                else
-                {
-                    GameObject cardGO = resolvedDeck.DrawNext();
-                    if (cardGO == null)
-                    {
-                        FinalizeDeal();
-                        return;
-                    }
-                    CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
-                    if (card != null)
-                    {
-                        Networking.SetOwner(dealOwner, cardGO);
-                        card._ForcePlace(slot._GetTopSlot(), dealDepth == dealCol);
-                    }
-                    dealDepth++;
-                    if (dealDepth > dealCol)
-                    {
-                        dealCol++;
-                        dealDepth = 0;
-                    }
-                }
+                FinalizeDeal();
+                return;
             }
-            if (dealCol < TableauSlots.Length && dealCol < 7)
+
+            CardSlot slot = TableauSlots[dealCol];
+            GameObject cardGO = resolvedDeck.DrawNext();
+            if (cardGO == null)
             {
-                SendCustomEventDelayedSeconds("_DealNextCard", DealDelay);
+                FinalizeDeal();
+                return;
+            }
+            CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
+            if (card != null)
+            {
+                Networking.SetOwner(dealOwner, cardGO);
+                // Only the card that ends up on top of the column is face-up, which is
+                // the rule in Klondike and Spider alike.
+                card._ForcePlace(slot._GetTopSlot(), dealDepth == DealCountFor(dealCol) - 1);
+            }
+            dealDepth++;
+
+            if (AdvanceToNextDealColumn())
+            {
+                SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
             }
             else
             {

@@ -128,6 +128,9 @@ namespace org.kumagee
         public void _OnSpawned()
         {
             if (!initialized) Init();
+            // Going active makes this card visible to the slot index, which skips
+            // inactive ones when it builds.
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
             // The dealer placed this card in the frame it spawned, so re-applying
             // would only cost it a second teleport. A mismatched parent is what
             // marks the client that still needs the catch-up.
@@ -348,6 +351,7 @@ namespace org.kumagee
             if (!initialized) Init();
             TakeOwnership();
             PrevSlotId = slot != null ? slot.SlotId : -1;
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
             RequestSerialization();
             _ApplyPlacement();
             _RefreshPickupable();
@@ -362,6 +366,7 @@ namespace org.kumagee
             FaceVisible = faceUp;
             Grabbed = false;
             PrevSlotId = slot != null ? slot.SlotId : -1;
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
             RequestSerialization();
             _ApplyPlacement();
             ApplyFaceTexture();
@@ -377,6 +382,7 @@ namespace org.kumagee
             Grabbed = false;
             FaceUp = false;
             FaceVisible = false;
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
             RequestSerialization();
             if (home != null && CardRoot != null && CardRoot.parent != home)
             {
@@ -480,6 +486,9 @@ namespace org.kumagee
 
         public override void OnDeserialization()
         {
+            // PrevSlotId may have just changed under us, and everything below walks
+            // the chain, so the index has to be dropped before any of it reads back.
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
             _ApplyPlacement();
             ApplyFaceTexture();
             _RefreshPickupable();

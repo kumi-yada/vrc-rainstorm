@@ -66,6 +66,10 @@ namespace org.kumagee
             interactCollider.enabled = interactable;
         }
         
+        [Header("Identity")]
+        [Tooltip("Which game's table this deck belongs to. A table only adopts a player's deck PlayerObject when the keys match, so two card games can each keep their own per-player deck in one world. Leave at 0 unless there is more than one.")]
+        public int DeckKey = 0;
+
         [Header("References")]
         public Transform Deck;
         [HideInInspector] public VRCObjectPool Pool;

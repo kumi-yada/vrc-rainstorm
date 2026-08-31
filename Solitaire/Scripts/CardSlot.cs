@@ -34,7 +34,9 @@ namespace org.kumagee
     public class CardSlot : UdonSharpBehaviour
     {
         // A pile can never exceed the deck size, so anything past this is a cycle.
-        private const int ChainGuard = 64;
+        // Sized for a 104-card deck: a Spider column takes its opening cards, one per
+        // stock round, and whatever runs get moved onto it, which clears 64.
+        private const int ChainGuard = 128;
 
         [Header("Layout")]
         [Tooltip("Where the card above sits, relative to this slot. Only read off the base slot of a pile; card slots inherit it.")]
