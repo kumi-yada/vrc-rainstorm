@@ -885,6 +885,7 @@ namespace org.kumagee
             if (resolvedDeck == null || cards == null) return;
 
             ResetCards();
+            resolvedDeck._ResetPosition();
             resolvedDeck._SetGameOwner(-1);
 
             gameStarted = false;

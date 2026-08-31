@@ -205,6 +205,16 @@ namespace org.kumagee
             Pool.transform.rotation = home.rotation;
         }
 
+        // Returns the deck (and any detached pool) to world origin, reversing the
+        // move _MoveTo did out to the table when the game was dealt.
+        public void _ResetPosition()
+        {
+            transform.localPosition = Vector3.zero;
+            if (Pool == null) return;
+            if (IsUnderThisDeck(Pool.transform)) return;
+            Pool.transform.localPosition = Vector3.zero;
+        }
+
         // Walks parents by hand rather than using Transform.IsChildOf, to stay on the
         // API surface the rest of this project already relies on.
         private bool IsUnderThisDeck(Transform candidate)
@@ -274,7 +284,7 @@ namespace org.kumagee
                 Networking.SetOwner(playerLocal, Pool.gameObject);
                 currentCard = Pool.TryToSpawn();
                 if (currentCard == null) return;
-                Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}");
+                // Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}");
                 Networking.SetOwner(playerLocal, currentCard);
 
                 SetCurrentCardToTop();
