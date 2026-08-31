@@ -136,7 +136,7 @@ namespace org.kumagee
                 _RefreshInteractable();
                 return;
             }
-            if (!Solitaire._IsLocalGameOwner())
+            if (!Networking.IsOwner(playerLocal, gameObject))
             {
                 Debug.Log("DeckManager: Only the player who started the game may use the deck.");
                 return;
@@ -226,7 +226,6 @@ namespace org.kumagee
 
         public void _ReturnCard(GameObject card)
         {
-            Networking.SetOwner(Networking.LocalPlayer, gameObject);
             CardCurrent -= 1;
             // Don't keep pointing the deck's top-of-stack at a card we just pooled.
             if (currentCard == card) currentCard = null;
