@@ -7,6 +7,16 @@ using VRC.Udon;
 
 namespace org.kumagee
 {
+    public enum SolitaireMode
+    {
+        // Draw one card to the waste, recycle it when the stock dries up, build the
+        // foundations ace-up in suit.
+        Klondike = 0,
+        // No waste: a stock click deals one card face-up to every column. Groups only
+        // move as same-suit runs, and a finished king-to-ace run leaves the table.
+        Spider = 1
+    }
+
     // Owns the slot registry that turns a synced int back into a CardSlot.
     //
     // Slot ids are handed out deterministically at startup - base slots first, in
@@ -20,6 +30,10 @@ namespace org.kumagee
         // A pile can never be deeper than the deck, so anything past this is a
         // cycle. Sized for a 104-card deck, not just the 52-card one.
         private const int ChainGuard = 128;
+
+        [Header("Game")]
+        [Tooltip("Which game this table plays. Everything the two modes share is driven by the slot layout, DealCounts and the SlotRule components; this only switches the handful of mechanics that genuinely differ - what a stock click does, whether groups have to be same-suit runs, and whether finished runs leave the table.")]
+        public SolitaireMode Mode = SolitaireMode.Klondike;
 
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
@@ -52,7 +66,7 @@ namespace org.kumagee
         public int[] DealCounts = new int[] { 1, 2, 3, 4, 5, 6, 7 };
 
         [Header("Win")]
-        [Tooltip("Optional object activated when all 4 foundations are complete.")]
+        [Tooltip("Optional object activated once every foundation holds a complete 13-card pile.")]
         public GameObject WinMessage;
 
         [Header("UI")]
@@ -90,6 +104,15 @@ namespace org.kumagee
         private int dealDepth;
         private VRCPlayerApi dealOwner;
 
+        // Which job the delayed deal loop is currently doing. A Spider stock round is
+        // ten more cards down the same throttled pipe as the opening deal, so it
+        // reuses that machinery rather than adding a second timer that could overlap
+        // with it.
+        private const int DealPhaseNone = 0;
+        private const int DealPhaseOpening = 1;
+        private const int DealPhaseStockRow = 2;
+        private int dealPhase;
+
         // True once a deal has happened; input that depends on a running game
         // (like drawing from the stock) is gated on this.
         public bool _IsGameStarted()
@@ -121,7 +144,16 @@ namespace org.kumagee
                 return;
             }
 
+            // The deck's pool is an inspector reference that may sit on another
+            // GameObject, so it can legitimately be unassigned - and DeckManager.Start
+            // leaves it null rather than throwing when it is.
             VRCObjectPool pool = resolvedDeck.Pool;
+            if (pool == null || pool.Pool == null)
+            {
+                Debug.Log($"Solitaire: deck {resolvedDeck.name} (key {resolvedDeck.DeckKey}) has no VRCObjectPool assigned, cannot initialize.");
+                return;
+            }
+
             int n = pool.Pool.Length;
             if (n <= 0)
             {
@@ -193,37 +225,71 @@ namespace org.kumagee
 
         private DeckManager ResolveDeck()
         {
-            DeckManager deck = FindDeck(Networking.GetOwner(gameObject));
+            VRCPlayerApi owner = Networking.GetOwner(gameObject);
+            DeckManager deck = FindDeck(owner);
             if (Utilities.IsValid(deck))
             {
                 Debug.Log($"Solitaire: Using local player's deck PlayerObject for key {DeckKey}.");
                 return deck;
             }
-            // The scene reference is assigned by hand, so it is this table's deck by
-            // definition - but a mismatched key means the PlayerObject lookup will
-            // never find it either, and that is worth saying out loud.
-            if (DeckOfCards != null && DeckOfCards.DeckKey != DeckKey)
-            {
-                Debug.Log($"Solitaire: Fallback deck {DeckOfCards.name} has DeckKey {DeckOfCards.DeckKey} but this table wants {DeckKey}. Fix one of them or the per-player deck will never resolve.");
-            }
+
+            // Nothing matched. The bare "Deck not assigned" that the callers log next
+            // is misleading on its own, because the usual cause is that a deck *is*
+            // there carrying a different DeckKey - so name the keys that were on offer.
+            ReportDeckKeyMiss(owner);
             return DeckOfCards;
         }
 
+        private void ReportDeckKeyMiss(VRCPlayerApi owner)
+        {
+            string seen = "";
+            if (Utilities.IsValid(owner))
+            {
+                var objects = Networking.GetPlayerObjects(owner);
+                for (int i = 0; i < objects.Length; i++)
+                {
+                    if (!Utilities.IsValid(objects[i])) continue;
+                    DeckManager[] found = objects[i].GetComponentsInChildren<DeckManager>(true);
+                    if (found == null) continue;
+                    for (int d = 0; d < found.Length; d++)
+                    {
+                        if (!Utilities.IsValid(found[d])) continue;
+                        seen += $" {found[d].name}(key {found[d].DeckKey}, {found[d].SuitsInPlay} suit(s))";
+                    }
+                }
+            }
+            if (seen.Length == 0) seen = " none";
+
+            string fallback = DeckOfCards == null
+                ? "unassigned"
+                : $"{DeckOfCards.name} (key {DeckOfCards.DeckKey})";
+            Debug.Log($"Solitaire: no deck PlayerObject matched DeckKey {DeckKey}. Decks on this player:{seen}. Fallback DeckOfCards is {fallback}.");
+        }
+
         // Picks the player's deck for *this* table. A world with two card games gives
-        // every player one deck PlayerObject per game, so matching on the key is what
-        // keeps them apart - without it whichever deck enumerated first would win.
-        // A mismatch has to keep scanning rather than give up: the deck we want is
-        // very likely a later entry.
+        // every player one deck per game, so matching on the key is what keeps them
+        // apart - without it whichever deck enumerated first would win.
+        //
+        // This has to scan *every* DeckManager under each player object, not just the
+        // first: the decks may be parented under one shared PlayerObject root, in
+        // which case GetPlayerObjects returns that single root and a singular
+        // GetComponentInChildren would only ever see one of them. Likewise a key
+        // mismatch keeps scanning rather than giving up - the deck we want is very
+        // likely a later entry.
         private DeckManager FindDeck(VRCPlayerApi player)
         {
             var objects = Networking.GetPlayerObjects(player);
             for (int i = 0; i < objects.Length; i++)
             {
                 if (!Utilities.IsValid(objects[i])) continue;
-                DeckManager foundScript = objects[i].GetComponentInChildren<DeckManager>();
-                if (!Utilities.IsValid(foundScript)) continue;
-                if (foundScript.DeckKey != DeckKey) continue;
-                return foundScript;
+                DeckManager[] found = objects[i].GetComponentsInChildren<DeckManager>(true);
+                if (found == null) continue;
+                for (int d = 0; d < found.Length; d++)
+                {
+                    if (!Utilities.IsValid(found[d])) continue;
+                    if (found[d].DeckKey != DeckKey) continue;
+                    return found[d];
+                }
             }
             return null;
         }
@@ -395,14 +461,16 @@ namespace org.kumagee
                 return;
             }
 
+            // Before anything is claimed, reset or flagged as started: a refused plan
+            // has to leave the table exactly as it was.
+            if (!CheckDealPlan()) return;
+
             Networking.SetOwner(owner, gameObject);
             Networking.SetOwner(owner, resolvedDeck.gameObject);
             resolvedDeck._SetGameOwner(owner.playerId);
-            if (CardHome != null)
-            {
-                resolvedDeck.transform.position = CardHome.position;
-                resolvedDeck.transform.rotation = CardHome.rotation;
-            }
+            // DeckManager owns this move because it knows where its pool is - the
+            // undealt cards live under the pool, which may not be the deck itself.
+            resolvedDeck._MoveTo(CardHome);
             dealing = true;
             gameStarted = true;
             RefreshStartLabel();
@@ -413,7 +481,7 @@ namespace org.kumagee
             dealCol = 0;
             dealDepth = 0;
             dealOwner = owner;
-            CheckDealPlan();
+            dealPhase = DealPhaseOpening;
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
         }
 
@@ -421,7 +489,12 @@ namespace org.kumagee
         // deal stops mid-way when DrawNext dries up, which reads as a dropped network
         // write; too few and the table just comes up empty. Neither is obvious from
         // the symptom, so both get named here, once, before any card moves.
-        private void CheckDealPlan()
+        //
+        // Returns false to refuse the deal outright. A table dealt short is not a
+        // lesser game, it is an unplayable one - the short column can never be
+        // completed and the stock is already dry - so it is better to deal nothing and
+        // say why than to leave someone poking at a broken layout.
+        private bool CheckDealPlan()
         {
             int columns = TableauSlots != null ? TableauSlots.Length : 0;
             int total = 0;
@@ -430,16 +503,18 @@ namespace org.kumagee
             if (total <= 0)
             {
                 Debug.Log($"Solitaire: DealCounts deals no cards ({(DealCounts == null ? "null" : DealCounts.Length + " entries")}, {columns} tableau slots). Klondike wants {{1,2,3,4,5,6,7}}.");
-                return;
+                return false;
             }
 
-            int available = resolvedDeck != null && resolvedDeck.Pool != null
+            int available = resolvedDeck != null && resolvedDeck.Pool != null && resolvedDeck.Pool.Pool != null
                 ? resolvedDeck.Pool.Pool.Length
                 : 0;
             if (total > available)
             {
-                Debug.Log($"Solitaire: DealCounts asks for {total} cards but the deck only holds {available}. The deal will stop short.");
+                Debug.Log($"Solitaire: DealCounts asks for {total} cards but the deck's pool only holds {available}. Refusing to deal - add the missing cards to the VRCObjectPool's Pool array.");
+                return false;
             }
+            return true;
         }
 
         // How many cards column `col` wants on the opening deal. Columns with no slot
@@ -474,9 +549,23 @@ namespace org.kumagee
         public void _DealNextCard()
         {
             if (!dealing) return;
+
+            // Both jobs come back through this one event, so a stock row can never
+            // end up interleaved with an opening deal on a second timer.
+            bool stockRow = dealPhase == DealPhaseStockRow;
+
             if (dealOwner == null || resolvedDeck == null || TableauSlots == null)
             {
-                FinalizeDeal();
+                // Bailing out of a stock row must not go through FinalizeDeal, which
+                // would clear a win the player already earned.
+                if (stockRow) AbandonStockRow();
+                else FinalizeDeal();
+                return;
+            }
+
+            if (stockRow)
+            {
+                DealNextStockCard();
                 return;
             }
 
@@ -513,15 +602,149 @@ namespace org.kumagee
             }
         }
 
-        // One click on the stock: deal the next card, or turn the waste back over
-        // once the stock has run dry.
+        // One click on the stock. Klondike draws the next card to the waste and turns
+        // the waste back over once the stock runs dry; Spider has no waste at all and
+        // deals a card to every column instead.
         public void _OnStockClicked()
         {
             if (resolvedDeck == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
+            if (Mode == SolitaireMode.Spider)
+            {
+                _DealStockRow();
+                return;
+            }
+
             if (resolvedDeck._IsStockEmpty()) _RecycleWaste();
             else _DrawFromStock();
+        }
+
+        // Spider's stock click: one card face-up onto every column, throttled through
+        // the same delayed loop as the opening deal because ten cards is ten pool
+        // spawns and ten serializations.
+        //
+        // The standard rule refuses the row while any column is empty. That is worth
+        // enforcing rather than allowing: an empty column is the scarce resource in
+        // Spider, and burying it is usually what loses the game.
+        public void _DealStockRow()
+        {
+            if (resolvedDeck == null || TableauSlots == null || dealing) return;
+            if (!_IsLocalGameOwner()) return;
+
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            if (resolvedDeck._IsStockEmpty())
+            {
+                Debug.Log("Solitaire: Stock is empty; there are no more rows to deal.");
+                return;
+            }
+
+            int empty = FindEmptyTableauColumn();
+            if (empty >= 0)
+            {
+                Debug.Log($"Solitaire: Column {empty} is empty - every column has to be filled before dealing another row from the stock.");
+                return;
+            }
+
+            dealing = true;
+            dealPhase = DealPhaseStockRow;
+            dealCol = 0;
+            dealDepth = 0;
+            dealOwner = local;
+            SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+        }
+
+        // Index of the first assigned tableau column holding no cards, or -1 when all
+        // of them are occupied.
+        private int FindEmptyTableauColumn()
+        {
+            if (TableauSlots == null) return -1;
+            for (int s = 0; s < TableauSlots.Length; s++)
+            {
+                CardSlot slot = TableauSlots[s];
+                if (slot == null) continue;
+                if (!slot._IsOccupied()) return s;
+            }
+            return -1;
+        }
+
+        // Walks dealCol to the next column that actually exists. Mirrors
+        // AdvanceToNextDealColumn, but a stock row wants exactly one card per column
+        // rather than a per-column count.
+        private bool AdvanceToNextStockColumn()
+        {
+            int columns = TableauSlots != null ? TableauSlots.Length : 0;
+            while (dealCol < columns)
+            {
+                if (TableauSlots[dealCol] != null) return true;
+                dealCol++;
+            }
+            return false;
+        }
+
+        private void DealNextStockCard()
+        {
+            if (!AdvanceToNextStockColumn())
+            {
+                FinalizeStockRow();
+                return;
+            }
+
+            CardSlot slot = TableauSlots[dealCol];
+            GameObject cardGO = resolvedDeck.DrawNext();
+            if (cardGO == null)
+            {
+                // Stock ran dry mid-row. The cards already placed are legal where they
+                // are, so there is nothing to unwind.
+                FinalizeStockRow();
+                return;
+            }
+            CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
+            if (card != null)
+            {
+                Networking.SetOwner(dealOwner, cardGO);
+                // Stock cards always land face-up in Spider - that is the whole cost
+                // of the row, and why burying an empty column matters.
+                card._ForcePlace(slot._GetTopSlot(), true);
+            }
+            dealCol++;
+
+            if (AdvanceToNextStockColumn())
+            {
+                SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+            }
+            else
+            {
+                FinalizeStockRow();
+            }
+        }
+
+        // Give up on a half-dealt row without touching the win state or reading back
+        // through a deck that has gone away.
+        private void AbandonStockRow()
+        {
+            dealing = false;
+            dealPhase = DealPhaseNone;
+            Debug.Log("Solitaire: Stock row abandoned; the deck or game owner went away mid-row.");
+        }
+
+        // Unlike FinalizeDeal this must not touch `won` or the win message: a row can
+        // be dealt long after the game was won, and clearing it would retract a win
+        // the player already earned.
+        private void FinalizeStockRow()
+        {
+            dealing = false;
+            dealPhase = DealPhaseNone;
+            Debug.Log($"Solitaire: Dealt a stock row; {resolvedDeck.CardCount} cards left in the stock.");
+            // A stock card lands on top of its column, which is the low end of a run -
+            // so it is exactly the card that can complete one.
+            CollectCompletedRuns();
+            // A dealt row buries the card under it in every column, so most of the
+            // table's grabbability just changed.
+            RefreshAllPickupable();
+            CheckWon();
         }
 
         // Send the whole waste pile back to the stock, face down.
@@ -589,8 +812,12 @@ namespace org.kumagee
         private void FinalizeDeal()
         {
             dealing = false;
+            dealPhase = DealPhaseNone;
             won = false;
             if (WinMessage != null) WinMessage.SetActive(false);
+            // The deal placed every card without refreshing anything below them, so
+            // the opening layout needs one sweep before the player can touch it.
+            RefreshAllPickupable();
         }
 
         // The label mirrors the interactable: hidden while another player is
@@ -634,6 +861,7 @@ namespace org.kumagee
 
             gameStarted = false;
             dealing = false;
+            dealPhase = DealPhaseNone;
             won = false;
             RefreshStartLabel();
             _RefreshStartInteractable();
@@ -686,7 +914,56 @@ namespace org.kumagee
             if (IsFoundationChain(below) && card.Slot != null && card.Slot._IsOccupied())
             {
                 card._Reject();
+                return;
             }
+
+            // Spider only lets a group move when it is a same-suit descending run.
+            // This cannot live in a SlotRule, which never sees the carried cards.
+            // _RefreshPickupable should already have blocked the grab; this stays as
+            // the backstop for the window before the sweep has run.
+            if (!_IsGroupMovable(card))
+            {
+                card._Reject();
+            }
+        }
+
+        // True when this card may be lifted along with whatever is stacked on it.
+        // Single source of truth for the rule: the pickupable flag and the grab-time
+        // backstop both come through here, so they cannot drift apart.
+        public bool _IsGroupMovable(CardLogic card)
+        {
+            if (Mode != SolitaireMode.Spider) return true;
+            if (card == null) return false;
+            // Only tableau columns restrict groups; foundations and the waste have
+            // their own pickup modes and never hold a partial run.
+            if (!_IsTableauChain(card.PrevSlot)) return true;
+            return IsMovableRun(card);
+        }
+
+        // True when the cards riding on `card` continue it as a same-suit run
+        // descending by one. A lone card is trivially movable.
+        //
+        // Klondike gets this for free: its tableau rule is invariant, so any legal
+        // pile above the dragged card is automatically a legal continuation. Spider
+        // breaks that - a column can be a perfectly legal *arrangement* (descending,
+        // mixed suits) and still not be a legal *group*.
+        private bool IsMovableRun(CardLogic card)
+        {
+            if (card == null) return false;
+            CardLogic below = card;
+            int guard = 0;
+            while (guard < ChainGuard)
+            {
+                if (below.Slot == null) return true;
+                CardLogic above = below.Slot._GetCardAbove();
+                if (above == null) return true; // nothing riding on it
+                if (!above.FaceUp || above.IsJoker) return false;
+                if ((int)above.CardSuit != (int)below.CardSuit) return false;
+                if ((int)above.CardRank != (int)below.CardRank - 1) return false;
+                below = above;
+                guard++;
+            }
+            return false;
         }
 
         public void _OnCardDrop(CardLogic card)
@@ -701,6 +978,10 @@ namespace org.kumagee
             // from the pile they're now in, so re-derive it.
             _RepositionAbove(card);
             RevealTops();
+            CollectCompletedRuns();
+            // After the pile has settled, not before: the flags are derived from the
+            // final layout.
+            RefreshAllPickupable();
             CheckWon();
         }
 
@@ -798,6 +1079,33 @@ namespace org.kumagee
             return false;
         }
 
+        // Re-evaluates every card's pickupable flag.
+        //
+        // A card's grabbability depends on what is stacked *on* it - the pile's
+        // top-only rule, and in Spider whether the cards above continue its run - but
+        // _RefreshPickupable only ever runs for the card that moved, never for the
+        // cards below it. So one card landing can silently change the answer for a
+        // whole column, and without a sweep those cards keep a stale flag until
+        // something touches them directly. Dropping a card onto a TopOnly pile has
+        // always had this bug; Spider just makes it constant.
+        //
+        // Only the game owner's flags matter (everyone else is blocked outright), and
+        // this runs once per move rather than per frame, so the cost is fine.
+        private void RefreshAllPickupable()
+        {
+            if (cards == null) return;
+            for (int i = 0; i < cards.Length; i++)
+            {
+                CardLogic card = cards[i];
+                if (card == null) continue;
+                if (!card.gameObject.activeInHierarchy) continue;
+                // Never touch the held card: its own flag is moot while it is in hand,
+                // and changing pickupable mid-hold is not worth the risk.
+                if (card.Grabbed) continue;
+                card._RefreshPickupable();
+            }
+        }
+
         private void RevealTops()
         {
             if (TableauSlots == null) return;
@@ -808,6 +1116,99 @@ namespace org.kumagee
                 CardLogic top = slot._GetTopCard();
                 if (top != null && !top.FaceUp) top.SetFaceUp(true);
             }
+        }
+
+        // Spider clears a finished king-to-ace run off the tableau to a foundation.
+        //
+        // Moving the king is the entire move. The queen down to the ace are parented
+        // under him and their PrevSlot links still point at his own slot, so they come
+        // along for free and only re-derive their offset from the foundation's layout.
+        // That is one card's worth of network traffic instead of thirteen - and
+        // thirteen ownership transfers plus serializations in a single frame is
+        // precisely what DealDelay exists to spread out.
+        private void CollectCompletedRuns()
+        {
+            if (Mode != SolitaireMode.Spider) return;
+            if (TableauSlots == null || FoundationSlots == null) return;
+
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            bool collected = false;
+            bool foundationsFull = false;
+            for (int s = 0; s < TableauSlots.Length && !foundationsFull; s++)
+            {
+                CardSlot column = TableauSlots[s];
+                if (column == null) continue;
+
+                // Taking one run can uncover another right beneath it, so keep pulling
+                // from this column until it stops yielding. Bounded by the foundation
+                // count, which is the most runs that can ever be collected.
+                int taken = 0;
+                while (taken < FoundationSlots.Length)
+                {
+                    CardLogic king = FindCompletedRun(column);
+                    if (king == null) break;
+
+                    CardSlot foundation = FindEmptyFoundation();
+                    if (foundation == null)
+                    {
+                        Debug.Log("Solitaire: A run finished but every foundation is already full.");
+                        foundationsFull = true;
+                        break;
+                    }
+
+                    Networking.SetOwner(local, king.gameObject);
+                    king._ForcePlace(foundation._GetTopSlot(), true);
+                    _RepositionAbove(king);
+                    collected = true;
+                    taken++;
+                    Debug.Log($"Solitaire: Collected a completed run of {king.CardSuit} from column {s}.");
+                }
+            }
+
+            // Pulling a run off a column uncovers whatever was under it.
+            if (collected) RevealTops();
+        }
+
+        // Walks down from a column's top card looking for a complete same-suit
+        // ace-to-king run, and returns its king (the card that has to move) or null.
+        // Bounded at 13 steps, so this is cheap enough to poll after every move.
+        //
+        // The run does not have to sit at the bottom of the column - it just has to be
+        // the last 13 cards of it - so this reads downward from the top rather than
+        // assuming anything about where the king is.
+        private CardLogic FindCompletedRun(CardSlot column)
+        {
+            CardLogic current = column._GetTopCard();
+            if (current == null || current.IsJoker || !current.FaceUp) return null;
+            // A finished run always ends on the ace, which is the cheapest possible
+            // rejection for the columns that have not finished one.
+            if ((int)current.CardRank != 1) return null;
+
+            for (int step = 1; step < CardLogic.RankDefinitionsCount; step++)
+            {
+                CardSlot below = current.PrevSlot;
+                if (below == null) return null;
+                CardLogic next = below.Owner; // null once the walk reaches a base slot
+                if (next == null || next.IsJoker || !next.FaceUp) return null;
+                if ((int)next.CardSuit != (int)current.CardSuit) return null;
+                if ((int)next.CardRank != (int)current.CardRank + 1) return null;
+                current = next;
+            }
+            return current;
+        }
+
+        private CardSlot FindEmptyFoundation()
+        {
+            if (FoundationSlots == null) return null;
+            for (int i = 0; i < FoundationSlots.Length; i++)
+            {
+                CardSlot slot = FoundationSlots[i];
+                if (slot == null) continue;
+                if (!slot._IsOccupied()) return slot;
+            }
+            return null;
         }
 
         private void CheckWon()

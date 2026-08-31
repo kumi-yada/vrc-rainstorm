@@ -320,6 +320,14 @@ namespace org.kumagee
                 else if (mode == CardPickupMode.TopOnly && pileSlot._GetTopCard() != this) allowed = false;
             }
 
+            // Spider will not let a group move unless the cards riding on this one
+            // continue it as a same-suit run. Solitaire owns that rule and returns
+            // true for modes that do not restrict it.
+            if (allowed && Solitaire != null && !Solitaire._IsGroupMovable(this))
+            {
+                allowed = false;
+            }
+
             // Only the player who started the game may grab cards. Everyone else
             // sees them as anchored so VRChat never offers the pickup.
             if (Solitaire != null)
