@@ -14,7 +14,12 @@ namespace org.kumagee
         Klondike = 0,
         // No waste: a stock click deals one card face-up to every column. Groups only
         // move as same-suit runs, and a finished king-to-ace run leaves the table.
-        Spider = 1
+        Spider = 1,
+        // Four short columns fed by a 13-card reserve, drawing three at a time to the
+        // waste with unlimited redeals. The deal turns one card onto a foundation and
+        // that card's rank is the base every foundation builds up from, wrapping past
+        // the king back to the ace.
+        Canfield = 2
     }
 
     // Owns the slot registry that turns a synced int back into a CardSlot.
@@ -32,7 +37,7 @@ namespace org.kumagee
         private const int ChainGuard = 128;
 
         [Header("Game")]
-        [Tooltip("Which game this table plays. Everything the two modes share is driven by the slot layout, DealCounts and the SlotRule components; this only switches the handful of mechanics that genuinely differ - what a stock click does, whether groups have to be same-suit runs, and whether finished runs leave the table.")]
+        [Tooltip("Which game this table plays. Everything the modes share is driven by the slot layout, DealCounts and the SlotRule components; this only switches the handful of mechanics that genuinely differ - what a stock click does, whether groups have to be same-suit runs, whether finished runs leave the table, and whether there is a reserve feeding the columns.")]
         public SolitaireMode Mode = SolitaireMode.Klondike;
 
         [Header("References")]
@@ -45,14 +50,17 @@ namespace org.kumagee
         [Tooltip("Where the deck (DeckManager root) is moved to when a game is dealt.")]
         public Transform CardHome;
 
-        [Tooltip("Tableau columns, left to right. Cards stack face-down except the top. 7 for Klondike, 10 for Spider.")]
+        [Tooltip("Tableau columns, left to right. Cards stack face-down except the top. 7 for Klondike, 10 for Spider, 4 for Canfield.")]
         public CardSlot[] TableauSlots = new CardSlot[7];
 
-        [Tooltip("Foundation piles, each completed by 13 cards. 4 for Klondike (ace to king, one suit each), 8 for Spider (one per finished run).")]
+        [Tooltip("Foundation piles, each completed by 13 cards. 4 for Klondike (ace to king, one suit each), 8 for Spider (one per finished run), 4 for Canfield (base rank up, wrapping, one suit each).")]
         public CardSlot[] FoundationSlots = new CardSlot[4];
 
         [Tooltip("Waste pile next to the stock; drawn cards land here.")]
         public CardSlot WasteSlot;
+
+        [Tooltip("Canfield's reserve pile: 13 cards dealt face-down with only the top one turned over, and the automatic filler for any tableau column that empties. Leave unassigned for Klondike and Spider. Wants Pickup = TopOnly, since only its top card is ever in play, and Drop = None - nothing ever goes back onto the reserve, and without it the pile would happily accept any card, having no SlotRule to turn one away.")]
+        public CardSlot ReserveSlot;
 
         [Header("Placement")]
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
@@ -62,8 +70,15 @@ namespace org.kumagee
         public float DealDelay = 0.2f;
 
         [Header("Deal")]
-        [Tooltip("How many cards go into each tableau column on the opening deal, in column order. {1,2,3,4,5,6,7} is Klondike; Spider two-suit wants {6,6,6,6,5,5,5,5,5,5}. Columns past the end of this array, and entries of 0, are skipped. Only the card that ends up on top of a column is dealt face-up.")]
+        [Tooltip("How many cards go into each tableau column on the opening deal, in column order. {1,2,3,4,5,6,7} is Klondike; Spider two-suit wants {6,6,6,6,5,5,5,5,5,5}; Canfield wants {1,1,1,1}. Columns past the end of this array, and entries of 0, are skipped. Only the card that ends up on top of a column is dealt face-up.")]
         public int[] DealCounts = new int[] { 1, 2, 3, 4, 5, 6, 7 };
+
+        [Tooltip("Canfield only: how many cards go into the reserve before the tableau is dealt. 13 is the standard game. Ignored when ReserveSlot is unassigned.")]
+        public int ReserveCount = 13;
+
+        [Header("Stock")]
+        [Tooltip("How many cards one stock click turns onto the waste. 0 uses the mode default - 1 for Klondike, 3 for Canfield - so leaving it alone gives each mode the right game. Spider ignores this entirely; its stock click deals a row to the tableau instead.")]
+        public int DrawCount = 0;
 
         [Header("Win")]
         [Tooltip("Optional object activated once every foundation holds a complete 13-card pile.")]
@@ -105,13 +120,19 @@ namespace org.kumagee
         private VRCPlayerApi dealOwner;
 
         // Which job the delayed deal loop is currently doing. A Spider stock round is
-        // ten more cards down the same throttled pipe as the opening deal, so it
-        // reuses that machinery rather than adding a second timer that could overlap
-        // with it.
+        // ten more cards down the same throttled pipe as the opening deal, and so are
+        // Canfield's reserve, its foundation seed and its three-card draw, so they all
+        // reuse that machinery rather than adding timers that could overlap with it.
         private const int DealPhaseNone = 0;
         private const int DealPhaseOpening = 1;
         private const int DealPhaseStockRow = 2;
+        private const int DealPhaseReserve = 3;
+        private const int DealPhaseFoundation = 4;
+        private const int DealPhaseDraw = 5;
         private int dealPhase;
+
+        // Cards still owed to the waste by the draw currently in flight.
+        private int drawRemaining;
 
         // True once a deal has happened; input that depends on a running game
         // (like drawing from the stock) is gated on this.
@@ -166,9 +187,11 @@ namespace org.kumagee
 
             int tableauLength = TableauSlots != null ? TableauSlots.Length : 0;
             int foundationLength = FoundationSlots != null ? FoundationSlots.Length : 0;
-            // The waste always occupies the last base id, even when unassigned, so
-            // ids stay stable regardless of which references happen to be filled in.
-            baseSlotCount = tableauLength + foundationLength + 1;
+            // The waste and the reserve always occupy the last two base ids, even when
+            // unassigned, so ids stay stable regardless of which references happen to
+            // be filled in - a Klondike table with no reserve numbers its cards the
+            // same way a Canfield one does.
+            baseSlotCount = tableauLength + foundationLength + 2;
 
             slotsById = new CardSlot[baseSlotCount + n];
             for (int i = 0; i < tableauLength; i++)
@@ -179,7 +202,8 @@ namespace org.kumagee
             {
                 RegisterBaseSlot(FoundationSlots[i], tableauLength + i);
             }
-            RegisterBaseSlot(WasteSlot, baseSlotCount - 1);
+            RegisterBaseSlot(WasteSlot, baseSlotCount - 2);
+            RegisterBaseSlot(ReserveSlot, baseSlotCount - 1);
 
             cards = new CardLogic[n];
             for (int i = 0; i < n; i++)
@@ -509,7 +533,9 @@ namespace org.kumagee
             dealCol = 0;
             dealDepth = 0;
             dealOwner = owner;
-            dealPhase = DealPhaseOpening;
+            // Canfield deals its reserve and foundation seed before the columns; every
+            // other mode starts straight on the tableau.
+            dealPhase = ResolveReserveCount() > 0 ? DealPhaseReserve : DealPhaseOpening;
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
         }
 
@@ -525,24 +551,52 @@ namespace org.kumagee
         private bool CheckDealPlan()
         {
             int columns = TableauSlots != null ? TableauSlots.Length : 0;
-            int total = 0;
-            for (int col = 0; col < columns; col++) total += DealCountFor(col);
+            int tableauTotal = 0;
+            for (int col = 0; col < columns; col++) tableauTotal += DealCountFor(col);
 
-            if (total <= 0)
+            if (tableauTotal <= 0)
             {
-                Debug.Log($"Solitaire: DealCounts deals no cards ({(DealCounts == null ? "null" : DealCounts.Length + " entries")}, {columns} tableau slots). Klondike wants {{1,2,3,4,5,6,7}}.");
+                Debug.Log($"Solitaire: DealCounts deals no cards ({(DealCounts == null ? "null" : DealCounts.Length + " entries")}, {columns} tableau slots). Klondike wants {{1,2,3,4,5,6,7}}, Canfield {{1,1,1,1}}.");
                 return false;
             }
+
+            // The reserve and the foundation seed come out of the same stock, so the
+            // pool has to cover them too or the tableau deal is the part that starves.
+            // Tested against the slot array rather than against occupancy: this runs
+            // before ResetCards, so a table still holding an abandoned game would
+            // otherwise read its foundations as full and undercount by one.
+            int reserve = ResolveReserveCount();
+            int total = tableauTotal + reserve + (reserve > 0 && HasFoundationSlot() ? 1 : 0);
 
             int available = resolvedDeck != null && resolvedDeck.Pool != null && resolvedDeck.Pool.Pool != null
                 ? resolvedDeck.Pool.Pool.Length
                 : 0;
             if (total > available)
             {
-                Debug.Log($"Solitaire: DealCounts asks for {total} cards but the deck's pool only holds {available}. Refusing to deal - add the missing cards to the VRCObjectPool's Pool array.");
+                Debug.Log($"Solitaire: the deal asks for {total} cards ({tableauTotal} tableau, {total - tableauTotal} reserve/foundation) but the deck's pool only holds {available}. Refusing to deal - add the missing cards to the VRCObjectPool's Pool array.");
                 return false;
             }
             return true;
+        }
+
+        private bool HasFoundationSlot()
+        {
+            if (FoundationSlots == null) return false;
+            for (int i = 0; i < FoundationSlots.Length; i++)
+            {
+                if (FoundationSlots[i] != null) return true;
+            }
+            return false;
+        }
+
+        // How many cards the reserve wants on the opening deal. Zero for every mode
+        // but Canfield, and zero for a Canfield table with no reserve slot wired up -
+        // which is what keeps the reserve phases out of the other modes' deals.
+        private int ResolveReserveCount()
+        {
+            if (Mode != SolitaireMode.Canfield) return 0;
+            if (ReserveSlot == null) return 0;
+            return ReserveCount > 0 ? ReserveCount : 0;
         }
 
         // How many cards column `col` wants on the opening deal. Columns with no slot
@@ -578,22 +632,41 @@ namespace org.kumagee
         {
             if (!dealing) return;
 
-            // Both jobs come back through this one event, so a stock row can never
-            // end up interleaved with an opening deal on a second timer.
-            bool stockRow = dealPhase == DealPhaseStockRow;
+            // Every job comes back through this one event, so a stock row or a draw
+            // can never end up interleaved with an opening deal on a second timer.
+            int phase = dealPhase;
 
             if (dealOwner == null || resolvedDeck == null || TableauSlots == null)
             {
-                // Bailing out of a stock row must not go through FinalizeDeal, which
-                // would clear a win the player already earned.
-                if (stockRow) AbandonStockRow();
+                // Bailing out of a stock row or a draw must not go through
+                // FinalizeDeal, which would clear a win the player already earned.
+                if (phase == DealPhaseStockRow) AbandonStockRow();
+                else if (phase == DealPhaseDraw) FinalizeDraw();
                 else FinalizeDeal();
                 return;
             }
 
-            if (stockRow)
+            if (phase == DealPhaseStockRow)
             {
                 DealNextStockCard();
+                return;
+            }
+
+            if (phase == DealPhaseDraw)
+            {
+                DrawNextWasteCard();
+                return;
+            }
+
+            if (phase == DealPhaseReserve)
+            {
+                DealNextReserveCard();
+                return;
+            }
+
+            if (phase == DealPhaseFoundation)
+            {
+                DealFoundationSeed();
                 return;
             }
 
@@ -615,7 +688,8 @@ namespace org.kumagee
             {
                 Networking.SetOwner(dealOwner, cardGO);
                 // Only the card that ends up on top of the column is face-up, which is
-                // the rule in Klondike and Spider alike.
+                // the rule in every mode - Canfield deals one card per column, so
+                // there it means the whole tableau comes up face-up.
                 card._ForcePlace(slot._GetTopSlot(), dealDepth == DealCountFor(dealCol) - 1);
             }
             dealDepth++;
@@ -630,9 +704,109 @@ namespace org.kumagee
             }
         }
 
+        // Canfield's reserve: thirteen cards face-down with only the top one turned
+        // over. Dealt before anything else, so the columns are the last thing to come
+        // off the stock and the stock itself keeps whatever is left.
+        private void DealNextReserveCard()
+        {
+            int want = ResolveReserveCount();
+            if (ReserveSlot == null || dealDepth >= want)
+            {
+                BeginFoundationSeed();
+                return;
+            }
+
+            GameObject cardGO = resolvedDeck.DrawNext();
+            if (cardGO == null)
+            {
+                Debug.Log("Solitaire: Stock ran dry while dealing the reserve; the deal is short.");
+                FinalizeDeal();
+                return;
+            }
+            CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
+            if (card != null)
+            {
+                Networking.SetOwner(dealOwner, cardGO);
+                card._ForcePlace(ReserveSlot._GetTopSlot(), dealDepth == want - 1);
+            }
+            dealDepth++;
+
+            if (dealDepth < want) SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+            else BeginFoundationSeed();
+        }
+
+        private void BeginFoundationSeed()
+        {
+            dealPhase = DealPhaseFoundation;
+            dealDepth = 0;
+            SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+        }
+
+        // One card onto the first foundation. This is the whole of Canfield's opening
+        // difficulty: its rank becomes the base every foundation builds up from, so a
+        // deal that turns over a nine leaves the aces buried eleven ranks away.
+        private void DealFoundationSeed()
+        {
+            CardSlot foundation = FindEmptyFoundation();
+            if (foundation != null)
+            {
+                GameObject cardGO = resolvedDeck.DrawNext();
+                if (cardGO == null)
+                {
+                    Debug.Log("Solitaire: Stock ran dry before the foundation could be seeded; the deal is short.");
+                    FinalizeDeal();
+                    return;
+                }
+                CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
+                if (card != null)
+                {
+                    Networking.SetOwner(dealOwner, cardGO);
+                    card._ForcePlace(foundation._GetTopSlot(), true);
+                    Debug.Log($"Solitaire: Canfield base rank is {card.CardRank}.");
+                }
+            }
+
+            dealPhase = DealPhaseOpening;
+            dealCol = 0;
+            dealDepth = 0;
+            SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+        }
+
+        // The rank every Canfield foundation starts from, taken from the bottom card
+        // of the first foundation that holds one - the card the deal turned over.
+        // -1 before the seed lands, and for every other mode.
+        //
+        // Derived rather than stored, so it costs nothing to sync: the foundations are
+        // already on the wire as card links, and a late joiner rebuilds the same
+        // answer from them.
+        public int _GetFoundationBaseRank()
+        {
+            if (Mode != SolitaireMode.Canfield || FoundationSlots == null) return -1;
+            for (int i = 0; i < FoundationSlots.Length; i++)
+            {
+                CardSlot slot = FoundationSlots[i];
+                if (slot == null) continue;
+                CardLogic bottom = slot._GetCardAt(0);
+                if (bottom == null || bottom.IsJoker) continue;
+                return (int)bottom.CardRank;
+            }
+            return -1;
+        }
+
+        // Whether a player may drop into an empty tableau column. In Canfield the
+        // reserve fills those automatically, so a column is only genuinely free once
+        // the reserve is spent. Every other mode leaves the decision to its SlotRule.
+        public bool _CanFillEmptyTableau()
+        {
+            if (Mode != SolitaireMode.Canfield) return true;
+            if (ReserveSlot == null) return true;
+            return !ReserveSlot._IsOccupied();
+        }
+
         // One click on the stock. Klondike draws the next card to the waste and turns
-        // the waste back over once the stock runs dry; Spider has no waste at all and
-        // deals a card to every column instead.
+        // the waste back over once the stock runs dry; Canfield does the same three
+        // cards at a time; Spider has no waste at all and deals a card to every column
+        // instead.
         public void _OnStockClicked()
         {
             if (resolvedDeck == null || dealing) return;
@@ -809,7 +983,14 @@ namespace org.kumagee
             Debug.Log($"Solitaire: Recycled {count} cards from the waste back into the stock.");
         }
 
-        // Draw the next stock card onto the waste pile.
+        // Draw from the stock onto the waste pile - one card in Klondike, three in
+        // Canfield.
+        //
+        // Only the first card goes out now; the rest ride the same throttled loop as
+        // the deal, because three cards in one frame is three pool spawns, three
+        // ownership transfers and three serializations - the exact burst DealDelay
+        // exists to spread out. It also means the draw is over in under half a second,
+        // so blocking pickups for its duration costs the player nothing.
         public void _DrawFromStock()
         {
             if (resolvedDeck == null || WasteSlot == null || dealing) return;
@@ -818,12 +999,74 @@ namespace org.kumagee
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return;
 
+            if (!DrawOneToWaste(local)) return;
+
+            int remaining = ResolveDrawCount() - 1;
+            if (remaining <= 0 || resolvedDeck._IsStockEmpty())
+            {
+                // The waste's old top card just stopped being the top one, and a
+                // TopOnly waste hands out only that card, so the whole table's
+                // grabbability moved with it.
+                RefreshAllPickupable();
+                return;
+            }
+
+            dealing = true;
+            dealPhase = DealPhaseDraw;
+            drawRemaining = remaining;
+            dealOwner = local;
+            SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+        }
+
+        private void DrawNextWasteCard()
+        {
+            if (WasteSlot == null || drawRemaining <= 0)
+            {
+                FinalizeDraw();
+                return;
+            }
+
+            // A draw that runs into the bottom of the stock just comes up short, which
+            // is the normal way a Canfield redeal ends.
+            if (!DrawOneToWaste(dealOwner))
+            {
+                FinalizeDraw();
+                return;
+            }
+            drawRemaining--;
+
+            if (drawRemaining > 0) SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
+            else FinalizeDraw();
+        }
+
+        // Turns exactly one card face-up onto the waste. False when the stock had
+        // nothing left to give.
+        private bool DrawOneToWaste(VRCPlayerApi owner)
+        {
+            if (!Utilities.IsValid(owner)) return false;
             GameObject cardGO = resolvedDeck.DrawNext();
-            if (cardGO == null) return;
+            if (cardGO == null) return false;
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
-            if (card == null) return;
-            Networking.SetOwner(local, cardGO);
+            if (card == null) return false;
+            Networking.SetOwner(owner, cardGO);
             card._ForcePlace(WasteSlot._GetTopSlot(), true);
+            return true;
+        }
+
+        private void FinalizeDraw()
+        {
+            dealing = false;
+            dealPhase = DealPhaseNone;
+            drawRemaining = 0;
+            RefreshAllPickupable();
+        }
+
+        // Cards per stock click. 0 means "whatever the mode wants", so a table only
+        // has to set this when it wants something other than the standard game.
+        private int ResolveDrawCount()
+        {
+            if (DrawCount > 0) return DrawCount;
+            return Mode == SolitaireMode.Canfield ? 3 : 1;
         }
 
         private void ResetCards()
@@ -843,6 +1086,8 @@ namespace org.kumagee
             dealPhase = DealPhaseNone;
             won = false;
             if (WinMessage != null) WinMessage.SetActive(false);
+            // A column that DealCounts left empty is one the reserve owes a card to.
+            RefillTableauFromReserve();
             // The deal placed every card without refreshing anything below them, so
             // the opening layout needs one sweep before the player can touch it.
             RefreshAllPickupable();
@@ -1008,6 +1253,7 @@ namespace org.kumagee
             _RepositionAbove(card);
             RevealTops();
             CollectCompletedRuns();
+            RefillTableauFromReserve();
             // After the pile has settled, not before: the flags are derived from the
             // final layout.
             RefreshAllPickupable();
@@ -1137,14 +1383,66 @@ namespace org.kumagee
 
         private void RevealTops()
         {
-            if (TableauSlots == null) return;
+            if (TableauSlots != null)
+            {
+                for (int s = 0; s < TableauSlots.Length; s++)
+                {
+                    CardSlot slot = TableauSlots[s];
+                    if (slot == null) continue;
+                    CardLogic top = slot._GetTopCard();
+                    if (top != null && !top.FaceUp) top.SetFaceUp(true);
+                }
+            }
+
+            // The reserve is dealt face-down under a single turned-over card, so
+            // spending that card has to expose the next one. Null outside Canfield.
+            if (ReserveSlot != null)
+            {
+                CardLogic reserveTop = ReserveSlot._GetTopCard();
+                if (reserveTop != null && !reserveTop.FaceUp) reserveTop.SetFaceUp(true);
+            }
+        }
+
+        // Canfield refills an empty column from the reserve rather than leaving it
+        // open: the reserve is the pile you are actually racing to clear, and handing
+        // it a free outlet is the whole shape of the game. Once it is spent the
+        // columns are genuinely free, which is what _CanFillEmptyTableau tells the
+        // tableau rule.
+        //
+        // Force-placed, so it bypasses that rule - this move is the game making itself,
+        // not the player asking for something.
+        private void RefillTableauFromReserve()
+        {
+            if (Mode != SolitaireMode.Canfield) return;
+            if (TableauSlots == null || ReserveSlot == null) return;
+
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            bool moved = false;
             for (int s = 0; s < TableauSlots.Length; s++)
             {
-                CardSlot slot = TableauSlots[s];
-                if (slot == null) continue;
-                CardLogic top = slot._GetTopCard();
-                if (top != null && !top.FaceUp) top.SetFaceUp(true);
+                CardSlot column = TableauSlots[s];
+                if (column == null || column._IsOccupied()) continue;
+
+                CardLogic top = ReserveSlot._GetTopCard();
+                if (top == null) break; // reserve spent; the rest stay open
+                Networking.SetOwner(local, top.gameObject);
+                top._ForcePlace(column._GetTopSlot(), true);
+                moved = true;
             }
+
+            // Taking the reserve's top card uncovers the one beneath it.
+            if (moved) RevealTops();
+        }
+
+        // True when this slot's pile is the reserve. Face-down reserve cards are no
+        // more grabbable than face-down tableau ones, and CardLogic needs to be able
+        // to tell the two piles apart to say so.
+        public bool _IsReserveChain(CardSlot slot)
+        {
+            if (ReserveSlot == null || slot == null) return false;
+            return slot._GetRootSlot() == ReserveSlot;
         }
 
         // Spider clears a finished king-to-ace run off the tableau to a foundation.

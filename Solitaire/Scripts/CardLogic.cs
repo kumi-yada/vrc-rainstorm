@@ -303,16 +303,17 @@ namespace org.kumagee
             _RefreshPickupable();
         }
 
-        // Face-down tableau cards aren't grabbable at all - they get turned over by
-        // play, once whatever was covering them moves off.
+        // Face-down tableau and reserve cards aren't grabbable at all - they get
+        // turned over by play, once whatever was covering them moves off.
         public void _RefreshPickupable()
         {
             if (!initialized) Init();
-            bool allowed = FaceUp || Solitaire == null || !Solitaire._IsTableauChain(PrevSlot);
+            CardSlot pileSlot = PrevSlot;
+            bool allowed = FaceUp || Solitaire == null
+                || (!Solitaire._IsTableauChain(pileSlot) && !Solitaire._IsReserveChain(pileSlot));
 
             // Pile pick-up policy comes from the base slot: all face-up cards, just
-            // the top, or none. Face-down tableau cards stay blocked regardless.
-            CardSlot pileSlot = PrevSlot;
+            // the top, or none. Face-down cards stay blocked regardless.
             if (allowed && pileSlot != null)
             {
                 CardPickupMode mode = pileSlot._GetPickupMode();
