@@ -2801,9 +2801,11 @@ MonoBehaviour:
   - {fileID: 3945060236745974766}
   - {fileID: 5662554136509977471}
   WasteSlot: {fileID: 0}
+  ReserveSlot: {fileID: 0}
   SnapDistance: 0.12
   DealDelay: 0.2
   DealCounts: 06000000060000000600000006000000050000000500000005000000050000000500000005000000
+  ReserveCount: 13
   WinMessage: {fileID: 2682924764504615210}
   StartButtonLabel: {fileID: 8705886697496554410}
   StartButtonInteract: {fileID: 3543745364449709572}
@@ -4304,6 +4306,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: AllowGroupDrop
       value: 0
       objectReference: {fileID: 0}
@@ -5236,6 +5243,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: AllowGroupDrop
       value: 0
       objectReference: {fileID: 0}
@@ -5778,6 +5790,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: AllowGroupDrop
       value: 0
       objectReference: {fileID: 0}
@@ -5930,6 +5947,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
@@ -6077,6 +6099,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
@@ -6222,6 +6249,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3657767045078619495, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
       propertyPath: AllowGroupDrop
@@ -6674,6 +6706,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
       propertyPath: AllowGroupDrop
       value: 0
       objectReference: {fileID: 0}
@@ -7019,6 +7056,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3657767045078619495, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
+    - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
+        type: 3}
+      propertyPath: InitialOffset
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3318720419714688684, guid: 1b1b5092ff7bc1b7ca054473e3ba1d90,
         type: 3}
       propertyPath: serializationData.Prefab

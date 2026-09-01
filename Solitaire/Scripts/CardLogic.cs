@@ -440,6 +440,38 @@ namespace org.kumagee
             }
         }
 
+        // Re-derive where this card belongs and move it only if the answer changed.
+        //
+        // A fan window makes a card's resting place depend on how many cards are above
+        // it, so growing or shrinking a pile silently restates the position of cards
+        // that never moved. Re-applying all of them through _ApplyPlacement would work
+        // and would also teleport - and therefore serialize - every one of them, which
+        // is a pile's worth of network traffic per draw. Almost none of them have
+        // actually shifted, so compare first.
+        public void _RefreshPlacement()
+        {
+            if (!initialized) Init();
+            if (Grabbed) return;
+
+            CardSlot slot = PrevSlot;
+            if (slot == null || slot == Slot) return;
+
+            Transform mover = CardRoot;
+            if (mover == null) mover = transform;
+
+            Vector3 local = slot._GetOffsetForNext();
+            if (mover.parent == slot.transform
+                && (mover.localPosition - local).sqrMagnitude < PlacementEpsilonSqr)
+            {
+                return;
+            }
+            _ApplyPlacement();
+        }
+
+        // (0.1mm)^2. The offsets a fan window switches between are centimetres apart,
+        // so this only has to be tighter than that and looser than float noise.
+        private const float PlacementEpsilonSqr = 1e-8f;
+
         // Refuse a pickup: put the card straight back where it came from.
         public void _Reject()
         {
@@ -502,8 +534,14 @@ namespace org.kumagee
             ApplyFaceTexture();
             _RefreshPickupable();
             // Cards riding on top of this one don't serialize when it moves, so the
-            // link change has to push their layout along with it.
-            if (Solitaire != null) Solitaire._RepositionAbove(this);
+            // link change has to push their layout along with it - and a card leaving
+            // or joining a fanned pile restates the layout of the cards *below* it
+            // too, which is the one direction _RepositionAbove cannot reach.
+            if (Solitaire != null)
+            {
+                Solitaire._RepositionAbove(this);
+                Solitaire._RelayoutFannedPiles();
+            }
         }
 
         public void _Drop()

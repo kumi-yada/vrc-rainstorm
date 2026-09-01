@@ -3,7 +3,12 @@ guid: d7bab1f412849c9bebbc27163356f204
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: card_cardback_A
+    second: {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

@@ -76,10 +76,6 @@ namespace org.kumagee
         [Tooltip("Canfield only: how many cards go into the reserve before the tableau is dealt. 13 is the standard game. Ignored when ReserveSlot is unassigned.")]
         public int ReserveCount = 13;
 
-        [Header("Stock")]
-        [Tooltip("How many cards one stock click turns onto the waste. 0 uses the mode default - 1 for Klondike, 3 for Canfield - so leaving it alone gives each mode the right game. Spider ignores this entirely; its stock click deals a row to the tableau instead.")]
-        public int DrawCount = 0;
-
         [Header("Win")]
         [Tooltip("Optional object activated once every foundation holds a complete 13-card pile.")]
         public GameObject WinMessage;
@@ -328,7 +324,6 @@ namespace org.kumagee
                 {
                     if (!Utilities.IsValid(found[d])) continue;
                     if (found[d].InActiveGame) return true;
-                    return false;
                 }
             }
             return false;
@@ -422,6 +417,39 @@ namespace org.kumagee
                 if (above.Slot == null) return;
                 current = above.Slot;
                 guard++;
+            }
+        }
+
+        // Re-lay every pile that has a fan window, because in those the resting place
+        // of a card depends on how many cards are above it - so a draw-three waste
+        // restates the position of the card falling out of the window, and of the one
+        // rising into it, without either of them having moved.
+        //
+        // Runs on every client rather than being sent: offsets are derived from the
+        // synced links, never serialized, so each client reaches the same layout on
+        // its own. That is also why this is safe to call liberally - _RefreshPlacement
+        // is a no-op for a card already sitting where it belongs, which is nearly all
+        // of them, and piles with no fan window are skipped outright.
+        public void _RelayoutFannedPiles()
+        {
+            if (slotsById == null) return;
+            int bases = baseSlotCount < slotsById.Length ? baseSlotCount : slotsById.Length;
+            for (int i = 0; i < bases; i++)
+            {
+                CardSlot slot = slotsById[i];
+                if (slot == null || slot.FanCount <= 0) continue;
+
+                CardSlot current = slot;
+                int guard = 0;
+                while (guard < ChainGuard)
+                {
+                    CardLogic above = _GetCardOn(current);
+                    if (above == null) break;
+                    above._RefreshPlacement();
+                    if (above.Slot == null) break;
+                    current = above.Slot;
+                    guard++;
+                }
             }
         }
 
@@ -943,6 +971,7 @@ namespace org.kumagee
             // A stock card lands on top of its column, which is the low end of a run -
             // so it is exactly the card that can complete one.
             CollectCompletedRuns();
+            _RelayoutFannedPiles();
             // A dealt row buries the card under it in every column, so most of the
             // table's grabbability just changed.
             RefreshAllPickupable();
@@ -1004,6 +1033,7 @@ namespace org.kumagee
             int remaining = ResolveDrawCount() - 1;
             if (remaining <= 0 || resolvedDeck._IsStockEmpty())
             {
+                _RelayoutFannedPiles();
                 // The waste's old top card just stopped being the top one, and a
                 // TopOnly waste hands out only that card, so the whole table's
                 // grabbability moved with it.
@@ -1058,14 +1088,14 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             drawRemaining = 0;
+            _RelayoutFannedPiles();
             RefreshAllPickupable();
         }
 
-        // Cards per stock click. 0 means "whatever the mode wants", so a table only
-        // has to set this when it wants something other than the standard game.
+        // Cards per stock click: Klondike turns one, Canfield three. Spider never gets
+        // here - its stock click deals a row to the tableau instead.
         private int ResolveDrawCount()
         {
-            if (DrawCount > 0) return DrawCount;
             return Mode == SolitaireMode.Canfield ? 3 : 1;
         }
 
@@ -1088,6 +1118,7 @@ namespace org.kumagee
             if (WinMessage != null) WinMessage.SetActive(false);
             // A column that DealCounts left empty is one the reserve owes a card to.
             RefillTableauFromReserve();
+            _RelayoutFannedPiles();
             // The deal placed every card without refreshing anything below them, so
             // the opening layout needs one sweep before the player can touch it.
             RefreshAllPickupable();
@@ -1254,6 +1285,7 @@ namespace org.kumagee
             RevealTops();
             CollectCompletedRuns();
             RefillTableauFromReserve();
+            _RelayoutFannedPiles();
             // After the pile has settled, not before: the flags are derived from the
             // final layout.
             RefreshAllPickupable();

@@ -45,6 +45,12 @@ namespace org.kumagee
         [Tooltip("Whether the first card placed directly on this slot is offset. Turn off to have it sit flush on the anchor, so the fan starts from the second card. Only meaningful on a base slot.")]
         public bool InitialOffset = true;
 
+        [Tooltip("How many cards at the top of this pile stay readable. 0 fans the whole pile by Offset, which is what a tableau column wants. Set it to 3 on a draw-three waste and the last three faces show, while everything under them squares up by StackOffset instead, so the pile doesn't grow across the table. Read from the base slot.")]
+        public int FanCount = 0;
+
+        [Tooltip("Offset for the cards below the fan window, used only when FanCount is set. Usually just the thickness of a card, so the buried part of the pile stacks without spreading.")]
+        public Vector3 StackOffset = new Vector3(0f, 0.002f, 0f);
+
         [Tooltip("Snap the card's rotation to this slot's when it lands.")]
         public bool AlignRotation = true;
 
@@ -103,14 +109,38 @@ namespace org.kumagee
 
         // Layout comes from the pile's base slot, so a card fans the same way no
         // matter which pile it was dealt into.
+        //
+        // With a fan window set, where a card sits stops being a constant and starts
+        // depending on how many cards are above it - so this answer changes for cards
+        // that never moved, every time the pile grows or shrinks. Solitaire re-lays
+        // fanned piles after each move for exactly that reason.
         public Vector3 _GetOffsetForNext()
         {
             CardSlot root = _GetRootSlot();
             if (root == null) root = this;
+
+            bool squared = false;
+            if (root.FanCount > 0)
+            {
+                // The card on this slot is already linked by the time anyone asks, so
+                // the pile above this slot counts it - everything past it is what is
+                // riding on top of it.
+                int above = _GetCardCount() - 1;
+                // FanCount is how many faces stay readable, not how many cards step
+                // away. The topmost squared card is uncovered by the one above it
+                // stepping off, so it reads too - which means the spread only has to
+                // happen FanCount - 1 times, and asking for it FanCount times shows
+                // one card too many.
+                squared = above >= root.FanCount - 1;
+            }
+
             // A base slot marks where its own first card sits, so that card can land
-            // flush on the anchor and let the fan start from the one above it.
+            // flush on the anchor and let the fan start from the one above it. Tested
+            // after the fan window, not before: in a pile deep enough to have a buried
+            // part, the bottom card belongs to that buried part, and letting it take
+            // the spread offset instead leaves it poking out from under the stack.
             if (IsBaseSlot && !InitialOffset) return Vector3.zero;
-            return root.Offset;
+            return squared ? root.StackOffset : root.Offset;
         }
 
         public bool _GetAlignRotation()
