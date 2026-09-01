@@ -1510,6 +1510,9 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 3657767045078619495}
   Mode: 0
+  UdonChips: {fileID: 0}
+  EntryFee: 200
+  FoundationPayout: 10
   DeckOfCards: {fileID: 0}
   DeckKey: 0
   CardHome: {fileID: 4424912681114209233}

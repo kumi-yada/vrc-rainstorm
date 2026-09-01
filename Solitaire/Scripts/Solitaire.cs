@@ -4,6 +4,7 @@ using TMPro;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
+using UCS;
 
 namespace org.kumagee
 {
@@ -39,6 +40,16 @@ namespace org.kumagee
         [Header("Game")]
         [Tooltip("Which game this table plays. Everything the modes share is driven by the slot layout, DealCounts and the SlotRule components; this only switches the handful of mechanics that genuinely differ - what a stock click does, whether groups have to be same-suit runs, whether finished runs leave the table, and whether there is a reserve feeding the columns.")]
         public SolitaireMode Mode = SolitaireMode.Klondike;
+
+        [Header("Entry Fee")]
+        [Tooltip("UdonChips component used to deduct the entry fee when a game is dealt. Leave unassigned to disable fees.")]
+        public UdonChips UdonChips;
+
+        [Tooltip("Chips deducted to start a game.")]
+        public float EntryFee = 0f;
+
+        [Tooltip("Chips awarded per card placed on a foundation.")]
+        public float FoundationPayout = 0f;
 
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
@@ -498,6 +509,28 @@ namespace org.kumagee
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
         }
 
+        public float _GetEntryFee()
+        {
+            return EntryFee;
+        }
+
+        private bool TryPayEntryFee()
+        {
+            if (UdonChips == null) return true;
+            float fee = _GetEntryFee();
+            if (fee <= 0f) return true;
+            if (UdonChips.money < fee) return false;
+            UdonChips.money -= fee;
+            return true;
+        }
+
+        private void PayFoundationReward(int cardCount)
+        {
+            if (UdonChips == null) return;
+            if (FoundationPayout <= 0f) return;
+            UdonChips.money += FoundationPayout * cardCount;
+        }
+
         public void Deal(VRCPlayerApi owner = null)
         {
             if (dealing)
@@ -515,6 +548,12 @@ namespace org.kumagee
             {
                 string who = Utilities.IsValid(owner) ? owner.displayName : "this player";
                 Debug.Log($"Solitaire: {who} already has a game running, it has to be quit before dealing another.");
+                return;
+            }
+
+            if (!TryPayEntryFee())
+            {
+                Debug.Log($"Solitaire: Not enough chips to start a {Mode} game (fee {_GetEntryFee()}).");
                 return;
             }
 
@@ -1276,7 +1315,11 @@ namespace org.kumagee
             if (card == null) return;
 
             CardSlot target = FindDropTarget(card);
-            if (target != null) card._SetPrevSlot(target);
+            if (target != null)
+            {
+                card._SetPrevSlot(target);
+                if (IsFoundationChain(target)) PayFoundationReward(1);
+            }
             else card._ApplyPlacement(); // no valid home, snap back where it was
 
             // The cards it was carrying stay parented to it, but their offset comes
@@ -1520,6 +1563,7 @@ namespace org.kumagee
                     Networking.SetOwner(local, king.gameObject);
                     king._ForcePlace(foundation._GetTopSlot(), true);
                     _RepositionAbove(king);
+                    PayFoundationReward(CardLogic.RankDefinitionsCount);
                     collected = true;
                     taken++;
                     Debug.Log($"Solitaire: Collected a completed run of {king.CardSuit} from column {s}.");
