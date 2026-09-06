@@ -122,16 +122,14 @@ namespace org.kumagee
             bool squared = false;
             if (root.FanCount > 0)
             {
-                // The card on this slot is already linked by the time anyone asks, so
-                // the pile above the root counts it - everything past it is what is
-                // riding on top of it.
-                int above = root._GetCardCount() - 1;
-                // FanCount is how many faces stay readable, not how many cards step
-                // away. The topmost squared card is uncovered by the one above it
-                // stepping off, so it reads too - which means the spread only has to
-                // happen FanCount - 1 times, and asking for it FanCount times shows
-                // one card too many.
-                squared = above >= root.FanCount - 1;
+                // Cards above this slot, including the one sitting on it. Each slot
+                // in the chain sees a different count, so the fan/stack boundary
+                // lands in the right place.
+                int above = _GetCardCount();
+                // FanCount is how many faces stay readable. The topmost squared card
+                // is uncovered by the one above it stepping off, so it reads too -
+                // which means the spread only has to happen FanCount - 1 times.
+                squared = above >= root.FanCount;
             }
 
             // A base slot marks where its own first card sits, so that card can land

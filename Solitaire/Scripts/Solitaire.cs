@@ -1254,6 +1254,7 @@ namespace org.kumagee
             {
                 StartButtonLabel.text = (running && !localOwner) ? "" : (gameStarted ? "Quit" : "Start");
             }
+            if (StartInteract != null) StartInteract._SetRunning(gameStarted);
         }
 
         // The start/quit button only invites an interact when no game is running
