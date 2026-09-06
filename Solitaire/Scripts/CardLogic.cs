@@ -85,6 +85,7 @@ namespace org.kumagee
         private bool initialized;
         private bool rejecting;
         private int serializationRetries;
+        private int savedPrevSlotId = -1;
 
         // The slot this card is stacked on. Resolved from the synced PrevSlotId, so
         // every client walks the same chain without the reference itself going over
@@ -243,7 +244,7 @@ namespace org.kumagee
             float cellY = 1f / (float)AtlasRows;
 
             bool localOwns = Networking.IsOwner(Networking.LocalPlayer, gameObject);
-            bool showFace = localOwns || FaceVisible;
+            bool showFace = FaceUp && (localOwns || FaceVisible);
 
             int col;
             int row;
@@ -281,7 +282,6 @@ namespace org.kumagee
         public void SetFaceVisible(bool visible)
         {
             if (!initialized) Init();
-            TakeOwnership();
             FaceVisible = visible;
             RequestSerialization();
             ApplyFaceTexture();
@@ -295,7 +295,6 @@ namespace org.kumagee
         public void SetFaceUp(bool up)
         {
             if (!initialized) Init();
-            TakeOwnership();
             FaceUp = up;
             FaceVisible = up;
             RequestSerialization();
@@ -345,20 +344,12 @@ namespace org.kumagee
             else if (pickup != null) pickup.pickupable = allowed;
         }
 
-        private void TakeOwnership()
-        {
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-            if (!Networking.IsOwner(local, gameObject)) Networking.SetOwner(local, gameObject);
-        }
-
         // Link this card onto a slot and tell everyone else about it. The single
         // synced int is the whole story: every client re-derives parenting, layout
         // and pile membership from it.
         public void _SetPrevSlot(CardSlot slot)
         {
             if (!initialized) Init();
-            TakeOwnership();
             PrevSlotId = slot != null ? slot.SlotId : -1;
             if (Solitaire != null) Solitaire._InvalidateCardIndex();
             RequestSerialization();
@@ -370,7 +361,6 @@ namespace org.kumagee
         public void _ForcePlace(CardSlot slot, bool faceUp)
         {
             if (!initialized) Init();
-            TakeOwnership();
             FaceUp = faceUp;
             FaceVisible = faceUp;
             Grabbed = false;
@@ -386,7 +376,6 @@ namespace org.kumagee
         public void _Detach(Transform home)
         {
             if (!initialized) Init();
-            TakeOwnership();
             PrevSlotId = -1;
             Grabbed = false;
             FaceUp = false;
@@ -487,9 +476,14 @@ namespace org.kumagee
             // otherwise it would swallow this pickup's drop instead.
             rejecting = false;
             Grabbed = true;
-            TakeOwnership();
-            RequestSerialization();
+            savedPrevSlotId = PrevSlotId;
             if (Solitaire != null) Solitaire._OnCardPickup(this);
+            if (!rejecting)
+            {
+                PrevSlotId = -1;
+                if (Solitaire != null) Solitaire._InvalidateCardIndex();
+            }
+            RequestSerialization();
             ApplyFaceTexture();
         }
 
@@ -550,6 +544,15 @@ namespace org.kumagee
             if (pickup != null) pickup.Drop();
         }
 
+        public void _SnapBack()
+        {
+            PrevSlotId = savedPrevSlotId;
+            if (Solitaire != null) Solitaire._InvalidateCardIndex();
+            RequestSerialization();
+            _ApplyPlacement();
+            ApplyFaceTexture();
+        }
+
         public CardSlot _GetCurrentSlot()
         {
             return PrevSlot;
@@ -564,6 +567,8 @@ namespace org.kumagee
             if (rejecting)
             {
                 rejecting = false;
+                PrevSlotId = savedPrevSlotId;
+                if (Solitaire != null) Solitaire._InvalidateCardIndex();
                 _ApplyPlacement();
                 ApplyFaceTexture();
                 return;

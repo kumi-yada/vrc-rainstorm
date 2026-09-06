@@ -51,6 +51,9 @@ namespace org.kumagee
         [Tooltip("Chips awarded per card placed on a foundation.")]
         public float FoundationPayout = 0f;
 
+        [Tooltip("Multiplies the total accrued payout when the game is completed (won) rather than quit early. 1 means no bonus; 2 doubles the winnings only on a win, never on an early quit.")]
+        public float CompletePayoutMultiplier = 1f;
+
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
         public DeckManager DeckOfCards;
@@ -88,7 +91,7 @@ namespace org.kumagee
         public int ReserveCount = 13;
 
         [Header("Win")]
-        [Tooltip("Optional object activated once every foundation holds a complete 13-card pile.")]
+        [Tooltip("Banner over the table. Once every foundation holds a complete 13-card pile it shows its win text; before any game starts it shows the entry fee instead (i.e. \"200 coins to start\") and stays hidden for the duration of a running game so nobody mistakes a spoiler for the current state.")]
         public GameObject WinMessage;
 
         [Header("UI")]
@@ -97,6 +100,9 @@ namespace org.kumagee
 
         [Tooltip("Interact collider on the start/quit button. While a game is running by another player it is disabled so they cannot start a competing game.")]
         public Collider StartButtonInteract;
+
+        [Tooltip("GameInteract behaviour on the start/quit button. It sets its hover text from the entry fee; Solitaire only feeds it the fee.")]
+        public GameInteract StartInteract;
 
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
         public GameObject ConfirmDialog;
@@ -117,11 +123,27 @@ namespace org.kumagee
         private CardLogic[] cardOnSlot;
         private bool indexDirty = true;
 
+        // The banner's text component and the text it was authored with, so the
+        // idle entry-fee prompt can be swapped out for the real win message.
+        private TextMeshProUGUI winMessageText;
+        private string winMessageDefaultText;
+
+        // The interactable behind the start/quit button is the GameInteract
+        // behaviour, which owns its hover text. This file only feeds it the fee.
         private int baseSlotCount;
         private Transform cardHome;
         private bool dealing;
         private bool gameStarted;
         private bool won;
+
+        // Payout accumulated while the game is running. Not credited to the player's
+        // chips until the game finishes (a win or an early quit), so a player cannot
+        // bank chips mid-game and walk off mid-table.
+        private float payoutEarned;
+
+        // Text shown on the banner once the game has ended (win or early quit). Set
+        // to null on reset so the idle entry-fee prompt is restored.
+        private string winMessageOverride;
         private int dealCol;
         private int dealDepth;
         private VRCPlayerApi dealOwner;
@@ -159,8 +181,18 @@ namespace org.kumagee
 
         private void Start()
         {
-            if (WinMessage != null) WinMessage.SetActive(false);
+            if (WinMessage != null)
+            {
+                winMessageText = WinMessage.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (winMessageText != null) winMessageDefaultText = winMessageText.text;
+                RefreshWinMessage();
+            }
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (StartInteract != null) StartInteract._SetEntryFee((int)EntryFee);
+            if (StartButtonInteract != null)
+            {
+                _RefreshStartInteractable();
+            }
         }
 
         private void Init()
@@ -249,7 +281,7 @@ namespace org.kumagee
 
             RefreshStartLabel();
             _RefreshStartInteractable();
-            if (WinMessage != null) WinMessage.SetActive(false);
+            RefreshWinMessage();
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             Debug.Log($"Solitaire: Initialized with {n} cards and {baseSlotCount} base slots.");
         }
@@ -365,6 +397,7 @@ namespace org.kumagee
             if (id < 0) return null;
             if (indexDirty) RebuildCardIndex();
             if (cardOnSlot == null || id >= cardOnSlot.Length) return null;
+
 
             CardLogic card = cardOnSlot[id];
             if (card == null) return null;
@@ -496,11 +529,32 @@ namespace org.kumagee
             Deal(Networking.LocalPlayer);
         }
 
-        // User confirmed quitting; tear the game down to the pre-deal state.
+        // User confirmed quitting; settle the accrued payout, tear the game down to
+        // the pre-deal state, then flash the total earned on the banner.
         public void _ConfirmNewGame()
         {
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (won)
+            {
+                _ResetGame();
+                return;
+            }
+            float earned = CreditPayout();
             _ResetGame();
+            if (WinMessage != null && UdonChips != null && earned > 0f)
+            {
+                if (winMessageText != null) winMessageText.text = $"You earned {BuildPayoutAmount()} coins";
+                WinMessage.SetActive(true);
+                SendCustomEventDelayedSeconds(nameof(_RevertIdleBanner), 4f);
+            }
+        }
+
+        // Reverts the banner to the idle entry-fee prompt after an early-quit payout
+        // has been shown for a moment. Does nothing if a win took over meanwhile.
+        private void _RevertIdleBanner()
+        {
+            if (won) return;
+            RefreshWinMessage();
         }
 
         // User backed out; just close the confirmation dialog.
@@ -524,11 +578,30 @@ namespace org.kumagee
             return true;
         }
 
-        private void PayFoundationReward(int cardCount)
+        // Accrues the per-card payout into payoutEarned without paying it out. The
+        // chips are only credited once, when the game finishes (see CreditPayout).
+        private void AccumulateFoundationReward(int cardCount)
         {
-            if (UdonChips == null) return;
             if (FoundationPayout <= 0f) return;
-            UdonChips.money += FoundationPayout * cardCount;
+            payoutEarned += FoundationPayout * cardCount;
+        }
+
+        // Pays out everything accrued so far and returns the amount credited, so the
+        // caller can report it. Called exactly once per game, at the finish.
+        private float CreditPayout()
+        {
+            float amount = payoutEarned;
+            if (UdonChips != null && amount > 0f) UdonChips.money += amount;
+            return amount;
+        }
+
+        private string BuildPayoutAmount()
+        {
+            if (Mathf.Approximately(payoutEarned, Mathf.Floor(payoutEarned)))
+            {
+                return $"{(int)payoutEarned}";
+            }
+            return $"{payoutEarned:0.##}";
         }
 
         public void Deal(VRCPlayerApi owner = null)
@@ -592,8 +665,11 @@ namespace org.kumagee
             resolvedDeck._MoveTo(CardHome);
             dealing = true;
             gameStarted = true;
+            payoutEarned = 0f;
+            winMessageOverride = null;
             RefreshStartLabel();
             _RefreshStartInteractable();
+            RefreshWinMessage();
             resolvedDeck._RefreshInteractable();
             Debug.Log($"Solitaire: Dealing cards for {owner.displayName} ({owner.playerId})");
             ResetCards();
@@ -1154,7 +1230,7 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
-            if (WinMessage != null) WinMessage.SetActive(false);
+            RefreshWinMessage();
             // A column that DealCounts left empty is one the reserve owes a card to.
             RefillTableauFromReserve();
             _RelayoutFannedPiles();
@@ -1165,16 +1241,19 @@ namespace org.kumagee
 
         // The label mirrors the interactable: hidden while another player is
         // mid-game, so a spectator sees neither the "Start" prompt nor a button
-        // that they can't press anyway.
+        // that they can't press anyway. Shares its state with the interact text of
+        // the Start/quit trigger.
         private void RefreshStartLabel()
         {
-            if (StartButtonLabel == null) return;
             int ownerId = resolvedDeck != null ? resolvedDeck.GameOwnerId : -1;
             bool running = gameStarted || ownerId != -1;
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
-            StartButtonLabel.text = (running && !localOwner) ? "" : (gameStarted ? "Quit" : "Start");
+            if (StartButtonLabel != null)
+            {
+                StartButtonLabel.text = (running && !localOwner) ? "" : (gameStarted ? "Quit" : "Start");
+            }
         }
 
         // The start/quit button only invites an interact when no game is running
@@ -1210,7 +1289,7 @@ namespace org.kumagee
             RefreshStartLabel();
             _RefreshStartInteractable();
             resolvedDeck._RefreshInteractable();
-            if (WinMessage != null) WinMessage.SetActive(false);
+            RefreshWinMessage();
             Debug.Log("Solitaire: Game reset to initial state.");
         }
 
@@ -1218,6 +1297,10 @@ namespace org.kumagee
         {
             if (resolvedDeck == null) return;
             if (player == null || resolvedDeck.GameOwnerId != player.playerId) return;
+            // UdonChips money is offline/local per-player. Only the leaver's own
+            // client can settle their wallet, so credit their accrued payout here
+            // before the game is torn down. Do nothing for a win (already credited).
+            if (player.isLocal && !won) CreditPayout();
             Debug.Log($"Solitaire: Game owner {player.displayName} left; resetting game.");
             _ResetGame();
         }
@@ -1318,9 +1401,9 @@ namespace org.kumagee
             if (target != null)
             {
                 card._SetPrevSlot(target);
-                if (IsFoundationChain(target)) PayFoundationReward(1);
+                if (IsFoundationChain(target)) AccumulateFoundationReward(1);
             }
-            else card._ApplyPlacement(); // no valid home, snap back where it was
+            else card._SnapBack(); // no valid home, snap back where it was
 
             // The cards it was carrying stay parented to it, but their offset comes
             // from the pile they're now in, so re-derive it.
@@ -1563,7 +1646,7 @@ namespace org.kumagee
                     Networking.SetOwner(local, king.gameObject);
                     king._ForcePlace(foundation._GetTopSlot(), true);
                     _RepositionAbove(king);
-                    PayFoundationReward(CardLogic.RankDefinitionsCount);
+                    AccumulateFoundationReward(CardLogic.RankDefinitionsCount);
                     collected = true;
                     taken++;
                     Debug.Log($"Solitaire: Collected a completed run of {king.CardSuit} from column {s}.");
@@ -1614,6 +1697,60 @@ namespace org.kumagee
             return null;
         }
 
+        // The banner under the start button (WinMessage) doubles as the idle
+        // prompt: before any game it says "200 coins to start" instead of floating
+        // dead over the table. Its authored text is restored when the game is won,
+        // and the whole banner hides once a game is dealt - the running table is
+        // thanks enough, and showing the fee mid-game would read as a double charge.
+        private void RefreshWinMessage()
+        {
+            if (WinMessage == null) return;
+
+            if (won)
+            {
+                if (winMessageText != null)
+                {
+                    winMessageText.text = winMessageOverride != null ? winMessageOverride : winMessageDefaultText;
+                }
+                WinMessage.SetActive(true);
+                return;
+            }
+
+            int ownerId = resolvedDeck != null ? resolvedDeck.GameOwnerId : -1;
+            bool localOwner = false;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
+            if (gameStarted || (ownerId != -1 && !localOwner))
+            {
+                WinMessage.SetActive(false);
+                return;
+            }
+
+            if (EntryFee > 0f)
+            {
+                if (winMessageText != null) winMessageText.text = BuildEntryFeeLabel();
+                WinMessage.SetActive(true);
+            }
+            else
+            {
+                WinMessage.SetActive(false);
+            }
+        }
+
+        private string BuildEntryFeeAmount()
+        {
+            if (Mathf.Approximately(EntryFee, Mathf.Floor(EntryFee)))
+            {
+                return $"{(int)EntryFee}";
+            }
+            return $"{EntryFee:0.##}";
+        }
+
+        private string BuildEntryFeeLabel()
+        {
+            return $"{BuildEntryFeeAmount()} coins to start";
+        }
+
         private void CheckWon()
         {
             if (won || FoundationSlots == null) return;
@@ -1623,7 +1760,10 @@ namespace org.kumagee
                 if (FoundationSlots[i]._GetCardCount() < CardLogic.RankDefinitionsCount) return;
             }
             won = true;
-            if (WinMessage != null) WinMessage.SetActive(true);
+            if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
+            CreditPayout();
+            winMessageOverride = $"You won {BuildPayoutAmount()} coins";
+            RefreshWinMessage();
         }
     }
 }

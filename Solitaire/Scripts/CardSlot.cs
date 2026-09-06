@@ -123,9 +123,9 @@ namespace org.kumagee
             if (root.FanCount > 0)
             {
                 // The card on this slot is already linked by the time anyone asks, so
-                // the pile above this slot counts it - everything past it is what is
+                // the pile above the root counts it - everything past it is what is
                 // riding on top of it.
-                int above = _GetCardCount() - 1;
+                int above = root._GetCardCount() - 1;
                 // FanCount is how many faces stay readable, not how many cards step
                 // away. The topmost squared card is uncovered by the one above it
                 // stepping off, so it reads too - which means the spread only has to
