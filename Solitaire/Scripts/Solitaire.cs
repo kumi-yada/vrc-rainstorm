@@ -543,7 +543,7 @@ namespace org.kumagee
             _ResetGame();
             if (WinMessage != null && UdonChips != null && earned > 0f)
             {
-                if (winMessageText != null) winMessageText.text = $"You earned {BuildPayoutAmount()} coins";
+                if (winMessageText != null) winMessageText.text = $"You earned {BuildPayoutAmount()}c";
                 WinMessage.SetActive(true);
                 SendCustomEventDelayedSeconds(nameof(_RevertIdleBanner), 4f);
             }
@@ -1402,7 +1402,11 @@ namespace org.kumagee
             if (target != null)
             {
                 card._SetPrevSlot(target);
-                if (IsFoundationChain(target)) AccumulateFoundationReward(1);
+                if (IsFoundationChain(target))
+                {
+                    AccumulateFoundationReward(1);
+                    RefreshWinMessage();
+                }
             }
             else card._SnapBack(); // no valid home, snap back where it was
 
@@ -1648,6 +1652,7 @@ namespace org.kumagee
                     king._ForcePlace(foundation._GetTopSlot(), true);
                     _RepositionAbove(king);
                     AccumulateFoundationReward(CardLogic.RankDefinitionsCount);
+                    RefreshWinMessage();
                     collected = true;
                     taken++;
                     Debug.Log($"Solitaire: Collected a completed run of {king.CardSuit} from column {s}.");
@@ -1721,9 +1726,23 @@ namespace org.kumagee
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
-            if (gameStarted || (ownerId != -1 && !localOwner))
+            if (ownerId != -1 && !localOwner)
             {
                 WinMessage.SetActive(false);
+                return;
+            }
+
+            if (gameStarted)
+            {
+                if (payoutEarned > 0f)
+                {
+                    if (winMessageText != null) winMessageText.text = $"Payout: {BuildPayoutAmount()}c";
+                    WinMessage.SetActive(true);
+                }
+                else
+                {
+                    WinMessage.SetActive(false);
+                }
                 return;
             }
 
@@ -1763,7 +1782,7 @@ namespace org.kumagee
             won = true;
             if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
             CreditPayout();
-            winMessageOverride = $"You won {BuildPayoutAmount()} coins";
+            winMessageOverride = $"You won {BuildPayoutAmount()}c";
             RefreshWinMessage();
         }
     }
