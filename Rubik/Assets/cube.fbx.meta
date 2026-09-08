@@ -7,8 +7,38 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: BackOrange
+    second: {fileID: 2100000, guid: 659f3eb61b423446e865356a01127e69, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BotYellow
+    second: {fileID: 2100000, guid: 8ceaa692d4be0d1f1a211499c08e6e7e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FrontRed
+    second: {fileID: 2100000, guid: 3edee931d55b50f828cc4162ea4837aa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LeftGreen
+    second: {fileID: 2100000, guid: 796a802371a743cf78541a6966758f76, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RightBlue
+    second: {fileID: 2100000, guid: 618db0dc8dab0c60ab2952eb5844c8b1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Rubik
     second: {fileID: 2100000, guid: 2fdfc508a668ac5ffa077b78d854e60c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TopWhite
+    second: {fileID: 2100000, guid: 173a18c55c4afb54abc6efaf70670b3c, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

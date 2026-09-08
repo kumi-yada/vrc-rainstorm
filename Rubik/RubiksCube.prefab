@@ -295,8 +295,10 @@ MonoBehaviour:
   _udonSharpBackingUdonBehaviour: {fileID: 7401161167048974937}
   cubies: []
   canvas: {fileID: 4798063476178674916}
+  tapSeconds: 0.25
   shuffleIndicatorPivot: {fileID: 83884987523880907}
   shuffleIndicator: {fileID: 5070809918628197630}
+  indicatorDelay: 0.4
   keyboardControls: 1
   twistGesture: 1
   twistMinDistance: 0.8
@@ -409,6 +411,7 @@ MonoBehaviour:
   DropEventName: 
   ThrowVelocityBoostMinSpeed: 1
   ThrowVelocityBoostScale: 1
+  OutlineRenderers: []
   currentlyHeldBy: {fileID: 0}
   pickupable: 1
   proximity: 2
