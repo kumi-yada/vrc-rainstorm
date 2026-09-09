@@ -346,7 +346,7 @@ namespace org.kumagee
             foreach (CardLogic card in cards)
             {
                 Networking.SetOwner(playerLocal, card.gameObject);
-                card.Grabbed = false;
+                card._ReleaseGrab();
                 card.RequestSerialization();
                 Pool.Return(card.gameObject);
                 if (!card.gameObject.activeSelf) continue;

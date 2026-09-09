@@ -6,7 +6,6 @@ using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
-using MMMaellon;
 
 namespace org.kumagee
 {
@@ -75,10 +74,18 @@ namespace org.kumagee
         public Suit CardSuit => _suit;
         [HideInInspector] public bool IsJoker;
         [HideInInspector] public int JokerIndex;
-        [HideInInspector] [UdonSynced] public bool Grabbed;
+        [UdonSynced] private int grabHandIndex = -1;
+
+        public bool Grabbed => grabHandIndex >= 0;
+
+        public void _ReleaseGrab()
+        {
+            grabHandIndex = -1;
+        }
+        [UdonSynced] private Vector3 grabLocalOffset;
+        [UdonSynced] private Quaternion grabLocalRotation;
 
         private VRCPickup pickup;
-        private SmartObjectSync sync;
         private Renderer faceRenderer;
         private Material faceMaterial;
         private int faceMaterialIndex;
@@ -155,26 +162,11 @@ namespace org.kumagee
             {
                 pickup = transform.parent.GetComponent<VRCPickup>();
             }
-            if (pickup != null) sync = pickup.GetComponent<SmartObjectSync>();
-            if (sync != null)
-            {
-                // SmartObjectSync defaults sleep and physics to world space, and a
-                // card's position only means anything relative to the slot it is
-                // parented under, so all three have to be local space. These aren't
-                // synced fields, which is why every client sets them here rather
-                // than the owner setting them once.
-                sync.worldSpaceTeleport = false;
-                sync.worldSpaceSleep = false;
-                sync.worldSpacePhysics = false;
-                sync.respawnIntoStartingState = false;
-            }
 
-            // The card rigidbody must stay kinematic. It is what keeps a card at
-            // rest silent: SmartObjectSync's collision handlers all bail on a
-            // kinematic body, so a resting card can't be knocked into FALLING or
-            // INTERPOLATING, and its update loop - the only thing that serializes
-            // repeatedly - stays off. Make the cards dynamic and a full tableau
-            // turns into a pile of colliding rigidbodies all syncing every frame.
+            // The card rigidbody must stay kinematic. A kinematic body can't be
+            // knocked by collisions, so a resting card stays put and never needs
+            // continuous sync. Make the cards dynamic and a full tableau turns
+            // into a pile of colliding rigidbodies all fighting each other.
             VRCPlayerApi local = Networking.LocalPlayer;
             if (pickup != null && Utilities.IsValid(local))
             {
@@ -338,10 +330,7 @@ namespace org.kumagee
                 }
             }
 
-            // SmartObjectSync owns pickup.pickupable and re-asserts it on every state
-            // change, so drive its flag rather than the pickup's directly.
-            if (sync != null) sync.pickupable = allowed;
-            else if (pickup != null) pickup.pickupable = allowed;
+            if (pickup != null) pickup.pickupable = allowed;
         }
 
         // Link this card onto a slot and tell everyone else about it. The single
@@ -363,7 +352,7 @@ namespace org.kumagee
             if (!initialized) Init();
             FaceUp = faceUp;
             FaceVisible = faceUp;
-            Grabbed = false;
+            grabHandIndex = -1;
             PrevSlotId = slot != null ? slot.SlotId : -1;
             if (Solitaire != null) Solitaire._InvalidateCardIndex();
             RequestSerialization();
@@ -377,7 +366,7 @@ namespace org.kumagee
         {
             if (!initialized) Init();
             PrevSlotId = -1;
-            Grabbed = false;
+            grabHandIndex = -1;
             FaceUp = false;
             FaceVisible = false;
             if (Solitaire != null) Solitaire._InvalidateCardIndex();
@@ -413,20 +402,6 @@ namespace org.kumagee
             mover.localPosition = local;
             if (align) mover.localRotation = Quaternion.identity;
             else mover.rotation = worldRot;
-            Quaternion localRot = mover.localRotation;
-
-            if (sync != null)
-            {
-                sync.worldSpaceTeleport = false;
-                sync.worldSpaceSleep = false;
-                sync.worldSpacePhysics = false;
-                // SmartObjectSync syncs local-space pose against transform.parent, so
-                // only the owner writes it; remotes already share the same parent.
-                if (Networking.IsOwner(Networking.LocalPlayer, gameObject))
-                {
-                    sync.TeleportToLocalSpace(local, localRot, Vector3.zero, Vector3.zero);
-                }
-            }
         }
 
         // Re-derive where this card belongs and move it only if the answer changed.
@@ -472,11 +447,15 @@ namespace org.kumagee
         public override void OnPickup()
         {
             if (!initialized) Init();
-            // Clear any stale reject from a Drop() that never produced an OnDrop,
-            // otherwise it would swallow this pickup's drop instead.
             rejecting = false;
-            Grabbed = true;
             savedPrevSlotId = PrevSlotId;
+
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (Utilities.IsValid(local))
+            {
+                CaptureGrabOffset(local);
+            }
+
             if (Solitaire != null) Solitaire._OnCardPickup(this);
             if (!rejecting)
             {
@@ -485,6 +464,52 @@ namespace org.kumagee
             }
             RequestSerialization();
             ApplyFaceTexture();
+        }
+
+        private void CaptureGrabOffset(VRCPlayerApi player)
+        {
+            Transform root = CardRoot != null ? CardRoot : transform;
+            VRCPlayerApi.TrackingData leftHand = player.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
+            VRCPlayerApi.TrackingData rightHand = player.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
+
+            float leftDist = (root.position - leftHand.position).sqrMagnitude;
+            float rightDist = (root.position - rightHand.position).sqrMagnitude;
+
+            VRCPlayerApi.TrackingData hand;
+            if (leftDist < rightDist)
+            {
+                grabHandIndex = 0;
+                hand = leftHand;
+            }
+            else
+            {
+                grabHandIndex = 1;
+                hand = rightHand;
+            }
+
+            Quaternion invHandRot = Quaternion.Inverse(hand.rotation);
+            grabLocalOffset = invHandRot * (root.position - hand.position);
+            grabLocalRotation = invHandRot * root.rotation;
+        }
+
+        private void Update()
+        {
+            if (!Grabbed) return;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+            if (Networking.IsOwner(local, gameObject)) return;
+
+            VRCPlayerApi grabber = Networking.GetOwner(gameObject);
+            if (!Utilities.IsValid(grabber)) return;
+
+            VRCPlayerApi.TrackingDataType handType = grabHandIndex == 0
+                ? VRCPlayerApi.TrackingDataType.LeftHand
+                : VRCPlayerApi.TrackingDataType.RightHand;
+            VRCPlayerApi.TrackingData hand = grabber.GetTrackingData(handType);
+
+            Transform root = CardRoot != null ? CardRoot : transform;
+            root.position = hand.position + hand.rotation * grabLocalOffset;
+            root.rotation = hand.rotation * grabLocalRotation;
         }
 
         public override void OnOwnershipTransferred(VRCPlayerApi player)
@@ -561,7 +586,7 @@ namespace org.kumagee
         public override void OnDrop()
         {
             if (!initialized) Init();
-            Grabbed = false;
+            grabHandIndex = -1;
             RequestSerialization();
 
             if (rejecting)
