@@ -155,7 +155,6 @@ MonoBehaviour:
   Slot: {fileID: 0}
   IsJoker: 0
   JokerIndex: 0
-  Grabbed: 0
 --- !u!114 &1476436983246557894
 MonoBehaviour:
   m_ObjectHideFlags: 0

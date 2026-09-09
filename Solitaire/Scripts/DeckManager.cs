@@ -7,7 +7,6 @@ using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common;
 using VRC.Udon.Common.Interfaces;
-using MMMaellon;
 
 namespace org.kumagee
 {
@@ -375,17 +374,22 @@ namespace org.kumagee
         private void SetCurrentCardToTop()
         {
             if (!currentCard) return;
-            currentCard.transform.localPosition = new Vector3(0, CardCount * 0.002f, 0);
-            SmartObjectSync sync = currentCard.GetComponent<SmartObjectSync>();
-            if (sync)
+
+            // currentCard is the last card this deck handed out, but nothing
+            // clears it when the player moves that card off the stock and onto
+            // the table. Recycling the waste calls this per returned card, so a
+            // stale pointer would teleport a card that is sitting in some pile -
+            // relative to the card below it - and leave it floating there. A
+            // card linked into any slot (or held) is in play, not on the stock,
+            // so it is not the deck's to move.
+            CardLogic logic = currentCard.GetComponentInChildren<CardLogic>(true);
+            if (logic != null && (logic.PrevSlotId != -1 || logic.Grabbed))
             {
-                sync.worldSpaceTeleport = false;
-                sync.worldSpaceSleep = false;
-                sync.worldSpacePhysics = false;
-                sync.TakeOwnership(false);
-                sync.TeleportToLocalSpace(currentCard.transform.localPosition,
-                    currentCard.transform.localRotation, Vector3.zero, Vector3.zero);
+                currentCard = null;
+                return;
             }
+
+            currentCard.transform.localPosition = new Vector3(0, CardCount * 0.002f, 0);
         }
     }
 }
