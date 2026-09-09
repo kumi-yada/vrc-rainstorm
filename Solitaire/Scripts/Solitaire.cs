@@ -659,12 +659,14 @@ namespace org.kumagee
 
             Networking.SetOwner(owner, gameObject);
             Networking.SetOwner(owner, resolvedDeck.gameObject);
+            resolvedDeck._SetGameWon(false);
             resolvedDeck._SetGameOwner(owner.playerId);
             // DeckManager owns this move because it knows where its pool is - the
             // undealt cards live under the pool, which may not be the deck itself.
             resolvedDeck._MoveTo(CardHome);
             dealing = true;
             gameStarted = true;
+            won = false;
             payoutEarned = 0f;
             winMessageOverride = null;
             RefreshStartLabel();
@@ -1281,6 +1283,7 @@ namespace org.kumagee
 
             ResetCards();
             resolvedDeck._ResetPosition();
+            resolvedDeck._SetGameWon(false);
             resolvedDeck._SetGameOwner(-1);
 
             gameStarted = false;
@@ -1782,8 +1785,10 @@ namespace org.kumagee
             won = true;
             if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
             CreditPayout();
+            if (resolvedDeck != null) resolvedDeck._SetGameWon(true);
             winMessageOverride = $"You won {BuildPayoutAmount()}c";
             RefreshWinMessage();
+            _RefreshStartInteractable();
         }
     }
 }

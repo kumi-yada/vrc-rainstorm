@@ -45,12 +45,19 @@ namespace org.kumagee
         [UdonSynced] private int gameOwnerId = -1;
         public int GameOwnerId => gameOwnerId;
 
-        // True while this deck is the one a running game is dealt from. Derived from
-        // the synced owner id rather than kept as its own field, so it can't drift out
-        // of step with who the deck actually belongs to. Note this is deliberately not
-        // Solitaire._IsGameStarted(): that flag is local-only and reads false on every
-        // client except the dealer's, whereas gameOwnerId arrives everywhere.
-        public bool InActiveGame => gameOwnerId != -1;
+        // True once every foundation is complete and the payout has been credited.
+        // The game is over but the table has not been reset yet - the player may
+        // still be looking at their winnings. Local-only: FindActiveDeckFor only
+        // scans this player's own decks, so no other client ever needs to read it.
+        private bool gameWon;
+        public bool GameWon => gameWon;
+
+        // True while this deck is the one a running game is dealt from. A won game
+        // no longer counts as active: the payout is already credited and the player
+        // should be free to start a new game at another table without having to quit
+        // this one first. gameOwnerId is synced; gameWon is local-only because
+        // FindActiveDeckFor only ever inspects the local player's own decks.
+        public bool InActiveGame => gameOwnerId != -1 && !gameWon;
 
         public void _SetGameOwner(int playerId)
         {
@@ -60,6 +67,11 @@ namespace org.kumagee
                 RequestSerialization();
                 _RefreshInteractable();
             }
+        }
+
+        public void _SetGameWon(bool won)
+        {
+            gameWon = won;
         }
 
         // The stock deck only invites an interact once a game is actually running.
