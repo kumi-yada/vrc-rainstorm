@@ -539,6 +539,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -2930,6 +2935,12 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4291215784960506625}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &280677784 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2798421486407652770, guid: d0e52bfaf311c594996a001464dd9d24,
+    type: 3}
+  m_PrefabInstance: {fileID: 615075638}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &281541820 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 279917874474916851, guid: ca6800bc8db6a2730b639727c2396a33,
@@ -4476,6 +4487,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -5958,6 +5974,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -7339,6 +7360,130 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4291215784960506625}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &615075638
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1012691372214943538, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2798421486407652770, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_Name
+      value: ToastSystem
+      objectReference: {fileID: 0}
+    - target: {fileID: 2938383370437625550, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 2938383370437625550, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+    - target: {fileID: 3424589636094940147, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_hasFontAssetChanged
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3783092911055270977, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5277588521755804361, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6749827127750890635, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: m_hasFontAssetChanged
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8508287232289060108, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8508287232289060108, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+    - target: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: displayDuration
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
+    m_RemovedComponents: []
+    m_RemovedGameObjects:
+    - {fileID: 678676819811135361, guid: d0e52bfaf311c594996a001464dd9d24, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d0e52bfaf311c594996a001464dd9d24, type: 3}
+--- !u!114 &615075639 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
+    type: 3}
+  m_PrefabInstance: {fileID: 615075638}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280677784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe85290a40cab274987c4b53003d0911, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &616845547
 GameObject:
   m_ObjectHideFlags: 0
@@ -7654,141 +7799,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 621937295}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &627177089
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 627177090}
-  - component: {fileID: 627177092}
-  - component: {fileID: 627177091}
-  m_Layer: 5
-  m_Name: Text (TMP)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &627177090
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 627177089}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1121756003}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &627177091
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 627177089}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_text: This is not working because of something, I don't know why. Find out yourself
-  m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 0bf7737ebd091caef88ad5cac4a0c3ed, type: 2}
-  m_sharedMaterial: {fileID: 5420860757379303271, guid: 0bf7737ebd091caef88ad5cac4a0c3ed,
-    type: 2}
-  m_fontSharedMaterials: []
-  m_fontMaterial: {fileID: 0}
-  m_fontMaterials: []
-  m_fontColor32:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
-  m_enableVertexGradient: 0
-  m_colorMode: 3
-  m_fontColorGradient:
-    topLeft: {r: 1, g: 1, b: 1, a: 1}
-    topRight: {r: 1, g: 1, b: 1, a: 1}
-    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
-    bottomRight: {r: 1, g: 1, b: 1, a: 1}
-  m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 0}
-  m_tintAllSprites: 0
-  m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
-  m_overrideHtmlColors: 0
-  m_faceColor:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontSize: 26
-  m_fontSizeBase: 26
-  m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
-  m_textAlignment: 65535
-  m_characterSpacing: 0
-  m_wordSpacing: 0
-  m_lineSpacing: 0
-  m_lineSpacingMax: 0
-  m_paragraphSpacing: 0
-  m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
-  m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
-  m_linkedTextComponent: {fileID: 0}
-  parentLinkedComponent: {fileID: 0}
-  m_enableKerning: 1
-  m_enableExtraPadding: 0
-  checkPaddingRequired: 0
-  m_isRichText: 1
-  m_parseCtrlCharacters: 1
-  m_isOrthographic: 1
-  m_isCullingEnabled: 0
-  m_horizontalMapping: 0
-  m_verticalMapping: 0
-  m_uvLineOffset: 0
-  m_geometrySortingOrder: 0
-  m_IsTextObjectScaleStatic: 0
-  m_VertexBufferAutoSizeReduction: 0
-  m_useMaxVisibleDescender: 1
-  m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
-  m_isUsingLegacyAnimationComponent: 0
-  m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
-  m_baseMaterial: {fileID: 0}
-  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!222 &627177092
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 627177089}
-  m_CullTransparentMesh: 1
 --- !u!1 &639094047
 GameObject:
   m_ObjectHideFlags: 0
@@ -8257,6 +8267,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2584530934850331791, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
+    - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
+        type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
     - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
       propertyPath: UdonChips
@@ -13694,6 +13709,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -14667,9 +14687,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0.779}
   m_LocalScale: {x: 0.0005, y: 0.0005, z: 0.0005}
   m_ConstrainProportionsScale: 1
-  m_Children:
-  - {fileID: 1121756003}
-  m_Father: {fileID: 1963573041}
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -14724,13 +14743,7 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 933217153}
-  canvasRect: {fileID: 933217152}
-  textField: {fileID: 627177091}
-  hideTimeout: 3
-  moveSpeed: 8
-  targetOffsetY: -0.2
-  startOffsetY: -0.6
-  distanceZ: 0.5
+  toast: {fileID: 615075639}
 --- !u!1 &935645724 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8707055232095666658, guid: 1b46aa654fe6f544d88760db32b1dd44,
@@ -15443,6 +15456,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -15603,6 +15621,12 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 8360283977104496726, guid: 6c9c98dddc636d3d89a7d89939db9741,
     type: 3}
   m_PrefabInstance: {fileID: 1389836155}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1028712847 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 82296380039584052, guid: d0e52bfaf311c594996a001464dd9d24,
+    type: 3}
+  m_PrefabInstance: {fileID: 615075638}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1032070165 stripped
 GameObject:
@@ -16554,82 +16578,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1241458442}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
---- !u!1 &1121756002
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1121756003}
-  - component: {fileID: 1121756005}
-  - component: {fileID: 1121756004}
-  m_Layer: 5
-  m_Name: Panel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1121756003
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1121756002}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 627177090}
-  m_Father: {fileID: 933217152}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1121756004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1121756002}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.69803923}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1121756005
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1121756002}
-  m_CullTransparentMesh: 1
 --- !u!1 &1122691112 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5689634534948634786, guid: 1b46aa654fe6f544d88760db32b1dd44,
@@ -18195,6 +18143,11 @@ PrefabInstance:
       propertyPath: _syncMethod
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
+        type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
     - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
       propertyPath: UdonChips
@@ -20536,6 +20489,11 @@ PrefabInstance:
       propertyPath: _syncMethod
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
+        type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
     - target: {fileID: 3834422797682477038, guid: 3abb1fb1d98a2e0b983a3241c55dd317,
         type: 3}
       propertyPath: UdonChips
@@ -24071,6 +24029,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -26014,6 +25977,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -26800,89 +26768,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 436379988}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1963573038
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1963573041}
-  - component: {fileID: 1963573040}
-  - component: {fileID: 1963573039}
-  m_Layer: 0
-  m_Name: Notif
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1963573039
-MonoBehaviour:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963573038}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 45115577ef41a5b4ca741ed302693907, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  interactTextPlacement: {fileID: 0}
-  interactText: Use
-  interactTextGO: {fileID: 0}
-  proximity: 2
-  SynchronizePosition: 0
-  AllowCollisionOwnershipTransfer: 0
-  Reliable: 0
-  _syncMethod: 2
-  serializedProgramAsset: {fileID: 11400000, guid: 58ea4f1cdb319d501a9898837998179b,
-    type: 2}
-  programSource: {fileID: 11400000, guid: 33324f447d661da40b534c9fa93c0ec2, type: 2}
-  serializedPublicVariablesBytesString: Ai8AAAAAATIAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAFQAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AAAAAAAYBAAAAAAAAACcBBAAAAHQAeQBwAGUAAWgAAABTAHkAcwB0AGUAbQAuAEMAbwBsAGwAZQBjAHQAaQBvAG4AcwAuAEcAZQBuAGUAcgBpAGMALgBMAGkAcwB0AGAAMQBbAFsAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4ALgBJAG4AdABlAHIAZgBhAGMAZQBzAC4ASQBVAGQAbwBuAFYAYQByAGkAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AXQBdACwAIABtAHMAYwBvAHIAbABpAGIAAQEJAAAAVgBhAHIAaQBhAGIAbABlAHMALwEAAAABaAAAAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ARwBlAG4AZQByAGkAYwAuAEwAaQBzAHQAYAAxAFsAWwBWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAEkAbgB0AGUAcgBmAGEAYwBlAHMALgBJAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlACwAIABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgBdAF0ALAAgAG0AcwBjAG8AcgBsAGkAYgABAAAABgEAAAAAAAAAAi8CAAAAAUkAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAGAAMQBbAFsAUwB5AHMAdABlAG0ALgBJAG4AdAAzADIALAAgAG0AcwBjAG8AcgBsAGkAYgBdAF0ALAAgAFYAUgBDAC4AVQBkAG8AbgAuAEMAbwBtAG0AbwBuAAIAAAAGAgAAAAAAAAAnAQQAAAB0AHkAcABlAAEXAAAAUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwAsACAAbQBzAGMAbwByAGwAaQBiACcBCgAAAFMAeQBtAGIAbwBsAE4AYQBtAGUAAR8AAABfAF8AXwBVAGQAbwBuAFMAaABhAHIAcABCAGUAaABhAHYAaQBvAHUAcgBWAGUAcgBzAGkAbwBuAF8AXwBfACcBBAAAAHQAeQBwAGUAARYAAABTAHkAcwB0AGUAbQAuAEkAbgB0ADMAMgAsACAAbQBzAGMAbwByAGwAaQBiABcBBQAAAFYAYQBsAHUAZQACAAAABwUHBQcF
-  publicVariablesUnityEngineObjects: []
-  publicVariablesSerializationDataFormat: 0
---- !u!114 &1963573040
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963573038}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1a6820e86752e14d8227ad846e6ab81, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  _udonSharpBackingUdonBehaviour: {fileID: 1963573039}
-  trackedBone: 10
---- !u!4 &1963573041
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963573038}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 933217152}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1964440624 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3879038484213125305, guid: 6c9c98dddc636d3d89a7d89939db9741,
@@ -28482,6 +28367,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2584530934850331791, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
+    - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
+        type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
     - target: {fileID: 2589055627774293019, guid: 1b46aa654fe6f544d88760db32b1dd44,
         type: 3}
       propertyPath: UdonChips
@@ -30954,12 +30844,16 @@ MonoBehaviour:
     - VRC.SDK3.Components.VRCPickup
     - VRC.Udon.UdonBehaviour
     - VRC.Udon.UdonBehaviour
-  - gameObject: {fileID: 1963573038}
-    ID: 453
-    SerializedTypeNames:
-    - VRC.Udon.UdonBehaviour
   - gameObject: {fileID: 933217148}
     ID: 452
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 280677784}
+    ID: 454
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 1028712847}
+    ID: 455
     SerializedTypeNames:
     - VRC.Udon.UdonBehaviour
   portraitCameraPositionOffset: {x: 0, y: 0, z: 0}
@@ -31161,6 +31055,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
         type: 3}
+      propertyPath: Toast
+      value: 
+      objectReference: {fileID: 615075639}
+    - target: {fileID: 5938405546901390190, guid: ca6800bc8db6a2730b639727c2396a33,
+        type: 3}
       propertyPath: UdonChips
       value: 
       objectReference: {fileID: 66551317}
@@ -31297,4 +31196,5 @@ SceneRoots:
   - {fileID: 704750995}
   - {fileID: 1459826565}
   - {fileID: 1715505298}
-  - {fileID: 1963573041}
+  - {fileID: 615075638}
+  - {fileID: 933217152}
