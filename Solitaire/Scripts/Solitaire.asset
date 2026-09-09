@@ -942,10 +942,12 @@ MonoBehaviour:
       Data: 57|UnityEngine.TooltipAttribute, UnityEngine.CoreModule
     - Name: tooltip
       Entry: 1
-      Data: Seconds to wait between dealing each card. Each card costs a pool spawn,
-        an ownership transfer and two serializations, so this is really a throttle
-        on outgoing network traffic - going much below 0.15 risks VRChat dropping
-        writes faster than the retries can recover them.
+      Data: 'Seconds to wait between dealing each card. Each card costs a pool spawn
+        plus a card and deck serialization, so this is really a throttle on outgoing
+        network traffic - going much below 0.15 risks VRChat dropping writes faster
+        than the retries can recover them. No ownership transfer is ever spent: the
+        deck and its cards live under the dealer''s own PlayerObject, so they are
+        already owned.'
     - Name: 
       Entry: 8
       Data: 

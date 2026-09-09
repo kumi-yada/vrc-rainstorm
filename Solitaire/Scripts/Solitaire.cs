@@ -80,7 +80,7 @@ namespace org.kumagee
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
         public float SnapDistance = 0.12f;
 
-        [Tooltip("Seconds to wait between dealing each card. Each card costs a pool spawn, an ownership transfer and two serializations, so this is really a throttle on outgoing network traffic - going much below 0.15 risks VRChat dropping writes faster than the retries can recover them.")]
+        [Tooltip("Seconds to wait between dealing each card. Each card costs a pool spawn plus a card and deck serialization, so this is really a throttle on outgoing network traffic - going much below 0.15 risks VRChat dropping writes faster than the retries can recover them. No ownership transfer is ever spent: the deck and its cards live under the dealer's own PlayerObject, so they are already owned.")]
         public float DealDelay = 0.2f;
 
         [Header("Deal")]
@@ -680,7 +680,6 @@ namespace org.kumagee
             if (!CheckDealPlan()) return;
 
             Networking.SetOwner(owner, gameObject);
-            Networking.SetOwner(owner, resolvedDeck.gameObject);
             resolvedDeck._SetGameWon(false);
             resolvedDeck._SetGameOwner(owner.playerId);
             // DeckManager owns this move because it knows where its pool is - the
@@ -853,7 +852,6 @@ namespace org.kumagee
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card != null)
             {
-                Networking.SetOwner(dealOwner, cardGO);
                 // Only the card that ends up on top of the column is face-up, which is
                 // the rule in every mode - Canfield deals one card per column, so
                 // there it means the whole tableau comes up face-up.
@@ -893,7 +891,6 @@ namespace org.kumagee
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card != null)
             {
-                Networking.SetOwner(dealOwner, cardGO);
                 card._ForcePlace(ReserveSlot._GetTopSlot(), dealDepth == want - 1);
             }
             dealDepth++;
@@ -927,7 +924,6 @@ namespace org.kumagee
                 CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
                 if (card != null)
                 {
-                    Networking.SetOwner(dealOwner, cardGO);
                     card._ForcePlace(foundation._GetTopSlot(), true);
                     Debug.Log($"Solitaire: Canfield base rank is {card.CardRank}.");
                 }
@@ -1075,7 +1071,6 @@ namespace org.kumagee
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card != null)
             {
-                Networking.SetOwner(dealOwner, cardGO);
                 // Stock cards always land face-up in Spider - that is the whole cost
                 // of the row, and why burying an empty column matters.
                 card._ForcePlace(slot._GetTopSlot(), true);
@@ -1129,9 +1124,6 @@ namespace org.kumagee
             if (resolvedDeck == null || WasteSlot == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-
             int count = WasteSlot._GetCardCount();
             if (count <= 0)
             {
@@ -1150,7 +1142,6 @@ namespace org.kumagee
             {
                 CardLogic card = pile[i];
                 if (card == null) continue;
-                Networking.SetOwner(local, card.gameObject);
                 card._Detach(cardHome);
                 resolvedDeck._ReturnCard(card.gameObject);
             }
@@ -1162,19 +1153,16 @@ namespace org.kumagee
         // Canfield.
         //
         // Only the first card goes out now; the rest ride the same throttled loop as
-        // the deal, because three cards in one frame is three pool spawns, three
-        // ownership transfers and three serializations - the exact burst DealDelay
-        // exists to spread out. It also means the draw is over in under half a second,
-        // so blocking pickups for its duration costs the player nothing.
+        // the deal, because three cards in one frame is three pool spawns and three
+        // serializations - the exact burst DealDelay exists to spread out. It also
+        // means the draw is over in under half a second, so blocking pickups for its
+        // duration costs the player nothing.
         public void _DrawFromStock()
         {
             if (resolvedDeck == null || WasteSlot == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
 
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-
-            if (!DrawOneToWaste(local)) return;
+            if (!DrawOneToWaste()) return;
 
             int remaining = ResolveDrawCount() - 1;
             if (remaining <= 0 || resolvedDeck._IsStockEmpty())
@@ -1190,7 +1178,7 @@ namespace org.kumagee
             dealing = true;
             dealPhase = DealPhaseDraw;
             drawRemaining = remaining;
-            dealOwner = local;
+            dealOwner = Networking.LocalPlayer;
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
         }
 
@@ -1204,7 +1192,7 @@ namespace org.kumagee
 
             // A draw that runs into the bottom of the stock just comes up short, which
             // is the normal way a Canfield redeal ends.
-            if (!DrawOneToWaste(dealOwner))
+            if (!DrawOneToWaste())
             {
                 FinalizeDraw();
                 return;
@@ -1217,14 +1205,12 @@ namespace org.kumagee
 
         // Turns exactly one card face-up onto the waste. False when the stock had
         // nothing left to give.
-        private bool DrawOneToWaste(VRCPlayerApi owner)
+        private bool DrawOneToWaste()
         {
-            if (!Utilities.IsValid(owner)) return false;
             GameObject cardGO = resolvedDeck.DrawNext();
             if (cardGO == null) return false;
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card == null) return false;
-            Networking.SetOwner(owner, cardGO);
             card._ForcePlace(WasteSlot._GetTopSlot(), true);
             return true;
         }
@@ -1616,9 +1602,6 @@ namespace org.kumagee
             if (Mode != SolitaireMode.Canfield) return;
             if (TableauSlots == null || ReserveSlot == null) return;
 
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-
             bool moved = false;
             for (int s = 0; s < TableauSlots.Length; s++)
             {
@@ -1627,7 +1610,6 @@ namespace org.kumagee
 
                 CardLogic top = ReserveSlot._GetTopCard();
                 if (top == null) break; // reserve spent; the rest stay open
-                Networking.SetOwner(local, top.gameObject);
                 top._ForcePlace(column._GetTopSlot(), true);
                 moved = true;
             }
@@ -1651,15 +1633,12 @@ namespace org.kumagee
         // under him and their PrevSlot links still point at his own slot, so they come
         // along for free and only re-derive their offset from the foundation's layout.
         // That is one card's worth of network traffic instead of thirteen - and
-        // thirteen ownership transfers plus serializations in a single frame is
-        // precisely what DealDelay exists to spread out.
+        // thirteen serializations in a single frame is precisely what DealDelay
+        // exists to spread out.
         private void CollectCompletedRuns()
         {
             if (Mode != SolitaireMode.Spider) return;
             if (TableauSlots == null || FoundationSlots == null) return;
-
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
 
             bool collected = false;
             bool foundationsFull = false;
@@ -1685,7 +1664,6 @@ namespace org.kumagee
                         break;
                     }
 
-                    Networking.SetOwner(local, king.gameObject);
                     king._ForcePlace(foundation._GetTopSlot(), true);
                     _RepositionAbove(king);
                     AccumulateFoundationReward(CardLogic.RankDefinitionsCount);

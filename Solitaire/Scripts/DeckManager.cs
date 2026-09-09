@@ -292,11 +292,9 @@ namespace org.kumagee
                 CardCurrent += 1;
                 RequestSerialization();
 
-                Networking.SetOwner(playerLocal, Pool.gameObject);
                 currentCard = Pool.TryToSpawn();
                 if (currentCard == null) return;
-                // Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}");
-                Networking.SetOwner(playerLocal, currentCard);
+                // Debug.Log($"DeckManager: Spawned card {currentCard.name} from pool, CardCurrent={CardCurrent}, CardCount={CardCount}")
 
                 SetCurrentCardToTop();
             }
@@ -340,11 +338,8 @@ namespace org.kumagee
             // dereferences one or the other.
             if (Pool == null || cards == null) return;
 
-            Networking.SetOwner(playerLocal, gameObject);
-
             foreach (CardLogic card in cards)
             {
-                Networking.SetOwner(playerLocal, card.gameObject);
                 card._ReleaseGrab();
                 card.RequestSerialization();
                 Pool.Return(card.gameObject);
