@@ -7457,6 +7457,11 @@ PrefabInstance:
         type: 3}
     - target: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
         type: 3}
+      propertyPath: progressSteps
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 8998139359081353518, guid: d0e52bfaf311c594996a001464dd9d24,
+        type: 3}
       propertyPath: displayDuration
       value: 3
       objectReference: {fileID: 0}
