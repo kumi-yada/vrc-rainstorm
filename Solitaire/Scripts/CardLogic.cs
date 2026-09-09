@@ -321,10 +321,14 @@ namespace org.kumagee
             }
 
             // Only the player who started the game may grab cards. Everyone else
-            // sees them as anchored so VRChat never offers the pickup.
+            // sees them as anchored so VRChat never offers the pickup. Cards also
+            // stay anchored while a deal is still running, so nothing can be
+            // pulled out of a pile that is still being built.
             if (Solitaire != null)
             {
-                if (!Solitaire._IsGameStarted() || !Solitaire._IsLocalGameOwner())
+                if (Solitaire._IsDealing()
+                    || !Solitaire._IsGameStarted()
+                    || !Solitaire._IsLocalGameOwner())
                 {
                     allowed = false;
                 }

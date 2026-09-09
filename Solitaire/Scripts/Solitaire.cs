@@ -173,6 +173,16 @@ namespace org.kumagee
             return gameStarted;
         }
 
+        // True while the throttled deal/draw loop is still placing cards. Cards
+        // stay ungrabbable for its duration - the deal places them without
+        // consulting rules, so one lifted mid-deal would leave the layout and
+        // the links disagreeing. Only the dealer ever sees this true: the loop
+        // runs on their client alone, and nobody else may grab cards anyway.
+        public bool _IsDealing()
+        {
+            return dealing;
+        }
+
         // True when the local player is the one who dealt the current game. Drives
         // who is allowed to grab cards and poke the deck.
         public bool _IsLocalGameOwner()
@@ -1089,6 +1099,10 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             Debug.Log("Solitaire: Stock row abandoned; the deck or game owner went away mid-row.");
+            // Cards placed before the bail-out were left ungrabbable by the
+            // dealing gate; they are legal where they sit, so hand the flags
+            // back.
+            RefreshAllPickupable();
         }
 
         // Unlike FinalizeDeal this must not touch `won` or the win message: a row can
