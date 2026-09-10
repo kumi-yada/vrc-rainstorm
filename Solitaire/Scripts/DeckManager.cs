@@ -290,7 +290,7 @@ namespace org.kumagee
             else
             {
                 CardCurrent += 1;
-                RequestSerialization();
+                QueueSerialization();
 
                 currentCard = Pool.TryToSpawn();
                 if (currentCard == null) return;
@@ -306,30 +306,41 @@ namespace org.kumagee
             return currentCard;
         }
 
-        private const int MaxSerializationRetries = 5;
-        private int serializationRetries;
+        private bool serializeScheduled;
+        private const float RetryBackoff = 0.25f;
 
-        // Losing this behaviour's state loses the whole game: the stock index and
-        // the game owner drive what every other client is allowed to do. A throttled
-        // serialization is dropped silently, so keep asking until it lands.
-        public override void OnPostSerialization(SerializationResult result)
+        // A deal draws a card every frame or two, and serializing each draw would
+        // put one packet per card on the wire - the burst the rate limiter used to
+        // eat. cardCurrent is an index, not an increment, so intermediate values
+        // carry no information the last one doesn't: coalesce them into one write
+        // per frame and let a fast deal cost the same as a slow one.
+        private void QueueSerialization()
         {
-            if (result.success)
-            {
-                serializationRetries = 0;
-                return;
-            }
-            if (serializationRetries >= MaxSerializationRetries) return;
-            serializationRetries++;
-            SendCustomEventDelayedSeconds(nameof(_RetrySerialization), 0.25f * serializationRetries);
+            if (serializeScheduled) return;
+            serializeScheduled = true;
+            SendCustomEventDelayedFrames(nameof(_FlushSerialization), 1);
         }
 
-        public void _RetrySerialization()
+        public void _FlushSerialization()
         {
+            serializeScheduled = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return;
             if (!Networking.IsOwner(local, gameObject)) return;
             RequestSerialization();
+        }
+
+        // Losing this behaviour's state loses the whole game: the stock index and
+        // the game owner drive what every other client is allowed to do. A throttled
+        // serialization is dropped silently, so keep asking until it lands. No retry
+        // cap - like the board, every packet is absolute, so asking again is always
+        // correct and giving up would leave the stock count wrong for good.
+        public override void OnPostSerialization(SerializationResult result)
+        {
+            if (result.success) return;
+            if (serializeScheduled) return;
+            serializeScheduled = true;
+            SendCustomEventDelayedSeconds(nameof(_FlushSerialization), RetryBackoff);
         }
 
         public void _ResetDeck()
@@ -363,9 +374,8 @@ namespace org.kumagee
             // Don't keep pointing the deck's top-of-stack at a card we just pooled.
             if (currentCard == card) currentCard = null;
             Pool.Return(card);
-            // CardCurrent is synced; Udon coalesces repeat requests in a frame, so
-            // calling this per card is fine.
-            RequestSerialization();
+            // Recycling the waste calls this once per card, all in one frame.
+            QueueSerialization();
             SetCurrentCardToTop();
         }
 

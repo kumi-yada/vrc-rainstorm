@@ -149,7 +149,15 @@ namespace org.kumagee
         public void _OnSpawned()
         {
             if (!initialized) Init();
-            if (Solitaire != null) Solitaire._OnCardSpawned(this);
+            if (Solitaire != null)
+            {
+                // Hands off entirely: the coalesced re-apply covers this card's
+                // face and pickup flag along with everyone else's, and doing them
+                // here as well would pay for a pile walk per card in a frame where
+                // a whole batch of cards can come up at once.
+                Solitaire._OnCardSpawned(this);
+                return;
+            }
             ApplyFaceTexture();
             _RefreshPickupable();
         }
@@ -294,6 +302,24 @@ namespace org.kumagee
         public void _RefreshPickupable()
         {
             if (!initialized) Init();
+
+            // Cheapest question first, because on every client but the dealer's it
+            // is the only one that matters. Only the player who started the game
+            // may grab cards; everyone else sees them anchored so VRChat never
+            // offers the pickup, and cards stay anchored while a deal is running so
+            // nothing can be pulled out of a pile that is still being built. Asked
+            // up front, a spectator's sweep over the whole deck costs nothing -
+            // asked last, as it used to be, every card walked its pile twice to
+            // reach an answer that was never in doubt.
+            if (Solitaire != null
+                && (Solitaire._IsDealing()
+                    || !Solitaire._IsGameStarted()
+                    || !Solitaire._IsLocalGameOwner()))
+            {
+                if (pickup != null) pickup.pickupable = false;
+                return;
+            }
+
             CardSlot pileSlot = PrevSlot;
             bool allowed = FaceUp || Solitaire == null
                 || (!Solitaire._IsTableauChain(pileSlot) && !Solitaire._IsReserveChain(pileSlot));
@@ -313,20 +339,6 @@ namespace org.kumagee
             if (allowed && Solitaire != null && !Solitaire._IsGroupMovable(this))
             {
                 allowed = false;
-            }
-
-            // Only the player who started the game may grab cards. Everyone else
-            // sees them as anchored so VRChat never offers the pickup. Cards also
-            // stay anchored while a deal is still running, so nothing can be
-            // pulled out of a pile that is still being built.
-            if (Solitaire != null)
-            {
-                if (Solitaire._IsDealing()
-                    || !Solitaire._IsGameStarted()
-                    || !Solitaire._IsLocalGameOwner())
-                {
-                    allowed = false;
-                }
             }
 
             if (pickup != null) pickup.pickupable = allowed;

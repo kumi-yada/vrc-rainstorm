@@ -91,8 +91,8 @@ namespace org.kumagee
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
         public float SnapDistance = 0.12f;
 
-        [Tooltip("Seconds to wait between dealing each card. This is the pace of the deal, not a network throttle any more - the board goes out as one packet on its own timer, so a fast deal costs coarser steps for spectators rather than dropped cards. Each card still costs a pool spawn and a deck serialization.")]
-        public float DealDelay = 0.2f;
+        [Tooltip("Seconds to wait between dealing each card. Purely the pace of the animation - nothing per-card goes on the wire any more, so this is free to lower. Values below one frame just deal a card per frame. 0.05 gives a brisk Klondike deal in about 1.5s and a 54-card Spider one in under 3.")]
+        public float DealDelay = 0.1f;
 
         [Header("Deal")]
         [Tooltip("How many cards go into each tableau column on the opening deal, in column order. {1,2,3,4,5,6,7} is Klondike; Spider two-suit wants {6,6,6,6,5,5,5,5,5,5}; Canfield wants {1,1,1,1}. Columns past the end of this array, and entries of 0, are skipped. Only the card that ends up on top of a column is dealt face-up.")]
@@ -169,6 +169,7 @@ namespace org.kumagee
 
         private bool boardDirty;
         private bool flushScheduled;
+        private bool reapplyScheduled;
         private float lastFlushTime = -999f;
         private float lastGrabSyncTime = -999f;
 
@@ -598,6 +599,8 @@ namespace org.kumagee
             if (slotId < 0) card._ReturnHome(cardHome);
             else card._ApplyPlacement();
             card.ApplyFaceTexture();
+            // Free during a deal: _RefreshPickupable answers "nobody may grab
+            // anything right now" without walking the pile.
             card._RefreshPickupable();
         }
 
@@ -640,20 +643,36 @@ namespace org.kumagee
         }
 
         // A card just went active on this client. Its row may have arrived while the
-        // object was still disabled, in which case nothing placed it - so re-apply
-        // that one row. Idempotent, because the row is absolute.
+        // object was still disabled, in which case nothing placed it.
+        //
+        // Coalesced rather than handled per card: a deal activates a card every
+        // frame or two, and on a spectator the pool can bring a whole batch up at
+        // once when a sync lands. Applying one row costs a relayout of every fanned
+        // pile, so doing that per card turned a fast deal into a burst of O(n) work
+        // on clients that have nothing else to do with it. One re-apply per frame
+        // covers any number of arrivals, and the board is absolute so it does not
+        // matter which of them triggered it.
         public void _OnCardSpawned(CardLogic card)
         {
             if (card == null) return;
+            // A card going active joins the slot index, whoever we are.
             indexDirty = true;
-            if (cards == null || boardSlots == null || boardFlags == null) return;
 
-            int i = card.PoolIndex;
-            if (i < 0 || i >= boardSlots.Length || i >= boardFlags.Length) return;
+            // The dealer placed this card in the frame it spawned - _ForcePlace ran
+            // straight after TryToSpawn - so there is nothing to catch up on, and
+            // re-applying would cost a whole board pass per dealt card. This exists
+            // for the clients that *receive* the board.
+            if (_IsLocalGameOwner()) return;
 
-            int flags = boardFlags[i];
-            ApplyCard(card, boardSlots[i], (flags & FlagFaceUp) != 0, (flags & FlagFaceVisible) != 0);
-            _RelayoutFannedPiles();
+            if (reapplyScheduled) return;
+            reapplyScheduled = true;
+            SendCustomEventDelayedFrames(nameof(_ReapplyBoard), 0);
+        }
+
+        public void _ReapplyBoard()
+        {
+            reapplyScheduled = false;
+            ApplyBoard();
         }
 
         private void MarkBoardDirty()

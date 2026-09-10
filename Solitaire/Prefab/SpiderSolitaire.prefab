@@ -2767,7 +2767,7 @@ MonoBehaviour:
   WasteSlot: {fileID: 0}
   ReserveSlot: {fileID: 0}
   SnapDistance: 0.12
-  DealDelay: 0.2
+  DealDelay: 0.05
   DealCounts: 06000000060000000600000006000000050000000500000005000000050000000500000005000000
   ReserveCount: 13
   WinMessage: {fileID: 2682924764504615210}
