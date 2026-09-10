@@ -338,18 +338,21 @@ namespace org.kumagee
             // dereferences one or the other.
             if (Pool == null || cards == null) return;
 
+            // No per-card serialization here any more, and none is wanted: these
+            // objects are being deactivated in this same frame, so a write queued
+            // against one of them could never have travelled anyway. Solitaire has
+            // already blanked their rows in the board and released any grab.
             foreach (CardLogic card in cards)
             {
-                card._ReleaseGrab();
-                card.RequestSerialization();
                 Pool.Return(card.gameObject);
-                if (!card.gameObject.activeSelf) continue;
-                card._Drop();
             }
-            
+
             CardCurrent = -1;
             RequestSerialization();
 
+            // Only the private draw order, never the Pool array - so pool indices,
+            // and the slot ids Solitaire derives from them, stay identical on every
+            // client.
             Pool.Shuffle();
         }
 

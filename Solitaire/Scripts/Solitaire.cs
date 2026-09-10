@@ -4,6 +4,7 @@ using TMPro;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
+using VRC.Udon.Common;
 using UCS;
 
 namespace org.kumagee
@@ -23,14 +24,24 @@ namespace org.kumagee
         Canfield = 2
     }
 
-    // Owns the slot registry that turns a synced int back into a CardSlot.
+    // Owns the board: where every card is, which way it is facing, and which of
+    // them are in the dealer's hands. This behaviour is the only thing at the table
+    // that syncs.
     //
     // Slot ids are handed out deterministically at startup - base slots first, in
     // inspector order, then one per pool card in pool order - so every client
     // agrees on them without any of it going over the network. That is the trick
     // that makes a linked list of object references syncable in Udon: only the id
     // travels, and the structure is rebuilt locally from it.
-    [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
+    //
+    // The ids for a whole deck then travel together, as one array in one packet.
+    // Cards used to carry their own links, which meant a single logical move landed
+    // as one of 52 independent serializations: any of them could be dropped by the
+    // rate limiter or arrive out of order, so clients saw the table half-applied,
+    // and a lost write was permanent because a link is a delta with nothing later
+    // to correct it. An array is absolute - the next packet restates the whole
+    // truth - so a dropped one costs a moment of staleness instead of a stuck card.
+    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class Solitaire : UdonSharpBehaviour
     {
         // A pile can never be deeper than the deck, so anything past this is a
@@ -80,7 +91,7 @@ namespace org.kumagee
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
         public float SnapDistance = 0.12f;
 
-        [Tooltip("Seconds to wait between dealing each card. Each card costs a pool spawn plus a card and deck serialization, so this is really a throttle on outgoing network traffic - going much below 0.15 risks VRChat dropping writes faster than the retries can recover them. No ownership transfer is ever spent: the deck and its cards live under the dealer's own PlayerObject, so they are already owned.")]
+        [Tooltip("Seconds to wait between dealing each card. This is the pace of the deal, not a network throttle any more - the board goes out as one packet on its own timer, so a fast deal costs coarser steps for spectators rather than dropped cards. Each card still costs a pool spawn and a deck serialization.")]
         public float DealDelay = 0.2f;
 
         [Header("Deal")]
@@ -112,9 +123,74 @@ namespace org.kumagee
 
         // The per-player deck actually used for the running game. Unlike the
         // serialized DeckOfCards (the scene template/fallback reference), this one
-        // is repointed at the local player's PlayerObject copy on every deal, so the
-        // original DeckOfCards keeps pointing at the same deck it was assigned.
+        // is repointed at the dealing player's PlayerObject copy on every deal, so
+        // the original DeckOfCards keeps pointing at the same deck it was assigned.
         private DeckManager resolvedDeck;
+
+        // Player id of whoever dealt the game currently running at this table, or
+        // -1 when the table is idle. The slot registry is rebuilt locally on every
+        // client (slot ids are deterministic), but a client can only build it
+        // against the right deck PlayerObject if it knows whose deck that is - so
+        // this has to travel alongside the board it indexes into. Written by the dealer
+        // right after taking ownership of the table; cleared by _ResetGame and by
+        // whoever inherits the table when the dealer leaves mid-game.
+        [UdonSynced] private int syncedDealerId = -1;
+
+        // The last syncedDealerId this client already reacted to. OnDeserialization
+        // fires for every sync touching this behaviour, so without this memo each
+        // spectator would rebuild the whole registry on every card move.
+        private int lastDealerId = -1;
+
+        // The board. One row per pool card: boardSlots[i] is that card's PrevSlotId
+        // (-1 when it is loose), boardFlags[i] its face state. Indexed by pool
+        // index, which is the one card identity every client already agrees on -
+        // VRCObjectPool.Shuffle permutes a private draw order, never the Pool array.
+        [UdonSynced] private int[] boardSlots;
+        [UdonSynced] private byte[] boardFlags;
+
+        private const int FlagFaceUp = 1;
+        private const int FlagFaceVisible = 2;
+
+        // Which card each of the dealer's hands is holding, as a pool index, and the
+        // pose it is held at relative to that hand. Only the dealer may grab, so the
+        // grabber is always syncedDealerId and does not need syncing alongside it.
+        //
+        // The pose is captured per grab rather than streamed: remotes rebuild the
+        // card's position from the dealer's hand tracking, which VRChat already
+        // sends at avatar rate, so this only has to travel when the grip changes.
+        [UdonSynced] private int grabCardLeft = -1;
+        [UdonSynced] private int grabCardRight = -1;
+        // Never read unless the matching hand slot holds a card, and a slot is only
+        // ever filled together with a pose, so these have no meaningful default.
+        [UdonSynced] private Vector3 grabOffsetLeft;
+        [UdonSynced] private Vector3 grabOffsetRight;
+        [UdonSynced] private Quaternion grabRotationLeft;
+        [UdonSynced] private Quaternion grabRotationRight;
+
+        private bool boardDirty;
+        private bool flushScheduled;
+        private float lastFlushTime = -999f;
+        private float lastGrabSyncTime = -999f;
+
+        // A deal writes a card every DealDelay, and one drop can rewrite half a
+        // dozen. Serializing each of those separately would put the whole board on
+        // the wire several times a second and run into the same rate limiter that
+        // used to eat the per-card writes, so writes are coalesced and, while the
+        // dealer is mid-deal, throttled to this. A spectator still watches the deal
+        // fill in, just in coarser steps.
+        private const float DealFlushInterval = 0.25f;
+
+        // Desktop lets the holder re-aim a card after grabbing it, so the held pose
+        // is not fixed for the life of the grab. Resend it when it has actually
+        // moved, no faster than this - the board rides along with it.
+        private const float GrabResyncInterval = 0.2f;
+        private const float GrabDriftEpsilonSqr = 4e-4f; // (2cm)^2
+        private const float GrabDriftDotSqr = 0.9981f;   // cos(2.5deg)^2, i.e. 5deg apart
+
+        // Guards the spectator-side registry retry: the dealer id can arrive before
+        // the dealer's PlayerObjects have spawned on this client, and the registry
+        // is useless until they do.
+        private int spectatorInitRetries;
         private CardLogic[] cards;
         private CardSlot[] slotsById;
 
@@ -167,10 +243,12 @@ namespace org.kumagee
         private int drawRemaining;
 
         // True once a deal has happened; input that depends on a running game
-        // (like drawing from the stock) is gated on this.
+        // (like drawing from the stock) is gated on this. gameStarted is only
+        // ever set on the dealer's client - the synced dealer id is what makes
+        // the answer true for spectators and late joiners too.
         public bool _IsGameStarted()
         {
-            return gameStarted;
+            return gameStarted || syncedDealerId != -1;
         }
 
         // True while the throttled deal/draw loop is still placing cards. Cards
@@ -208,9 +286,9 @@ namespace org.kumagee
             }
         }
 
-        private void Init()
+        private void Init(VRCPlayerApi dealer)
         {
-            resolvedDeck = ResolveDeck();
+            resolvedDeck = ResolveDeck(dealer);
             if (resolvedDeck == null)
             {
                 Debug.Log("Solitaire: Deck not assigned, cannot initialize.");
@@ -269,6 +347,7 @@ namespace org.kumagee
 
                 logic.DeckManager = resolvedDeck;
                 logic.Solitaire = this;
+                logic.PoolIndex = i;
 
                 CardSlot slot = logic.GetComponent<CardSlot>();
                 if (slot == null) continue;
@@ -280,17 +359,28 @@ namespace org.kumagee
                 slotsById[id] = slot;
             }
 
+            // A spectator may already be holding a board that arrived before the
+            // registry was ready - it deserialized into these fields whether or not
+            // anything could read it yet, and it is the authoritative copy. Only
+            // allocate when there isn't one that fits.
+            if (boardSlots == null || boardSlots.Length != n)
+            {
+                boardSlots = new int[n];
+                for (int i = 0; i < n; i++) boardSlots[i] = -1;
+            }
+            if (boardFlags == null || boardFlags.Length != n)
+            {
+                boardFlags = new byte[n];
+            }
+
             // slotsById was just replaced, so any index built against the old one is
-            // meaningless. Has to happen before the catch-up loop below reads it.
+            // meaningless. Has to happen before ApplyBoard reads it.
             indexDirty = true;
 
-            // Anything that deserialized before we were ready gets caught up here.
-            for (int i = 0; i < n; i++)
-            {
-                if (cards[i] == null) continue;
-                cards[i]._ApplyPlacement();
-                cards[i]._RefreshPickupable();
-            }
+            // Whatever the board already says, apply it. On the dealer that is the
+            // previous game, which ResetCards is about to clear; on a spectator it
+            // is the running game they just found out about.
+            ApplyBoard();
 
             RefreshStartLabel();
             _RefreshStartInteractable();
@@ -299,20 +389,25 @@ namespace org.kumagee
             Debug.Log($"Solitaire: Initialized with {n} cards and {baseSlotCount} base slots.");
         }
 
-        private DeckManager ResolveDeck()
+        private DeckManager ResolveDeck(VRCPlayerApi dealer)
         {
-            VRCPlayerApi owner = Networking.GetOwner(gameObject);
-            DeckManager deck = FindDeck(owner);
+            // The deck has to be the DEALING player's own PlayerObject copy, not the
+            // table owner's: PlayerObject ownership can never be transferred, so the
+            // dealer is only guaranteed to own every card and pool they write if the
+            // game runs on their own deck. Resolving by table ownership instead would
+            // hand the first deal to the instance master's deck and silently drop
+            // everyone else's writes.
+            DeckManager deck = Utilities.IsValid(dealer) ? FindDeck(dealer) : null;
             if (Utilities.IsValid(deck))
             {
-                Debug.Log($"Solitaire: Using local player's deck PlayerObject for key {DeckKey}.");
+                Debug.Log($"Solitaire: Using {dealer.displayName}'s deck PlayerObject for key {DeckKey}.");
                 return deck;
             }
 
             // Nothing matched. The bare "Deck not assigned" that the callers log next
             // is misleading on its own, because the usual cause is that a deck *is*
             // there carrying a different DeckKey - so name the keys that were on offer.
-            ReportDeckKeyMiss(owner);
+            ReportDeckKeyMiss(dealer);
             return DeckOfCards;
         }
 
@@ -345,6 +440,10 @@ namespace org.kumagee
         private DeckManager FindDeck(VRCPlayerApi player)
         {
             var objects = Networking.GetPlayerObjects(player);
+            // Null for a player whose objects have not spawned yet on this client -
+            // normal for someone still loading in, and for the window where the
+            // dealer id syncs before the dealer's PlayerObjects do.
+            if (objects == null) return null;
             for (int i = 0; i < objects.Length; i++)
             {
                 if (!Utilities.IsValid(objects[i])) continue;
@@ -422,14 +521,9 @@ namespace org.kumagee
             return card;
         }
 
-        // Every card's link changes on placement, and any of them can invalidate the
-        // index, so CardLogic calls this instead of the index being rebuilt eagerly.
-        // A deal touches every card, and only the first read after it pays.
-        public void _InvalidateCardIndex()
-        {
-            indexDirty = true;
-        }
-
+        // Rebuilt lazily: a deal touches every card, and only the first read after
+        // it pays. Every write path sets indexDirty on the way through _WriteCard
+        // or ApplyBoard, which is the only way a link changes now.
         private void RebuildCardIndex()
         {
             // Cleared first: nothing below re-enters Solitaire, so this can't recurse,
@@ -453,10 +547,360 @@ namespace org.kumagee
                 if (!card.gameObject.activeInHierarchy) continue;
                 int id = card.PrevSlotId;
                 if (id < 0 || id >= cardOnSlot.Length) continue;
-                // Two cards claiming one slot only happens mid-deserialization. First
-                // in pool order wins, which is what the old linear scan returned.
+                // Two cards claiming one slot is no longer reachable through the
+                // network - the board arrives whole - but a half-written frame on
+                // the dealer's own client still passes through here. First in pool
+                // order wins, which is what the old linear scan returned.
                 if (cardOnSlot[id] == null) cardOnSlot[id] = card;
             }
+        }
+
+        // ---- Board
+        //
+        // Every change to where a card sits or which way it faces goes through
+        // _WriteCard, and every client rebuilds the table from ApplyBoard. Those
+        // two are the entire network contract for the game.
+
+        // The one place the board changes. Updates the row, mirrors it straight
+        // into the card so local readers see it this frame, and queues the packet.
+        public void _WriteCard(CardLogic card, int slotId, bool faceUp, bool faceVisible)
+        {
+            if (card == null) return;
+
+            int i = card.PoolIndex;
+            if (boardSlots != null && boardFlags != null
+                && i >= 0 && i < boardSlots.Length && i < boardFlags.Length)
+            {
+                int bits = 0;
+                if (faceUp) bits |= FlagFaceUp;
+                if (faceVisible) bits |= FlagFaceVisible;
+                byte flags = (byte)bits;
+
+                if (boardSlots[i] != slotId || boardFlags[i] != flags)
+                {
+                    boardSlots[i] = slotId;
+                    boardFlags[i] = flags;
+                    MarkBoardDirty();
+                }
+            }
+
+            ApplyCard(card, slotId, faceUp, faceVisible);
+        }
+
+        // Push one row into its card and re-derive everything local from it.
+        private void ApplyCard(CardLogic card, int slotId, bool faceUp, bool faceVisible)
+        {
+            card._ApplyState(slotId, faceUp, faceVisible);
+            // The link just changed under us and everything below walks the chain,
+            // so the reverse index has to be dropped before any of it reads back.
+            indexDirty = true;
+
+            if (slotId < 0) card._ReturnHome(cardHome);
+            else card._ApplyPlacement();
+            card.ApplyFaceTexture();
+            card._RefreshPickupable();
+        }
+
+        // Re-derive the whole table from the board. Cheap to call as often as we
+        // like: it is a pure function of the arrays, and _RefreshPlacement skips
+        // every card already sitting where it belongs, which is nearly all of them.
+        private void ApplyBoard()
+        {
+            if (cards == null || boardSlots == null || boardFlags == null) return;
+
+            int n = cards.Length;
+            if (boardSlots.Length < n) n = boardSlots.Length;
+            if (boardFlags.Length < n) n = boardFlags.Length;
+
+            // Mirror every row before placing any of them. Placement reads back
+            // through the chain, and a fan window reads how many cards are above -
+            // neither answer is right until all of the links are in.
+            for (int i = 0; i < n; i++)
+            {
+                CardLogic card = cards[i];
+                if (card == null) continue;
+                int flags = boardFlags[i];
+                card._ApplyState(boardSlots[i], (flags & FlagFaceUp) != 0, (flags & FlagFaceVisible) != 0);
+            }
+            indexDirty = true;
+
+            for (int i = 0; i < n; i++)
+            {
+                CardLogic card = cards[i];
+                if (card == null) continue;
+                if (card.PrevSlotId < 0) card._ReturnHome(cardHome);
+                else card._ApplyPlacement();
+                card.ApplyFaceTexture();
+            }
+
+            // Placement above ran in pool order; a fan window needs one pass in
+            // pile order on top of it.
+            _RelayoutFannedPiles();
+            RefreshAllPickupable();
+        }
+
+        // A card just went active on this client. Its row may have arrived while the
+        // object was still disabled, in which case nothing placed it - so re-apply
+        // that one row. Idempotent, because the row is absolute.
+        public void _OnCardSpawned(CardLogic card)
+        {
+            if (card == null) return;
+            indexDirty = true;
+            if (cards == null || boardSlots == null || boardFlags == null) return;
+
+            int i = card.PoolIndex;
+            if (i < 0 || i >= boardSlots.Length || i >= boardFlags.Length) return;
+
+            int flags = boardFlags[i];
+            ApplyCard(card, boardSlots[i], (flags & FlagFaceUp) != 0, (flags & FlagFaceVisible) != 0);
+            _RelayoutFannedPiles();
+        }
+
+        private void MarkBoardDirty()
+        {
+            boardDirty = true;
+            if (flushScheduled) return;
+            flushScheduled = true;
+
+            // Mid-deal the writes come in a steady stream, so hold them to the
+            // throttle. Otherwise a frame is enough to collect everything a single
+            // move touched - the card that landed, the one it uncovered, a run
+            // collected off the back of it, a reserve refill.
+            float wait = 0f;
+            if (dealing)
+            {
+                float since = Time.time - lastFlushTime;
+                if (since < DealFlushInterval) wait = DealFlushInterval - since;
+            }
+            if (wait > 0f) SendCustomEventDelayedSeconds(nameof(_FlushBoard), wait);
+            else SendCustomEventDelayedFrames(nameof(_FlushBoard), 1);
+        }
+
+        public void _FlushBoard()
+        {
+            flushScheduled = false;
+            if (!boardDirty) return;
+            boardDirty = false;
+            // Spectators mirror the board, they never author it. Nothing should be
+            // writing on a client that doesn't own the table, but a stale scheduled
+            // flush can outlive a game changing hands.
+            if (!_IsLocalGameOwner()) return;
+            lastFlushTime = Time.time;
+            RequestSerialization();
+        }
+
+        // A throttled serialization is dropped, not queued. The board is absolute,
+        // so the recovery is simply to ask again - and there is no retry counter,
+        // because giving up would strand every other client on a stale table for
+        // the rest of the game. Backed off so a refusal doesn't retry into itself.
+        public override void OnPostSerialization(SerializationResult result)
+        {
+            if (result.success) return;
+            boardDirty = true;
+            if (flushScheduled) return;
+            flushScheduled = true;
+            SendCustomEventDelayedSeconds(nameof(_FlushBoard), DealFlushInterval);
+        }
+
+        // ---- Grab
+        //
+        // A held card is the one thing the board can't describe on its own: it is
+        // not in a pile, and it moves every frame. Two hand slots cover the whole
+        // deck, because only the dealer may grab and they have two hands.
+
+        public bool _IsCardGrabbed(CardLogic card)
+        {
+            if (card == null) return false;
+            int i = card.PoolIndex;
+            if (i < 0) return false;
+            return grabCardLeft == i || grabCardRight == i;
+        }
+
+        // Claim whichever hand is nearer and record the pose the card is held at.
+        public void _BeginGrab(CardLogic card)
+        {
+            if (card == null || card.PoolIndex < 0) return;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            VRCPlayerApi.TrackingData left = local.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
+            VRCPlayerApi.TrackingData right = local.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
+            bool useLeft = (root.position - left.position).sqrMagnitude
+                < (root.position - right.position).sqrMagnitude;
+
+            if (useLeft) grabCardLeft = card.PoolIndex;
+            else grabCardRight = card.PoolIndex;
+
+            CaptureGrabPose(useLeft);
+            MarkBoardDirty();
+
+            // VRChat has not put the card in the hand yet: OnPickup runs before the
+            // pickup is attached, and on desktop AutoHold teleports it to a fixed
+            // hold pose immediately afterwards. The pose captured above is therefore
+            // the card's pre-grab pose - which is exactly what the old per-card sync
+            // broadcast, and why a held card sat at a wrong offset and rotation for
+            // everyone else. Take it again once the attach has actually happened.
+            SendCustomEventDelayedFrames(nameof(_RecaptureGrabPose), 1);
+        }
+
+        public void _RecaptureGrabPose()
+        {
+            if (grabCardLeft < 0 && grabCardRight < 0) return;
+            if (grabCardLeft >= 0) CaptureGrabPose(true);
+            if (grabCardRight >= 0) CaptureGrabPose(false);
+            lastGrabSyncTime = Time.time;
+            MarkBoardDirty();
+        }
+
+        private void CaptureGrabPose(bool leftHand)
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            CardLogic card = ResolveGrabbedCard(leftHand);
+            if (card == null) return;
+
+            VRCPlayerApi.TrackingData hand = local.GetTrackingData(leftHand
+                ? VRCPlayerApi.TrackingDataType.LeftHand
+                : VRCPlayerApi.TrackingDataType.RightHand);
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+
+            Quaternion invHand = Quaternion.Inverse(hand.rotation);
+            if (leftHand)
+            {
+                grabOffsetLeft = invHand * (root.position - hand.position);
+                grabRotationLeft = invHand * root.rotation;
+            }
+            else
+            {
+                grabOffsetRight = invHand * (root.position - hand.position);
+                grabRotationRight = invHand * root.rotation;
+            }
+        }
+
+        public void _EndGrab(CardLogic card)
+        {
+            if (card == null) return;
+            int i = card.PoolIndex;
+            if (i < 0) return;
+
+            bool changed = false;
+            if (grabCardLeft == i) { grabCardLeft = -1; changed = true; }
+            if (grabCardRight == i) { grabCardRight = -1; changed = true; }
+            if (changed) MarkBoardDirty();
+        }
+
+        // Drop whatever is in hand without running the drop rules. The hand slots
+        // are cleared before the pickups are released, so the OnDrop each release
+        // fires finds nothing left to clear and can't re-enter this.
+        public void _ClearAllGrabs()
+        {
+            int left = grabCardLeft;
+            int right = grabCardRight;
+            if (left < 0 && right < 0) return;
+
+            grabCardLeft = -1;
+            grabCardRight = -1;
+            MarkBoardDirty();
+
+            ReleaseGrabbedCard(left);
+            ReleaseGrabbedCard(right);
+        }
+
+        private void ReleaseGrabbedCard(int index)
+        {
+            if (index < 0 || cards == null || index >= cards.Length) return;
+            CardLogic card = cards[index];
+            if (card != null) card._ForceRelease();
+        }
+
+        // Blank the board without queueing it. Used when a game ends on this client:
+        // the cards are going back to the pool regardless, and leaving the last
+        // layout in the array would have the next deal lay it back out - over a
+        // different player's deck - in the window before their first packet lands.
+        private void ClearBoard()
+        {
+            if (boardSlots != null)
+            {
+                for (int i = 0; i < boardSlots.Length; i++) boardSlots[i] = -1;
+            }
+            if (boardFlags != null)
+            {
+                for (int i = 0; i < boardFlags.Length; i++) boardFlags[i] = 0;
+            }
+            grabCardLeft = -1;
+            grabCardRight = -1;
+        }
+
+        private CardLogic ResolveGrabbedCard(bool leftHand)
+        {
+            int index = leftHand ? grabCardLeft : grabCardRight;
+            if (index < 0 || cards == null || index >= cards.Length) return null;
+            return cards[index];
+        }
+
+        // The dealer's client re-sends the held pose when it has actually changed;
+        // everyone else reconstructs the card's position from the dealer's hands.
+        private void Update()
+        {
+            if (grabCardLeft < 0 && grabCardRight < 0) return;
+
+            if (_IsLocalGameOwner())
+            {
+                if (Time.time - lastGrabSyncTime < GrabResyncInterval) return;
+                if (!GrabPoseDrifted(true) && !GrabPoseDrifted(false)) return;
+                _RecaptureGrabPose();
+                return;
+            }
+
+            VRCPlayerApi grabber = VRCPlayerApi.GetPlayerById(syncedDealerId);
+            if (!Utilities.IsValid(grabber)) return;
+            FollowGrab(grabber, true);
+            FollowGrab(grabber, false);
+        }
+
+        private bool GrabPoseDrifted(bool leftHand)
+        {
+            CardLogic card = ResolveGrabbedCard(leftHand);
+            if (card == null) return false;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return false;
+
+            VRCPlayerApi.TrackingData hand = local.GetTrackingData(leftHand
+                ? VRCPlayerApi.TrackingDataType.LeftHand
+                : VRCPlayerApi.TrackingDataType.RightHand);
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+
+            Quaternion invHand = Quaternion.Inverse(hand.rotation);
+            Vector3 offset = invHand * (root.position - hand.position);
+            Quaternion rotation = invHand * root.rotation;
+
+            Vector3 storedOffset = leftHand ? grabOffsetLeft : grabOffsetRight;
+            if ((offset - storedOffset).sqrMagnitude > GrabDriftEpsilonSqr) return true;
+
+            // Angle between two orientations is 2*acos(|dot|), so comparing the
+            // squared dot against cos(half-angle) squared says the same thing
+            // without the trig - or the bet that Quaternion.Angle is on Udon's
+            // whitelist.
+            Quaternion stored = leftHand ? grabRotationLeft : grabRotationRight;
+            float dot = stored.x * rotation.x + stored.y * rotation.y
+                + stored.z * rotation.z + stored.w * rotation.w;
+            return dot * dot < GrabDriftDotSqr;
+        }
+
+        private void FollowGrab(VRCPlayerApi grabber, bool leftHand)
+        {
+            CardLogic card = ResolveGrabbedCard(leftHand);
+            if (card == null || !card.gameObject.activeInHierarchy) return;
+
+            VRCPlayerApi.TrackingData hand = grabber.GetTrackingData(leftHand
+                ? VRCPlayerApi.TrackingDataType.LeftHand
+                : VRCPlayerApi.TrackingDataType.RightHand);
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+
+            root.position = hand.position + hand.rotation * (leftHand ? grabOffsetLeft : grabOffsetRight);
+            root.rotation = hand.rotation * (leftHand ? grabRotationLeft : grabRotationRight);
         }
 
         // Re-snap everything stacked above a card, after something changed the
@@ -632,6 +1076,17 @@ namespace org.kumagee
                 return;
             }
 
+            // Backstop for the start collider: a synced dealer id that is not ours
+            // means someone else's game is running at this table, so there is
+            // nothing for a local press to do. (The local gameStarted flag is only
+            // true on the dealer's client, so it cannot answer this on its own.)
+            if (syncedDealerId != -1)
+            {
+                Debug.Log("Solitaire: Another player's game is already running at this table.");
+                ShowNotification("Someone else's game is running.");
+                return;
+            }
+
             // The dealer may not already have a game of their own running. Checked
             // before Init, because Init repoints resolvedDeck and rebuilds the whole
             // slot registry - a refused deal should not have moved anything, not even
@@ -656,7 +1111,7 @@ namespace org.kumagee
             // the deck lives as a per-player PlayerObject copy, so whichever player
             // is dealing owns a different deck with different card objects. Re-init
             // picks that up instead of reusing the previous player's snapshot.
-            Init();
+            Init(owner);
 
             if (resolvedDeck == null || cards == null)
             {
@@ -680,6 +1135,13 @@ namespace org.kumagee
             if (!CheckDealPlan()) return;
 
             Networking.SetOwner(owner, gameObject);
+            syncedDealerId = owner.playerId;
+            lastDealerId = syncedDealerId;
+            // Announce the dealer to every other client: this is what tells
+            // spectators and late joiners whose deck PlayerObject to build their
+            // slot registry against. The table was just transferred to the dealer,
+            // so the write is an owner write and will actually travel.
+            RequestSerialization();
             resolvedDeck._SetGameWon(false);
             resolvedDeck._SetGameOwner(owner.playerId);
             // DeckManager owns this move because it knows where its pool is - the
@@ -1098,6 +1560,7 @@ namespace org.kumagee
             // dealing gate; they are legal where they sit, so hand the flags
             // back.
             RefreshAllPickupable();
+            _FlushBoard();
         }
 
         // Unlike FinalizeDeal this must not touch `won` or the win message: a row can
@@ -1116,6 +1579,7 @@ namespace org.kumagee
             // table's grabbability just changed.
             RefreshAllPickupable();
             CheckWon();
+            _FlushBoard();
         }
 
         // Send the whole waste pile back to the stock, face down.
@@ -1222,6 +1686,7 @@ namespace org.kumagee
             drawRemaining = 0;
             _RelayoutFannedPiles();
             RefreshAllPickupable();
+            _FlushBoard();
         }
 
         // Cards per stock click: Klondike turns one, Canfield three. Spider never gets
@@ -1233,13 +1698,23 @@ namespace org.kumagee
 
         private void ResetCards()
         {
+            // Anyone mid-grab loses it; the table is going away under their hand.
+            _ClearAllGrabs();
+
             // Unlink and unparent before returning to the pool - dealt cards are
-            // parented under each other, and the pool won't undo that.
+            // parented under each other, and the pool won't undo that. All 52 of
+            // these used to be a serialization each, in one frame, immediately
+            // before the deal wanted the wire for itself; now they're 52 writes
+            // into one array that goes out once, below.
             for (int i = 0; i < cards.Length; i++)
             {
                 if (cards[i] != null) cards[i]._Detach(cardHome);
             }
             resolvedDeck._ResetDeck();
+
+            // Don't leave the empty board sitting in the queue behind a deal that
+            // is about to start filling it in again.
+            _FlushBoard();
         }
 
         private void FinalizeDeal()
@@ -1254,6 +1729,9 @@ namespace org.kumagee
             // The deal placed every card without refreshing anything below them, so
             // the opening layout needs one sweep before the player can touch it.
             RefreshAllPickupable();
+            // Out from under the mid-deal throttle, so the finished table lands on
+            // everyone else now rather than up to DealFlushInterval later.
+            _FlushBoard();
         }
 
         // The label mirrors the interactable: hidden while another player is
@@ -1262,7 +1740,10 @@ namespace org.kumagee
         // the Start/quit trigger.
         private void RefreshStartLabel()
         {
-            int ownerId = resolvedDeck != null ? resolvedDeck.GameOwnerId : -1;
+            // The synced dealer id, not the local gameStarted flag: a spectator's
+            // gameStarted is always false, and the label has to go quiet for them
+            // too while someone else is playing.
+            int ownerId = syncedDealerId;
             bool running = gameStarted || ownerId != -1;
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
@@ -1281,7 +1762,7 @@ namespace org.kumagee
         public void _RefreshStartInteractable()
         {
             if (StartButtonInteract == null) return;
-            int ownerId = resolvedDeck != null ? resolvedDeck.GameOwnerId : -1;
+            int ownerId = syncedDealerId;
             bool running = gameStarted || ownerId != -1;
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
@@ -1290,11 +1771,120 @@ namespace org.kumagee
             RefreshStartLabel();
         }
 
+        // The dealer's client drives its own state straight out of Deal/_ResetGame
+        // and never deserializes its own writes, so everything here is the other
+        // half: a deal (or a quit) by someone else just reached this client, and
+        // the slot registry has to be rebuilt against the dealer's deck before any
+        // of the already-synced card links can resolve.
+        public override void OnDeserialization()
+        {
+            if (syncedDealerId != lastDealerId)
+            {
+                lastDealerId = syncedDealerId;
+
+                if (syncedDealerId == -1)
+                {
+                    _OnGameClosedLocal();
+                    return;
+                }
+
+                // Init applies the board itself, once it has a registry to apply it
+                // against - which may take a retry or two if the dealer's deck
+                // PlayerObject hasn't spawned here yet.
+                spectatorInitRetries = 0;
+                _InitSpectator();
+                return;
+            }
+
+            // Same game, new board. It arrives whole, so the table is never seen
+            // part-updated the way it was when every card carried its own link.
+            ApplyBoard();
+        }
+
+        // Rebuilds this client's registry for a game dealt by someone else. Runs on
+        // every spectator and late joiner; the dealer's own registry was built in
+        // Deal, and the dealer id on their client never deserializes.
+        public void _InitSpectator()
+        {
+            // The registry already matches the running game - a duplicate retry
+            // callback from an earlier deal racing a newer one, nothing to do.
+            if (resolvedDeck != null && resolvedDeck.GameOwnerId == syncedDealerId)
+            {
+                _FinishSpectatorInit();
+                return;
+            }
+
+            if (spectatorInitRetries >= 10) return;
+            spectatorInitRetries++;
+
+            VRCPlayerApi dealer = VRCPlayerApi.GetPlayerById(syncedDealerId);
+            if (!Utilities.IsValid(dealer)) return;
+            Init(dealer);
+
+            // The deck's own synced owner id may still be in flight (it travels on a
+            // different behaviour than the dealer id), and the deck PlayerObject
+            // itself may not have spawned on this client yet. Either way the
+            // registry would point at the wrong objects, so wait and try again
+            // rather than building slot ids nothing will ever match.
+            if (resolvedDeck == null || resolvedDeck.GameOwnerId != syncedDealerId)
+            {
+                SendCustomEventDelayedSeconds(nameof(_InitSpectator), 1f);
+                return;
+            }
+
+            _FinishSpectatorInit();
+        }
+
+        private void _FinishSpectatorInit()
+        {
+            spectatorInitRetries = 0;
+
+            // The same move the dealer made on their own client. The deck root has
+            // no ObjectSync by design (only its synced ints travel), so every
+            // client parks its own copy of the deck at the table.
+            resolvedDeck._MoveTo(CardHome);
+
+            // Init re-applied every placement in pool order, so fan windows (whose
+            // offsets depend on how deep the pile is) need one pass in pile order.
+            _RelayoutFannedPiles();
+            RefreshStartLabel();
+            _RefreshStartInteractable();
+            RefreshWinMessage();
+        }
+
+        // Local half of a quit/reset for everyone but the dealer. The authoritative
+        // card returns and stock refill already came from the dealer's client (they
+        // own the deck and its pool), so this only parks this client's copy of the
+        // deck back at its template home and restores the idle UI. No pool writes
+        // from here: a non-owner Return/Shuffle would reorder this client's pool
+        // and desync every slot id derived from it.
+        private void _OnGameClosedLocal()
+        {
+            gameStarted = false;
+            dealing = false;
+            dealPhase = DealPhaseNone;
+            won = false;
+            ClearBoard();
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (Utilities.IsValid(resolvedDeck)) resolvedDeck._ResetPosition();
+            resolvedDeck = null;
+            RefreshStartLabel();
+            _RefreshStartInteractable();
+            RefreshWinMessage();
+        }
+
         // Tear the running game back down to the pre-deal state: every card back in
         // the pool, no game owner, nobody may interact until someone deals anew.
         public void _ResetGame()
         {
             if (resolvedDeck == null || cards == null) return;
+
+            // Tell the rest of the instance the table is free again before the
+            // cards go back; the dealer owns the table at this point, so the write
+            // travels. Spectators react in OnDeserialization -> _OnGameClosedLocal.
+            syncedDealerId = -1;
+            lastDealerId = -1;
+            RequestSerialization();
 
             ResetCards();
             resolvedDeck._ResetPosition();
@@ -1314,14 +1904,48 @@ namespace org.kumagee
 
         public override void OnPlayerLeft(VRCPlayerApi player)
         {
-            if (resolvedDeck == null) return;
-            if (player == null || resolvedDeck.GameOwnerId != player.playerId) return;
+            if (player == null) return;
+            // Only the dealer leaving matters; every other departure leaves the
+            // table exactly as it was.
+            if (syncedDealerId == -1 || syncedDealerId != player.playerId) return;
+
             // UdonChips money is offline/local per-player. Only the leaver's own
             // client can settle their wallet, so credit their accrued payout here
             // before the game is torn down. Do nothing for a win (already credited).
             if (player.isLocal && !won) CreditPayout();
-            Debug.Log($"Solitaire: Game owner {player.displayName} left; resetting game.");
-            _ResetGame();
+
+            // The leaver's deck PlayerObjects die with them, so this client's
+            // registry points at dead objects. Drop it and restore the idle UI; the
+            // cards themselves need nothing - whatever the dealer last synced is
+            // gone along with its owner.
+            gameStarted = false;
+            dealing = false;
+            dealPhase = DealPhaseNone;
+            won = false;
+            resolvedDeck = null;
+            // Their cards died with them, so the board describes nothing. Leaving it
+            // would have the next deal briefly lay this game back out over whoever
+            // deals next, using their deck.
+            ClearBoard();
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            RefreshStartLabel();
+            _RefreshStartInteractable();
+            RefreshWinMessage();
+
+            // Ownership of the table lands on one of the remaining players; that
+            // client clears the synced id so a late joiner doesn't inherit a ghost
+            // dealer. Everyone else re-memoizes the id they already see, so the
+            // eventual -1 doesn't read as a no-op on their OnDeserialization.
+            if (_IsLocalGameOwner())
+            {
+                syncedDealerId = -1;
+                lastDealerId = -1;
+                RequestSerialization();
+            }
+            else
+            {
+                lastDealerId = syncedDealerId;
+            }
         }
 
         public void _OnCardPickup(CardLogic card)
@@ -1737,7 +2361,7 @@ namespace org.kumagee
                 return;
             }
 
-            int ownerId = resolvedDeck != null ? resolvedDeck.GameOwnerId : -1;
+            int ownerId = syncedDealerId;
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;

@@ -1,11 +1,8 @@
-using System;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
-using VRC.Udon.Common;
-using VRC.Udon.Common.Interfaces;
 
 namespace org.kumagee
 {
@@ -34,18 +31,28 @@ namespace org.kumagee
         Spades
     }
 
-    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
+    // A card. Nothing here is synced.
+    //
+    // Where this card sits, which way it is facing and whether it is in someone's
+    // hand all live in Solitaire's board arrays, which travel as a single packet.
+    // This behaviour holds a local mirror of its own row of that board and renders
+    // it; every write goes back through Solitaire, which owns the wire format.
+    //
+    // That split is the whole point. When each card carried its own synced link, a
+    // single logical move depended on one of 52 independent network objects landing,
+    // any of which could be throttled away or arrive out of order - so the table was
+    // routinely observed half-applied, and a dropped packet was permanent because
+    // the link was a delta with no later packet to correct it. A card is now a view
+    // of shared state, and shared state is absolute.
+    [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class CardLogic : UdonSharpBehaviour
     {
-
         public const int RankDefinitionsCount = 13;
 
         private const int AtlasColumns = 13;
         private const int AtlasRows = 10;
         private const int JokerRowIndex = 4;
         private const int HiddenColIndex = 2;
-
-        private const int MaxSerializationRetries = 5;
 
         public DeckManager DeckManager;
         public Solitaire Solitaire;
@@ -54,36 +61,32 @@ namespace org.kumagee
         [SerializeField] private Suit _suit;
 
         [Header("Face")]
-        [Tooltip("If true, everyone can see this card's value. If false, only the card's owner sees the front, others see the hidden face.")]
-        [HideInInspector] [UdonSynced] public bool FaceVisible;
+        [Tooltip("If true, everyone can see this card's value. If false, only the card's owner sees the front, others see the hidden face. Mirror of the board; write it with SetFaceVisible.")]
+        [HideInInspector] public bool FaceVisible;
 
-        [Tooltip("If true, the card is physically flipped face-up (rotated 180 degrees about its local Z axis).")]
-        [HideInInspector] [UdonSynced] public bool FaceUp;
+        [Tooltip("If true, the card is physically flipped face-up (rotated 180 degrees about its local Z axis). Mirror of the board; write it with SetFaceUp.")]
+        [HideInInspector] public bool FaceUp;
 
         [Tooltip("The material displaying the face texture atlas. Must be assigned so the correct renderer/slot is targeted.")]
         [SerializeField] private Material FaceMaterial;
 
         [Header("Placement")]
-        [Tooltip("SlotId of the slot this card is sitting in, or -1 when the card is loose. Udon can only sync primitives, so this int is the wire format for PrevSlot.")]
-        [HideInInspector] [UdonSynced] public int PrevSlotId = -1;
+        [Tooltip("SlotId of the slot this card is sitting in, or -1 when the card is loose. Mirror of the board; write it with _SetPrevSlot or _ForcePlace.")]
+        [HideInInspector] public int PrevSlotId = -1;
 
         [Tooltip("This card's own slot - the spot directly on top of it, where the next card in the pile lands.")]
         [HideInInspector] public CardSlot Slot;
+
+        // This card's row in the board arrays, and its identity on the wire. Assigned
+        // by Solitaire.Init from the index in the deck's VRCObjectPool, which is the
+        // one card identity every client already agrees on: Shuffle permutes a
+        // private draw order inside the pool, never the Pool array itself.
+        [HideInInspector] public int PoolIndex = -1;
 
         public Rank CardRank => _rank;
         public Suit CardSuit => _suit;
         [HideInInspector] public bool IsJoker;
         [HideInInspector] public int JokerIndex;
-        [UdonSynced] private int grabHandIndex = -1;
-
-        public bool Grabbed => grabHandIndex >= 0;
-
-        public void _ReleaseGrab()
-        {
-            grabHandIndex = -1;
-        }
-        [UdonSynced] private Vector3 grabLocalOffset;
-        [UdonSynced] private Quaternion grabLocalRotation;
 
         private VRCPickup pickup;
         private Renderer faceRenderer;
@@ -91,12 +94,24 @@ namespace org.kumagee
         private int faceMaterialIndex;
         private bool initialized;
         private bool rejecting;
-        private int serializationRetries;
+        private bool suppressDrop;
         private int savedPrevSlotId = -1;
 
-        // The slot this card is stacked on. Resolved from the synced PrevSlotId, so
-        // every client walks the same chain without the reference itself going over
-        // the network.
+        // Held state lives on Solitaire so that one synced pair of hand slots covers
+        // the whole deck, rather than every card carrying a grab payload it almost
+        // never uses.
+        public bool Grabbed
+        {
+            get
+            {
+                if (Solitaire == null) return false;
+                return Solitaire._IsCardGrabbed(this);
+            }
+        }
+
+        // The slot this card is stacked on. Resolved from PrevSlotId, so every
+        // client walks the same chain without the reference itself going anywhere
+        // near the network.
         public CardSlot PrevSlot
         {
             get
@@ -106,7 +121,6 @@ namespace org.kumagee
             }
         }
 
-
         private void Start()
         {
             if (!initialized) Init();
@@ -114,20 +128,19 @@ namespace org.kumagee
             _RefreshPickupable();
         }
 
-        // The pool activating this card and its synced placement arriving are two
-        // independent network messages with no ordering guarantee. When the data
-        // wins the race the behaviour is still disabled, so OnDeserialization never
-        // fires and the card would sit on the stock forever - which is exactly what
-        // a fast deal produces. Re-deriving on enable closes the gap: whichever of
-        // the two lands second does the placement.
+        // The pool activating this card and the board naming it are two independent
+        // network messages with no ordering guarantee. When the board wins the race
+        // this behaviour was still disabled, so nothing placed the card. Re-deriving
+        // on enable closes the gap, and because the board is absolute rather than a
+        // delta, re-applying it costs nothing when the card was already right.
         //
         // The catch-up has to be deferred. This fires from inside the pool's
         // TryToSpawn, which the dealer calls from inside Solitaire's own event, and
-        // every part of the catch-up reads back from Solitaire. Udon restores the
-        // program counter across a re-entrant call but not the heap, and UdonSharp
-        // keeps method locals on the heap - so calling Solitaire from here would
-        // scribble over the locals of the deal loop that is still running up the
-        // stack. A zero-frame delay runs it once that stack has unwound.
+        // the catch-up reads back through Solitaire. Udon restores the program
+        // counter across a re-entrant call but not the heap, and UdonSharp keeps
+        // method locals on the heap - so calling Solitaire from here would scribble
+        // over the locals of the deal loop still running up the stack. A zero-frame
+        // delay runs it once that stack has unwound.
         private void OnEnable()
         {
             SendCustomEventDelayedFrames(nameof(_OnSpawned), 0);
@@ -136,17 +149,7 @@ namespace org.kumagee
         public void _OnSpawned()
         {
             if (!initialized) Init();
-            // Going active makes this card visible to the slot index, which skips
-            // inactive ones when it builds.
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            // The dealer placed this card in the frame it spawned, so re-applying
-            // would only cost it a second teleport. A mismatched parent is what
-            // marks the client that still needs the catch-up.
-            CardSlot slot = PrevSlot;
-            if (slot != null && CardRoot != null && CardRoot.parent != slot.transform)
-            {
-                _ApplyPlacement();
-            }
+            if (Solitaire != null) Solitaire._OnCardSpawned(this);
             ApplyFaceTexture();
             _RefreshPickupable();
         }
@@ -271,27 +274,19 @@ namespace org.kumagee
             visual.localEulerAngles = angles;
         }
 
-        public void SetFaceVisible(bool visible)
+        // Push one row of the board into this card. Solitaire calls this on every
+        // client - the dealer straight after it writes, everyone else out of
+        // OnDeserialization - so the two paths cannot drift. Placement and rendering
+        // are deliberately left to the caller: the whole board has to be mirrored
+        // before any of it can be laid out, because a fan window's offset depends on
+        // how many cards are above and that answer is only right once every link is
+        // in.
+        public void _ApplyState(int slotId, bool faceUp, bool faceVisible)
         {
             if (!initialized) Init();
-            FaceVisible = visible;
-            RequestSerialization();
-            ApplyFaceTexture();
-        }
-
-        public void ToggleFaceVisible()
-        {
-            SetFaceVisible(!FaceVisible);
-        }
-
-        public void SetFaceUp(bool up)
-        {
-            if (!initialized) Init();
-            FaceUp = up;
-            FaceVisible = up;
-            RequestSerialization();
-            ApplyFaceTexture();
-            _RefreshPickupable();
+            PrevSlotId = slotId;
+            FaceUp = faceUp;
+            FaceVisible = faceVisible;
         }
 
         // Face-down tableau and reserve cards aren't grabbable at all - they get
@@ -337,55 +332,68 @@ namespace org.kumagee
             if (pickup != null) pickup.pickupable = allowed;
         }
 
-        // Link this card onto a slot and tell everyone else about it. The single
-        // synced int is the whole story: every client re-derives parenting, layout
-        // and pile membership from it.
+        // ---- Writes. Each of these keeps its old name and signature so the call
+        // sites in Solitaire read exactly as they did; what changed is that the
+        // change now lands in one shared array instead of this card's own synced
+        // fields, and reaches everyone else in a single packet with whatever else
+        // moved in the same frame.
+
+        public void SetFaceVisible(bool visible)
+        {
+            if (!initialized) Init();
+            if (Solitaire == null) return;
+            Solitaire._WriteCard(this, PrevSlotId, FaceUp, visible);
+        }
+
+        public void ToggleFaceVisible()
+        {
+            SetFaceVisible(!FaceVisible);
+        }
+
+        public void SetFaceUp(bool up)
+        {
+            if (!initialized) Init();
+            if (Solitaire == null) return;
+            Solitaire._WriteCard(this, PrevSlotId, up, up);
+        }
+
+        // Link this card onto a slot.
         public void _SetPrevSlot(CardSlot slot)
         {
             if (!initialized) Init();
-            PrevSlotId = slot != null ? slot.SlotId : -1;
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            RequestSerialization();
-            _ApplyPlacement();
-            _RefreshPickupable();
+            if (Solitaire == null) return;
+            Solitaire._WriteCard(this, slot != null ? slot.SlotId : -1, FaceUp, FaceVisible);
         }
 
         // Place without consulting any rule - used by the dealer.
         public void _ForcePlace(CardSlot slot, bool faceUp)
         {
             if (!initialized) Init();
-            FaceUp = faceUp;
-            FaceVisible = faceUp;
-            grabHandIndex = -1;
-            PrevSlotId = slot != null ? slot.SlotId : -1;
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            RequestSerialization();
-            _ApplyPlacement();
-            ApplyFaceTexture();
-            _RefreshPickupable();
+            if (Solitaire == null) return;
+            Solitaire._WriteCard(this, slot != null ? slot.SlotId : -1, faceUp, faceUp);
         }
 
         // Unlink and send the card back to its pool parent.
         public void _Detach(Transform home)
         {
             if (!initialized) Init();
-            PrevSlotId = -1;
-            grabHandIndex = -1;
-            FaceUp = false;
-            FaceVisible = false;
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            RequestSerialization();
-            if (home != null && CardRoot != null && CardRoot.parent != home)
-            {
-                CardRoot.SetParent(home, false);
-            }
-            ApplyFaceTexture();
-            _RefreshPickupable();
+            if (Solitaire != null) Solitaire._WriteCard(this, -1, false, false);
+            _ReturnHome(home);
+        }
+
+        // Park a card the board no longer places back under the pool. Only the
+        // parenting: activating and positioning an undealt card is the pool's job.
+        public void _ReturnHome(Transform home)
+        {
+            if (!initialized) Init();
+            if (Grabbed) return;
+            if (home == null || CardRoot == null) return;
+            if (CardRoot.parent == home) return;
+            CardRoot.SetParent(home, false);
         }
 
         // Snap the card onto whatever PrevSlotId currently points at. Runs on every
-        // client, including remotes reacting to OnDeserialization, which is what
-        // keeps the piles identical everywhere.
+        // client, which is what keeps the piles identical everywhere.
         public void _ApplyPlacement()
         {
             if (!initialized) Init();
@@ -413,9 +421,8 @@ namespace org.kumagee
         // A fan window makes a card's resting place depend on how many cards are above
         // it, so growing or shrinking a pile silently restates the position of cards
         // that never moved. Re-applying all of them through _ApplyPlacement would work
-        // and would also teleport - and therefore serialize - every one of them, which
-        // is a pile's worth of network traffic per draw. Almost none of them have
-        // actually shifted, so compare first.
+        // and would also reparent every one of them, which is a pile's worth of
+        // transform churn per draw. Almost none have actually shifted, so compare first.
         public void _RefreshPlacement()
         {
             if (!initialized) Init();
@@ -441,6 +448,12 @@ namespace org.kumagee
         private const float PlacementEpsilonSqr = 1e-8f;
 
         // Refuse a pickup: put the card straight back where it came from.
+        //
+        // `rejecting` is cleared at the top of the next OnPickup and nowhere else.
+        // VRChat may fire OnDrop out of the Drop() below either synchronously or a
+        // frame later, and if OnDrop cleared the flag on the way through, the
+        // synchronous case would land back in OnPickup with nothing left to say the
+        // grab had been refused - and it would go on to take the card anyway.
         public void _Reject()
         {
             if (!initialized) Init();
@@ -454,117 +467,56 @@ namespace org.kumagee
             rejecting = false;
             savedPrevSlotId = PrevSlotId;
 
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (Utilities.IsValid(local))
-            {
-                CaptureGrabOffset(local);
-            }
-
             if (Solitaire != null) Solitaire._OnCardPickup(this);
-            if (!rejecting)
-            {
-                PrevSlotId = -1;
-                if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            }
-            RequestSerialization();
-            ApplyFaceTexture();
-        }
+            // _Reject already asked the pickup to drop; OnDrop restores the link.
+            if (rejecting) return;
 
-        private void CaptureGrabOffset(VRCPlayerApi player)
-        {
-            Transform root = CardRoot != null ? CardRoot : transform;
-            VRCPlayerApi.TrackingData leftHand = player.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
-            VRCPlayerApi.TrackingData rightHand = player.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
-
-            float leftDist = (root.position - leftHand.position).sqrMagnitude;
-            float rightDist = (root.position - rightHand.position).sqrMagnitude;
-
-            VRCPlayerApi.TrackingData hand;
-            if (leftDist < rightDist)
-            {
-                grabHandIndex = 0;
-                hand = leftHand;
-            }
-            else
-            {
-                grabHandIndex = 1;
-                hand = rightHand;
-            }
-
-            Quaternion invHandRot = Quaternion.Inverse(hand.rotation);
-            grabLocalOffset = invHandRot * (root.position - hand.position);
-            grabLocalRotation = invHandRot * root.rotation;
-        }
-
-        private void Update()
-        {
-            if (!Grabbed) return;
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-            if (Networking.IsOwner(local, gameObject)) return;
-
-            VRCPlayerApi grabber = Networking.GetOwner(gameObject);
-            if (!Utilities.IsValid(grabber)) return;
-
-            VRCPlayerApi.TrackingDataType handType = grabHandIndex == 0
-                ? VRCPlayerApi.TrackingDataType.LeftHand
-                : VRCPlayerApi.TrackingDataType.RightHand;
-            VRCPlayerApi.TrackingData hand = grabber.GetTrackingData(handType);
-
-            Transform root = CardRoot != null ? CardRoot : transform;
-            root.position = hand.position + hand.rotation * grabLocalOffset;
-            root.rotation = hand.rotation * grabLocalRotation;
-        }
-
-        public override void OnOwnershipTransferred(VRCPlayerApi player)
-        {
-            ApplyFaceTexture();
-        }
-
-        // A serialization that loses out to VRChat's rate limiter is dropped, not
-        // queued, and this card's link is the only copy of where it belongs - so if
-        // we don't resend it, nobody else ever learns the card moved. A deal writes
-        // every card within a couple of seconds, which is precisely when the limiter
-        // starts refusing.
-        public override void OnPostSerialization(SerializationResult result)
-        {
-            if (result.success)
-            {
-                serializationRetries = 0;
-                return;
-            }
-            if (serializationRetries >= MaxSerializationRetries) return;
-            serializationRetries++;
-            // Back off, so a whole deal's worth of failures doesn't retry in lockstep.
-            SendCustomEventDelayedSeconds(nameof(_RetrySerialization), 0.25f * serializationRetries);
-        }
-
-        public void _RetrySerialization()
-        {
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
-            // Someone else took the card in the meantime; their state is the truth now.
-            if (!Networking.IsOwner(local, gameObject)) return;
-            RequestSerialization();
-        }
-
-        public override void OnDeserialization()
-        {
-            // PrevSlotId may have just changed under us, and everything below walks
-            // the chain, so the index has to be dropped before any of it reads back.
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            _ApplyPlacement();
-            ApplyFaceTexture();
-            _RefreshPickupable();
-            // Cards riding on top of this one don't serialize when it moves, so the
-            // link change has to push their layout along with it - and a card leaving
-            // or joining a fanned pile restates the layout of the cards *below* it
-            // too, which is the one direction _RepositionAbove cannot reach.
             if (Solitaire != null)
             {
-                Solitaire._RepositionAbove(this);
-                Solitaire._RelayoutFannedPiles();
+                // Claim a hand before unlinking: _WriteCard re-applies placement, and
+                // a card the board knows is held is one _ApplyPlacement leaves alone.
+                Solitaire._BeginGrab(this);
+                Solitaire._WriteCard(this, -1, FaceUp, FaceVisible);
             }
+            ApplyFaceTexture();
+        }
+
+        public override void OnDrop()
+        {
+            if (!initialized) Init();
+            if (Solitaire != null) Solitaire._EndGrab(this);
+
+            // The table was torn down under a held card; the reset owns what happens
+            // next and the drop rules must not run over the top of it.
+            if (suppressDrop)
+            {
+                suppressDrop = false;
+                return;
+            }
+
+            // Left set for the next OnPickup to clear - see _Reject.
+            if (rejecting)
+            {
+                if (Solitaire != null) Solitaire._WriteCard(this, savedPrevSlotId, FaceUp, FaceVisible);
+                ApplyFaceTexture();
+                return;
+            }
+
+            if (Solitaire != null) Solitaire._OnCardDrop(this);
+            else _ApplyPlacement();
+            ApplyFaceTexture();
+        }
+
+        public void _SnapBack()
+        {
+            if (!initialized) Init();
+            if (Solitaire == null) return;
+            Solitaire._WriteCard(this, savedPrevSlotId, FaceUp, FaceVisible);
+        }
+
+        public CardSlot _GetCurrentSlot()
+        {
+            return PrevSlot;
         }
 
         public void _Drop()
@@ -573,38 +525,23 @@ namespace org.kumagee
             if (pickup != null) pickup.Drop();
         }
 
-        public void _SnapBack()
-        {
-            PrevSlotId = savedPrevSlotId;
-            if (Solitaire != null) Solitaire._InvalidateCardIndex();
-            RequestSerialization();
-            _ApplyPlacement();
-            ApplyFaceTexture();
-        }
-
-        public CardSlot _GetCurrentSlot()
-        {
-            return PrevSlot;
-        }
-
-        public override void OnDrop()
+        // Release a held card without running the drop rules. Used when the table is
+        // reset out from under someone's hand.
+        //
+        // Gated on IsHeld and cleared by OnDrop rather than here, because Drop() may
+        // not call OnDrop until the next frame: clearing it inline would let the
+        // deferred OnDrop run the drop rules over a table that no longer exists, and
+        // clearing it nowhere would leave the flag armed to swallow a real drop.
+        public void _ForceRelease()
         {
             if (!initialized) Init();
-            grabHandIndex = -1;
-            RequestSerialization();
+            if (pickup == null || !pickup.IsHeld) return;
+            suppressDrop = true;
+            pickup.Drop();
+        }
 
-            if (rejecting)
-            {
-                rejecting = false;
-                PrevSlotId = savedPrevSlotId;
-                if (Solitaire != null) Solitaire._InvalidateCardIndex();
-                _ApplyPlacement();
-                ApplyFaceTexture();
-                return;
-            }
-
-            if (Solitaire != null) Solitaire._OnCardDrop(this);
-            else _ApplyPlacement();
+        public override void OnOwnershipTransferred(VRCPlayerApi player)
+        {
             ApplyFaceTexture();
         }
     }
