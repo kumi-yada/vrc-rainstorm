@@ -538,16 +538,16 @@ namespace org.kumagee
             return PrevSlot;
         }
 
-        // Which hand VRChat actually put this card in: 1 left, 0 right, -1 when it
-        // is not held (or not attached yet).
+        // Which hand VRChat put this card in: 1 left, 0 right, -1 when it is not
+        // held (or not attached yet). Solitaire needs it to know which hand bone
+        // the held pose is measured against.
         //
         // Asked, never guessed. Comparing the card's distance to each hand cannot
-        // work, because OnPickup fires before the pickup is attached - the card is
-        // still lying on the table, so the "nearer" hand is whichever happened to be
-        // closer to that spot on the table. In VR that is right about as often as
-        // not; on desktop, where both hands sit in the same place in front of the
-        // avatar and the grab always goes to the right one, it is pure chance. That
-        // is why a held card followed the wrong hand for everyone else.
+        // work: OnPickup fires before the pickup is attached, so the card is still
+        // lying on the table and the "nearer" hand is whichever happened to be
+        // closer to that spot. On desktop, where both hands sit together in front
+        // of the avatar and the grab always goes to the right one, it is a coin
+        // toss.
         public int _GetHeldHand()
         {
             if (!initialized) Init();
@@ -557,6 +557,7 @@ namespace org.kumagee
             if (hand == VRC_Pickup.PickupHand.Right) return 0;
             return -1;
         }
+
 
         public void _Drop()
         {

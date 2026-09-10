@@ -152,21 +152,20 @@ namespace org.kumagee
         private const int FlagFaceUp = 1;
         private const int FlagFaceVisible = 2;
 
-        // Which card each of the dealer's hands is holding, as a pool index, and the
-        // pose it is held at relative to that hand. Only the dealer may grab, so the
-        // grabber is always syncedDealerId and does not need syncing alongside it.
-        //
-        // The pose is captured per grab rather than streamed: remotes rebuild the
-        // card's position from the dealer's hand tracking, which VRChat already
-        // sends at avatar rate, so this only has to travel when the grip changes.
-        [UdonSynced] private int grabCardLeft = -1;
-        [UdonSynced] private int grabCardRight = -1;
-        // Never read unless the matching hand slot holds a card, and a slot is only
-        // ever filled together with a pose, so these have no meaningful default.
-        [UdonSynced] private Vector3 grabOffsetLeft;
-        [UdonSynced] private Vector3 grabOffsetRight;
-        [UdonSynced] private Quaternion grabRotationLeft;
-        [UdonSynced] private Quaternion grabRotationRight;
+        // The up-to-two cards currently in the dealer's hands, as pool indices,
+        // with which hand each is in and the pose it sits at relative to that hand
+        // bone. Only the dealer may grab, so the holder is always syncedDealerId
+        // and does not need syncing alongside them.
+        [UdonSynced] private int grabCardA = -1;
+        [UdonSynced] private int grabCardB = -1;
+        [UdonSynced] private bool grabLeftA;
+        [UdonSynced] private bool grabLeftB;
+        // Never read unless the matching slot holds a card, and a slot is only ever
+        // filled together with a pose, so these have no meaningful default.
+        [UdonSynced] private Vector3 grabPoseA;
+        [UdonSynced] private Vector3 grabPoseB;
+        [UdonSynced] private Quaternion grabRotationA;
+        [UdonSynced] private Quaternion grabRotationB;
 
         private bool boardDirty;
         private bool flushScheduled;
@@ -182,9 +181,9 @@ namespace org.kumagee
         // fill in, just in coarser steps.
         private const float DealFlushInterval = 0.25f;
 
-        // Desktop lets the holder re-aim a card after grabbing it, so the held pose
-        // is not fixed for the life of the grab. Resend it when it has actually
-        // moved, no faster than this - the board rides along with it.
+        // The held pose is against the holder's hand bone, so it only has to be
+        // re-sent when the card shifts within the hand - which on desktop means
+        // when the holder re-aims it. Carrying it around the room sends nothing.
         private const float GrabResyncInterval = 0.2f;
         private const float GrabDriftEpsilonSqr = 4e-4f; // (2cm)^2
         private const float GrabDriftDotSqr = 0.9981f;   // cos(2.5deg)^2, i.e. 5deg apart
@@ -746,127 +745,120 @@ namespace org.kumagee
         // ---- Grab
         //
         // A held card is the one thing the board can't describe on its own: it is
-        // not in a pile, and it moves every frame. Two hand slots cover the whole
-        // deck, because only the dealer may grab and they have two hands.
+        // not in a pile, and it moves every frame. Two slots cover the whole deck,
+        // because only the dealer may grab and they have two hands.
+        //
+        // The pose is stored relative to the holder's hand *bone* and captured once
+        // per grab, so carrying a card across the table costs nothing on the wire -
+        // remotes rebuild it from an avatar they are already receiving.
+        //
+        // The bone, specifically, and not GetTrackingData. Tracking data on the
+        // holder's own client is the raw device input that feeds their IK; on
+        // everyone else's it is what came off the network. For a desktop holder,
+        // whose hands are synthesised rather than tracked, those are not the same
+        // frame, so a pose captured against one and rebuilt against the other lands
+        // in the wrong place. A hand bone is the far side of that solve: it is the
+        // avatar everyone can already see, and it means the same thing everywhere.
 
         public bool _IsCardGrabbed(CardLogic card)
         {
             if (card == null) return false;
             int i = card.PoolIndex;
             if (i < 0) return false;
-            return grabCardLeft == i || grabCardRight == i;
+            return grabCardA == i || grabCardB == i;
         }
 
-        // Claim the hand VRChat actually used and record the pose the card is held
-        // at.
+        // Take whichever slot is free and record where the card sits in its hand.
         public void _BeginGrab(CardLogic card)
         {
             if (card == null || card.PoolIndex < 0) return;
-            VRCPlayerApi local = Networking.LocalPlayer;
-            if (!Utilities.IsValid(local)) return;
 
-            // The pickup may not be attached yet this early in OnPickup, in which
-            // case currentHand is still None. Guessing the nearer hand covers that
-            // one frame; _RecaptureGrabPose asks again once the attach has landed
-            // and moves the grab if the guess was wrong.
+            bool useA = grabCardA < 0 || grabCardA == card.PoolIndex;
             int held = card._GetHeldHand();
-            bool useLeft = held >= 0 ? held == 1 : NearerHandIsLeft(card, local);
+            // currentHand is still None this early in OnPickup if VRChat has not
+            // attached the pickup yet. Right is the better coin toss - it is what
+            // desktop always uses - and the recapture below settles it either way.
+            bool isLeft = held == 1;
 
-            if (useLeft) grabCardLeft = card.PoolIndex;
-            else grabCardRight = card.PoolIndex;
+            if (useA)
+            {
+                grabCardA = card.PoolIndex;
+                grabLeftA = isLeft;
+            }
+            else
+            {
+                grabCardB = card.PoolIndex;
+                grabLeftB = isLeft;
+            }
 
-            CaptureGrabPose(useLeft);
+            CaptureGrabPose(useA);
             MarkBoardDirty();
 
-            // VRChat has not put the card in the hand yet: OnPickup runs before the
-            // pickup is attached, and on desktop AutoHold teleports it to a fixed
-            // hold pose immediately afterwards. The pose captured above is therefore
-            // the card's pre-grab pose - which is exactly what the old per-card sync
-            // broadcast, and why a held card sat at a wrong offset and rotation for
-            // everyone else. Take it again once the attach has actually happened.
+            // OnPickup runs before the attach, and on desktop AutoHold teleports the
+            // card to a fixed hold pose straight afterwards, so what we just
+            // captured is still the card lying in its pile. Take it again - hand and
+            // all - once the attach has actually landed.
             SendCustomEventDelayedFrames(nameof(_RecaptureGrabPose), 1);
         }
 
         public void _RecaptureGrabPose()
         {
-            if (grabCardLeft < 0 && grabCardRight < 0) return;
+            if (grabCardA < 0 && grabCardB < 0) return;
 
-            // Re-resolve which hand, not just the pose. _BeginGrab may have had to
-            // guess, and by now VRChat's own answer is available and authoritative.
             RebindGrabHand(true);
             RebindGrabHand(false);
 
-            if (grabCardLeft >= 0) CaptureGrabPose(true);
-            if (grabCardRight >= 0) CaptureGrabPose(false);
+            if (grabCardA >= 0) CaptureGrabPose(true);
+            if (grabCardB >= 0) CaptureGrabPose(false);
             lastGrabSyncTime = Time.time;
             MarkBoardDirty();
         }
 
-        // Move a grab into the other hand slot if that is where VRChat actually put
-        // it. Only claims a slot that is free, so two cards held at once can never
-        // clobber each other on the way past.
-        private void RebindGrabHand(bool leftHand)
+        // Ask VRChat which hand the card actually ended up in, now that it is
+        // attached, and correct the guess _BeginGrab had to make.
+        private void RebindGrabHand(bool slotA)
         {
-            CardLogic card = ResolveGrabbedCard(leftHand);
+            CardLogic card = ResolveGrabbedCard(slotA);
             if (card == null) return;
 
             int held = card._GetHeldHand();
-            // Not held any more - OnDrop clears the slot, nothing to rebind.
-            if (held < 0) return;
+            if (held < 0) return; // not held any more; OnDrop clears the slot
 
-            bool actuallyLeft = held == 1;
-            if (actuallyLeft == leftHand) return;
-
-            if (actuallyLeft)
-            {
-                if (grabCardLeft >= 0) return;
-                grabCardLeft = card.PoolIndex;
-                grabCardRight = -1;
-            }
-            else
-            {
-                if (grabCardRight >= 0) return;
-                grabCardRight = card.PoolIndex;
-                grabCardLeft = -1;
-            }
+            if (slotA) grabLeftA = held == 1;
+            else grabLeftB = held == 1;
         }
 
-        // Last-resort guess for the frame before VRChat reports a hand. Sound enough
-        // in VR, where you reach for the card with the hand that takes it; on
-        // desktop it is a coin toss, which is exactly why nothing downstream is
-        // allowed to keep believing it.
-        private bool NearerHandIsLeft(CardLogic card, VRCPlayerApi player)
+        private void CaptureGrabPose(bool slotA)
         {
-            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
-            VRCPlayerApi.TrackingData left = player.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
-            VRCPlayerApi.TrackingData right = player.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
-            return (root.position - left.position).sqrMagnitude
-                < (root.position - right.position).sqrMagnitude;
-        }
+            CardLogic card = ResolveGrabbedCard(slotA);
+            if (card == null) return;
 
-        private void CaptureGrabPose(bool leftHand)
-        {
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return;
 
-            CardLogic card = ResolveGrabbedCard(leftHand);
-            if (card == null) return;
+            HumanBodyBones bone = (slotA ? grabLeftA : grabLeftB)
+                ? HumanBodyBones.LeftHand
+                : HumanBodyBones.RightHand;
 
-            VRCPlayerApi.TrackingData hand = local.GetTrackingData(leftHand
-                ? VRCPlayerApi.TrackingDataType.LeftHand
-                : VRCPlayerApi.TrackingDataType.RightHand);
+            // An avatar with no such bone reports it at exactly the origin. That
+            // sentinel is the only way to ask: GetBoneTransform, which would say so
+            // directly, is not exposed to Udon.
+            Vector3 bonePosition = local.GetBonePosition(bone);
+            if (bonePosition == Vector3.zero) return;
+
+            Quaternion boneRotation = local.GetBoneRotation(bone);
+            Quaternion invBone = Quaternion.Inverse(boneRotation);
+
             Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
-
-            Quaternion invHand = Quaternion.Inverse(hand.rotation);
-            if (leftHand)
+            if (slotA)
             {
-                grabOffsetLeft = invHand * (root.position - hand.position);
-                grabRotationLeft = invHand * root.rotation;
+                grabPoseA = invBone * (root.position - bonePosition);
+                grabRotationA = invBone * root.rotation;
             }
             else
             {
-                grabOffsetRight = invHand * (root.position - hand.position);
-                grabRotationRight = invHand * root.rotation;
+                grabPoseB = invBone * (root.position - bonePosition);
+                grabRotationB = invBone * root.rotation;
             }
         }
 
@@ -877,26 +869,26 @@ namespace org.kumagee
             if (i < 0) return;
 
             bool changed = false;
-            if (grabCardLeft == i) { grabCardLeft = -1; changed = true; }
-            if (grabCardRight == i) { grabCardRight = -1; changed = true; }
+            if (grabCardA == i) { grabCardA = -1; changed = true; }
+            if (grabCardB == i) { grabCardB = -1; changed = true; }
             if (changed) MarkBoardDirty();
         }
 
-        // Drop whatever is in hand without running the drop rules. The hand slots
-        // are cleared before the pickups are released, so the OnDrop each release
-        // fires finds nothing left to clear and can't re-enter this.
+        // Drop whatever is in hand without running the drop rules. The slots are
+        // cleared before the pickups are released, so the OnDrop each release fires
+        // finds nothing left to clear and can't re-enter this.
         public void _ClearAllGrabs()
         {
-            int left = grabCardLeft;
-            int right = grabCardRight;
-            if (left < 0 && right < 0) return;
+            int a = grabCardA;
+            int b = grabCardB;
+            if (a < 0 && b < 0) return;
 
-            grabCardLeft = -1;
-            grabCardRight = -1;
+            grabCardA = -1;
+            grabCardB = -1;
             MarkBoardDirty();
 
-            ReleaseGrabbedCard(left);
-            ReleaseGrabbedCard(right);
+            ReleaseGrabbedCard(a);
+            ReleaseGrabbedCard(b);
         }
 
         private void ReleaseGrabbedCard(int index)
@@ -920,78 +912,96 @@ namespace org.kumagee
             {
                 for (int i = 0; i < boardFlags.Length; i++) boardFlags[i] = 0;
             }
-            grabCardLeft = -1;
-            grabCardRight = -1;
+            grabCardA = -1;
+            grabCardB = -1;
         }
 
-        private CardLogic ResolveGrabbedCard(bool leftHand)
+        private CardLogic ResolveGrabbedCard(bool slotA)
         {
-            int index = leftHand ? grabCardLeft : grabCardRight;
+            int index = slotA ? grabCardA : grabCardB;
             if (index < 0 || cards == null || index >= cards.Length) return null;
             return cards[index];
         }
 
-        // The dealer's client re-sends the held pose when it has actually changed;
-        // everyone else reconstructs the card's position from the dealer's hands.
+        // The dealer re-sends the held pose only when the card has shifted in their
+        // hand; everyone else rebuilds it from the holder's hand bone every frame.
         private void Update()
         {
-            if (grabCardLeft < 0 && grabCardRight < 0) return;
+            if (grabCardA < 0 && grabCardB < 0) return;
 
             if (_IsLocalGameOwner())
             {
+                // Desktop lets the holder re-aim a card after grabbing it, so the
+                // pose is not fixed for the life of the grab. Carrying it around is
+                // free though: the offset is against the hand, so walking, turning
+                // and waving all move the bone and the card together and send
+                // nothing.
                 if (Time.time - lastGrabSyncTime < GrabResyncInterval) return;
                 if (!GrabPoseDrifted(true) && !GrabPoseDrifted(false)) return;
                 _RecaptureGrabPose();
                 return;
             }
 
-            VRCPlayerApi grabber = VRCPlayerApi.GetPlayerById(syncedDealerId);
-            if (!Utilities.IsValid(grabber)) return;
-            FollowGrab(grabber, true);
-            FollowGrab(grabber, false);
+            VRCPlayerApi holder = VRCPlayerApi.GetPlayerById(syncedDealerId);
+            if (!Utilities.IsValid(holder)) return;
+            FollowGrab(holder, true);
+            FollowGrab(holder, false);
         }
 
-        private bool GrabPoseDrifted(bool leftHand)
+        private bool GrabPoseDrifted(bool slotA)
         {
-            CardLogic card = ResolveGrabbedCard(leftHand);
+            CardLogic card = ResolveGrabbedCard(slotA);
             if (card == null) return false;
+
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return false;
 
-            VRCPlayerApi.TrackingData hand = local.GetTrackingData(leftHand
-                ? VRCPlayerApi.TrackingDataType.LeftHand
-                : VRCPlayerApi.TrackingDataType.RightHand);
+            HumanBodyBones bone = (slotA ? grabLeftA : grabLeftB)
+                ? HumanBodyBones.LeftHand
+                : HumanBodyBones.RightHand;
+
+            Vector3 bonePosition = local.GetBonePosition(bone);
+            if (bonePosition == Vector3.zero) return false;
+
+            Quaternion invBone = Quaternion.Inverse(local.GetBoneRotation(bone));
             Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            Vector3 offset = invBone * (root.position - bonePosition);
+            Quaternion rotation = invBone * root.rotation;
 
-            Quaternion invHand = Quaternion.Inverse(hand.rotation);
-            Vector3 offset = invHand * (root.position - hand.position);
-            Quaternion rotation = invHand * root.rotation;
-
-            Vector3 storedOffset = leftHand ? grabOffsetLeft : grabOffsetRight;
+            Vector3 storedOffset = slotA ? grabPoseA : grabPoseB;
             if ((offset - storedOffset).sqrMagnitude > GrabDriftEpsilonSqr) return true;
 
             // Angle between two orientations is 2*acos(|dot|), so comparing the
             // squared dot against cos(half-angle) squared says the same thing
-            // without the trig - or the bet that Quaternion.Angle is on Udon's
-            // whitelist.
-            Quaternion stored = leftHand ? grabRotationLeft : grabRotationRight;
+            // without the trig.
+            Quaternion stored = slotA ? grabRotationA : grabRotationB;
             float dot = stored.x * rotation.x + stored.y * rotation.y
                 + stored.z * rotation.z + stored.w * rotation.w;
             return dot * dot < GrabDriftDotSqr;
         }
 
-        private void FollowGrab(VRCPlayerApi grabber, bool leftHand)
+        private void FollowGrab(VRCPlayerApi holder, bool slotA)
         {
-            CardLogic card = ResolveGrabbedCard(leftHand);
+            CardLogic card = ResolveGrabbedCard(slotA);
             if (card == null || !card.gameObject.activeInHierarchy) return;
 
-            VRCPlayerApi.TrackingData hand = grabber.GetTrackingData(leftHand
-                ? VRCPlayerApi.TrackingDataType.LeftHand
-                : VRCPlayerApi.TrackingDataType.RightHand);
-            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            HumanBodyBones bone = (slotA ? grabLeftA : grabLeftB)
+                ? HumanBodyBones.LeftHand
+                : HumanBodyBones.RightHand;
 
-            root.position = hand.position + hand.rotation * (leftHand ? grabOffsetLeft : grabOffsetRight);
-            root.rotation = hand.rotation * (leftHand ? grabRotationLeft : grabRotationRight);
+            // No humanoid rig, no bone to hang the card off - and the sentinel for
+            // that is the bone reporting itself at the origin, which is also
+            // exactly where the card would end up if we used it anyway. Leaving the
+            // card where it is beats flinging it across the world; the drop will
+            // put it right.
+            Vector3 bonePosition = holder.GetBonePosition(bone);
+            if (bonePosition == Vector3.zero) return;
+
+            Quaternion boneRotation = holder.GetBoneRotation(bone);
+
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            root.position = bonePosition + boneRotation * (slotA ? grabPoseA : grabPoseB);
+            root.rotation = boneRotation * (slotA ? grabRotationA : grabRotationB);
         }
 
         // Re-snap everything stacked above a card, after something changed the
