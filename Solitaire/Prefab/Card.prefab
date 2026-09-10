@@ -97,7 +97,7 @@ MonoBehaviour:
   ThrowVelocityBoostScale: 1
   OutlineRenderers: []
   currentlyHeldBy: {fileID: 0}
-  pickupable: 1
+  pickupable: 0
   proximity: 0.05
   version: 1
 --- !u!65 &3186948945374295777

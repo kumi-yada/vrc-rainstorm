@@ -303,25 +303,32 @@ namespace org.kumagee
         {
             if (!initialized) Init();
 
-            // Cheapest question first, because on every client but the dealer's it
-            // is the only one that matters. Only the player who started the game
-            // may grab cards; everyone else sees them anchored so VRChat never
-            // offers the pickup, and cards stay anchored while a deal is running so
-            // nothing can be pulled out of a pile that is still being built. Asked
-            // up front, a spectator's sweep over the whole deck costs nothing -
-            // asked last, as it used to be, every card walked its pile twice to
-            // reach an answer that was never in doubt.
-            if (Solitaire != null
-                && (Solitaire._IsDealing()
-                    || !Solitaire._IsGameStarted()
-                    || !Solitaire._IsLocalGameOwner()))
+            // Fail closed, and ask the cheapest question first - on every client but
+            // the dealer's it is the only one that matters.
+            //
+            // A null table used to mean "no rules to apply, so allow it", which is
+            // backwards: a card with no table attached is one this client cannot
+            // reason about at all. That is not a hypothetical state either. Pool
+            // objects run Start the first time they spawn, and on a spectator whose
+            // _InitSpectator is still retrying - it waits on the dealer's deck
+            // PlayerObject, for up to ten seconds - Solitaire has not been assigned
+            // yet, so every card of someone else's game came up grabbable.
+            //
+            // Otherwise: only the player who started the game may grab, everyone
+            // else sees the cards anchored so VRChat never offers the pickup, and
+            // cards stay anchored while a deal is running so nothing can be pulled
+            // out of a pile that is still being built.
+            if (Solitaire == null
+                || Solitaire._IsDealing()
+                || !Solitaire._IsGameStarted()
+                || !Solitaire._IsLocalGameOwner())
             {
                 if (pickup != null) pickup.pickupable = false;
                 return;
             }
 
             CardSlot pileSlot = PrevSlot;
-            bool allowed = FaceUp || Solitaire == null
+            bool allowed = FaceUp
                 || (!Solitaire._IsTableauChain(pileSlot) && !Solitaire._IsReserveChain(pileSlot));
 
             // Pile pick-up policy comes from the base slot: all face-up cards, just
@@ -336,7 +343,7 @@ namespace org.kumagee
             // Spider will not let a group move unless the cards riding on this one
             // continue it as a same-suit run. Solitaire owns that rule and returns
             // true for modes that do not restrict it.
-            if (allowed && Solitaire != null && !Solitaire._IsGroupMovable(this))
+            if (allowed && !Solitaire._IsGroupMovable(this))
             {
                 allowed = false;
             }
@@ -529,6 +536,26 @@ namespace org.kumagee
         public CardSlot _GetCurrentSlot()
         {
             return PrevSlot;
+        }
+
+        // Which hand VRChat actually put this card in: 1 left, 0 right, -1 when it
+        // is not held (or not attached yet).
+        //
+        // Asked, never guessed. Comparing the card's distance to each hand cannot
+        // work, because OnPickup fires before the pickup is attached - the card is
+        // still lying on the table, so the "nearer" hand is whichever happened to be
+        // closer to that spot on the table. In VR that is right about as often as
+        // not; on desktop, where both hands sit in the same place in front of the
+        // avatar and the grab always goes to the right one, it is pure chance. That
+        // is why a held card followed the wrong hand for everyone else.
+        public int _GetHeldHand()
+        {
+            if (!initialized) Init();
+            if (pickup == null) return -1;
+            VRC_Pickup.PickupHand hand = pickup.currentHand;
+            if (hand == VRC_Pickup.PickupHand.Left) return 1;
+            if (hand == VRC_Pickup.PickupHand.Right) return 0;
+            return -1;
         }
 
         public void _Drop()

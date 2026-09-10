@@ -73,14 +73,28 @@ namespace org.kumagee
             gameWon = won;
         }
 
-        // The stock deck only invites an interact once a game is actually running.
-        // Disabling the collider stops VRChat from offering the prompt at all;
-        // the checks inside Interact() are a backstop for the moment ownership
-        // changes before the collider swaps.
+        // The stock deck only invites an interact from the player whose game it is.
+        // Disabling the collider stops VRChat from offering the prompt at all; the
+        // checks inside Interact() are the backstop for the moment state changes
+        // before the collider swaps.
+        //
+        // Three separate questions, and this used to ask only the first: is a game
+        // running, is this deck mine, and is that game mine? Without the second, a
+        // spectator got a hover prompt on the dealer's deck - Interact() refused the
+        // click, but the deck lit up and offered itself, which is what it looked
+        // like when other players seemed able to touch a running game. Without the
+        // third, anyone who had dealt at this table earlier kept a live collider on
+        // their own parked deck for the whole of somebody else's game.
         public void _RefreshInteractable()
         {
             if (interactCollider == null) return;
-            bool interactable = Solitaire != null && Solitaire._IsGameStarted();
+
+            VRCPlayerApi local = Networking.LocalPlayer;
+            bool interactable = Solitaire != null
+                && Solitaire._IsGameStarted()
+                && Solitaire._IsLocalGameOwner()
+                && Utilities.IsValid(local)
+                && Networking.IsOwner(local, gameObject);
             interactCollider.enabled = interactable;
         }
         
@@ -266,9 +280,12 @@ namespace org.kumagee
                 _RefreshInteractable();
                 return;
             }
-            if (!Networking.IsOwner(playerLocal, gameObject))
+            // Both halves: the deck has to be mine, and the running game has to be
+            // mine. Owning the deck alone is not enough - every player carries one.
+            if (!Networking.IsOwner(playerLocal, gameObject) || !Solitaire._IsLocalGameOwner())
             {
                 Debug.Log("DeckManager: Only the player who started the game may use the deck.");
+                _RefreshInteractable();
                 return;
             }
             Solitaire._OnStockClicked();

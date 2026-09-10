@@ -265,7 +265,27 @@ namespace org.kumagee
 
         // True when the local player is the one who dealt the current game. Drives
         // who is allowed to grab cards and poke the deck.
+        //
+        // Identity, not object ownership. The two normally agree - Deal takes the
+        // table and writes the dealer id in the same breath - but ownership is a
+        // separate message on its own schedule, and a scene object starts out owned
+        // by the instance master. Asking IsOwner therefore had a window where the
+        // master's client said yes to a game that was not theirs, and the dealer's
+        // own client said no to one that was. The dealer id flips atomically with
+        // the board it describes, so it cannot disagree with what is on the table.
         public bool _IsLocalGameOwner()
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return false;
+            return syncedDealerId != -1 && syncedDealerId == local.playerId;
+        }
+
+        // Whether this client may author the table's synced state. Object ownership
+        // rather than identity, because this is the question RequestSerialization
+        // actually asks - and because it is how a departed dealer gets cleaned up:
+        // whoever VRChat hands the table to is the one who can clear the ghost
+        // dealer id, and by then that is nobody's game by identity.
+        private bool _IsLocalTableOwner()
         {
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return false;
@@ -701,10 +721,11 @@ namespace org.kumagee
             flushScheduled = false;
             if (!boardDirty) return;
             boardDirty = false;
-            // Spectators mirror the board, they never author it. Nothing should be
-            // writing on a client that doesn't own the table, but a stale scheduled
-            // flush can outlive a game changing hands.
-            if (!_IsLocalGameOwner()) return;
+            // Ownership, not identity: this is exactly the precondition for
+            // RequestSerialization landing. It also stays true for the moment after
+            // _ResetGame clears the dealer id, which is when the emptied board has
+            // to go out.
+            if (!_IsLocalTableOwner()) return;
             lastFlushTime = Time.time;
             RequestSerialization();
         }
@@ -736,18 +757,20 @@ namespace org.kumagee
             return grabCardLeft == i || grabCardRight == i;
         }
 
-        // Claim whichever hand is nearer and record the pose the card is held at.
+        // Claim the hand VRChat actually used and record the pose the card is held
+        // at.
         public void _BeginGrab(CardLogic card)
         {
             if (card == null || card.PoolIndex < 0) return;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (!Utilities.IsValid(local)) return;
 
-            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
-            VRCPlayerApi.TrackingData left = local.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
-            VRCPlayerApi.TrackingData right = local.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
-            bool useLeft = (root.position - left.position).sqrMagnitude
-                < (root.position - right.position).sqrMagnitude;
+            // The pickup may not be attached yet this early in OnPickup, in which
+            // case currentHand is still None. Guessing the nearer hand covers that
+            // one frame; _RecaptureGrabPose asks again once the attach has landed
+            // and moves the grab if the guess was wrong.
+            int held = card._GetHeldHand();
+            bool useLeft = held >= 0 ? held == 1 : NearerHandIsLeft(card, local);
 
             if (useLeft) grabCardLeft = card.PoolIndex;
             else grabCardRight = card.PoolIndex;
@@ -767,10 +790,58 @@ namespace org.kumagee
         public void _RecaptureGrabPose()
         {
             if (grabCardLeft < 0 && grabCardRight < 0) return;
+
+            // Re-resolve which hand, not just the pose. _BeginGrab may have had to
+            // guess, and by now VRChat's own answer is available and authoritative.
+            RebindGrabHand(true);
+            RebindGrabHand(false);
+
             if (grabCardLeft >= 0) CaptureGrabPose(true);
             if (grabCardRight >= 0) CaptureGrabPose(false);
             lastGrabSyncTime = Time.time;
             MarkBoardDirty();
+        }
+
+        // Move a grab into the other hand slot if that is where VRChat actually put
+        // it. Only claims a slot that is free, so two cards held at once can never
+        // clobber each other on the way past.
+        private void RebindGrabHand(bool leftHand)
+        {
+            CardLogic card = ResolveGrabbedCard(leftHand);
+            if (card == null) return;
+
+            int held = card._GetHeldHand();
+            // Not held any more - OnDrop clears the slot, nothing to rebind.
+            if (held < 0) return;
+
+            bool actuallyLeft = held == 1;
+            if (actuallyLeft == leftHand) return;
+
+            if (actuallyLeft)
+            {
+                if (grabCardLeft >= 0) return;
+                grabCardLeft = card.PoolIndex;
+                grabCardRight = -1;
+            }
+            else
+            {
+                if (grabCardRight >= 0) return;
+                grabCardRight = card.PoolIndex;
+                grabCardLeft = -1;
+            }
+        }
+
+        // Last-resort guess for the frame before VRChat reports a hand. Sound enough
+        // in VR, where you reach for the card with the hand that takes it; on
+        // desktop it is a coin toss, which is exactly why nothing downstream is
+        // allowed to keep believing it.
+        private bool NearerHandIsLeft(CardLogic card, VRCPlayerApi player)
+        {
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            VRCPlayerApi.TrackingData left = player.GetTrackingData(VRCPlayerApi.TrackingDataType.LeftHand);
+            VRCPlayerApi.TrackingData right = player.GetTrackingData(VRCPlayerApi.TrackingDataType.RightHand);
+            return (root.position - left.position).sqrMagnitude
+                < (root.position - right.position).sqrMagnitude;
         }
 
         private void CaptureGrabPose(bool leftHand)
@@ -1864,6 +1935,12 @@ namespace org.kumagee
             // client parks its own copy of the deck at the table.
             resolvedDeck._MoveTo(CardHome);
 
+            // This client now points at the dealer's deck. Say so explicitly rather
+            // than leaving whatever that copy's collider happened to be: on a
+            // spectator the answer is always "off", and nothing else would have
+            // told it that.
+            resolvedDeck._RefreshInteractable();
+
             // Init re-applied every placement in pool order, so fan windows (whose
             // offsets depend on how deep the pile is) need one pass in pile order.
             _RelayoutFannedPiles();
@@ -1886,7 +1963,13 @@ namespace org.kumagee
             won = false;
             ClearBoard();
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
-            if (Utilities.IsValid(resolvedDeck)) resolvedDeck._ResetPosition();
+            if (Utilities.IsValid(resolvedDeck))
+            {
+                resolvedDeck._ResetPosition();
+                // Last chance to close this deck's collider while we still hold a
+                // reference to it.
+                resolvedDeck._RefreshInteractable();
+            }
             resolvedDeck = null;
             RefreshStartLabel();
             _RefreshStartInteractable();
@@ -1956,7 +2039,11 @@ namespace org.kumagee
             // client clears the synced id so a late joiner doesn't inherit a ghost
             // dealer. Everyone else re-memoizes the id they already see, so the
             // eventual -1 doesn't read as a no-op on their OnDeserialization.
-            if (_IsLocalGameOwner())
+            //
+            // Has to be the ownership test, not _IsLocalGameOwner: by identity this
+            // is the departed player's game, so nobody would answer yes and the
+            // ghost id would never be cleared.
+            if (_IsLocalTableOwner())
             {
                 syncedDealerId = -1;
                 lastDealerId = -1;
