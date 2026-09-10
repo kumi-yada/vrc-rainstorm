@@ -2775,6 +2775,7 @@ MonoBehaviour:
   StartButtonInteract: {fileID: 3543745364449709572}
   StartInteract: {fileID: 188899628847439214}
   ConfirmDialog: {fileID: 2452246828101581707}
+  Notification: {fileID: 0}
 --- !u!114 &1768482966039099052
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2794,7 +2795,7 @@ MonoBehaviour:
   SynchronizePosition: 0
   AllowCollisionOwnershipTransfer: 0
   Reliable: 0
-  _syncMethod: 2
+  _syncMethod: 3
   serializedProgramAsset: {fileID: 11400000, guid: 0342c7567db31d70c98f64d546681b37,
     type: 2}
   programSource: {fileID: 11400000, guid: ddb2a0a6ed48222b0a9878b82bcd4a6e, type: 2}

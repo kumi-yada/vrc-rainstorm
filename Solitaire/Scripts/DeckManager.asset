@@ -851,19 +851,19 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: serializationRetries
+      Data: serializeScheduled
     - Name: $v
       Entry: 7
       Data: 53|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: serializationRetries
+      Data: serializeScheduled
     - Name: <UserType>k__BackingField
       Entry: 9
-      Data: 3
+      Data: 12
     - Name: <SystemType>k__BackingField
       Entry: 9
-      Data: 3
+      Data: 12
     - Name: <SyncMode>k__BackingField
       Entry: 7
       Data: System.Nullable`1[[UdonSharp.UdonSyncMode, UdonSharp.Runtime]], mscorlib

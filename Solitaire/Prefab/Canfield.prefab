@@ -1133,7 +1133,7 @@ MonoBehaviour:
   WasteSlot: {fileID: 1927111639147033151}
   ReserveSlot: {fileID: 4042731502485714363}
   SnapDistance: 0.12
-  DealDelay: 0.05
+  DealDelay: 0.15
   DealCounts: 01000000010000000100000001000000
   ReserveCount: 13
   WinMessage: {fileID: 4675674999526692053}
@@ -1141,6 +1141,7 @@ MonoBehaviour:
   StartButtonInteract: {fileID: 5446969414444849895}
   StartInteract: {fileID: 3114822259999180608}
   ConfirmDialog: {fileID: 2807586469741085451}
+  Notification: {fileID: 0}
 --- !u!114 &4467031013531435657
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1160,7 +1161,7 @@ MonoBehaviour:
   SynchronizePosition: 0
   AllowCollisionOwnershipTransfer: 0
   Reliable: 0
-  _syncMethod: 2
+  _syncMethod: 3
   serializedProgramAsset: {fileID: 11400000, guid: 0342c7567db31d70c98f64d546681b37,
     type: 2}
   programSource: {fileID: 11400000, guid: ddb2a0a6ed48222b0a9878b82bcd4a6e, type: 2}

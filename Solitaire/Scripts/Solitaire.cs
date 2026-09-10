@@ -7,6 +7,7 @@ using VRC.Udon;
 using VRC.Udon.Common;
 using UCS;
 
+
 namespace org.kumagee
 {
     public enum SolitaireMode
