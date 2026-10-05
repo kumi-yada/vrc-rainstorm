@@ -7,22 +7,27 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TableEmission
-  m_Shader: {fileID: 4800000, guid: e765db0afa7ecfc44ade2e4e2491f65a, type: 3}
+  m_Name: TableEmissionGreen
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _EMISSION
   m_InvalidKeywords: []
-  m_LightmapFlags: 4
+  m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AudioLinkMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -89,6 +94,24 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _ALBand: 0
+    - _ALBarSmoothing: 0.1
+    - _ALBlendMode: 0
+    - _ALEffectMaskChannel: 0
+    - _ALEffectUVChannel: 0
+    - _ALEffectUseMask: 0
+    - _ALEnableFallback: 0
+    - _ALFallbackSpeed: 1
+    - _ALIntensity: 1
+    - _ALMaskByEmission: 1
+    - _ALMaskChannel: 0
+    - _ALMaskUVChannel: 0
+    - _ALRimMaskSmoothing: 1
+    - _ALRimMaskStrength: 0
+    - _ALScrollCenterOut: 0
+    - _ALScrollScale: 1
+    - _ALSmoothing: 7
+    - _AudioLinkMode: 0
     - _BumpScale: 1
     - _ColorMaskBlendMode: 0
     - _ColorMaskEmissionStrength1: 0
@@ -141,11 +164,12 @@ Material:
     - _VertexColor: 0
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _ALTint: {r: 0, g: 0.8980392, b: 0.62745106, a: 1}
+    - _Color: {r: 0.6967782, g: 1, b: 0.5990566, a: 1}
     - _ColorMaskColor1: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor2: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor3: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor4: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 1, g: 0.9262732, b: 0.6603774, a: 1}
+    - _EmissionColor: {r: 0, g: 1.4980394, b: 0.24673602, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

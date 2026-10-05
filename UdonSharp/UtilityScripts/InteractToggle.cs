@@ -24,5 +24,15 @@ namespace UdonSharp.Examples.Utilities
                 }
             }
         }
+
+        public void Hide()
+        {
+            foreach (GameObject toggleObject in toggleObjects)
+            {
+                if (toggleObject != null) {
+                    toggleObject.SetActive(false);
+                }
+            }
+        }
     }
 }

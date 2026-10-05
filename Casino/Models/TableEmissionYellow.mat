@@ -7,16 +7,17 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TableMat
-  m_Shader: {fileID: 4800000, guid: e765db0afa7ecfc44ade2e4e2491f65a, type: 3}
+  m_Name: TableEmissionYellow
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _EMISSION
   m_InvalidKeywords: []
-  m_LightmapFlags: 4
+  m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -126,7 +127,7 @@ Material:
     - _DetailUV: 0
     - _DstBlend: 0
     - _EmissionHueShift: 0
-    - _EmissionStrength: 0
+    - _EmissionStrength: 2
     - _EmissionUV: 0
     - _GlossMapChannel: 3
     - _GlossMapScale: 1
@@ -164,11 +165,11 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _ALTint: {r: 0, g: 0.8980392, b: 0.62745106, a: 1}
-    - _Color: {r: 0.6037736, g: 0.48275593, b: 0.41580635, a: 1}
+    - _Color: {r: 0.6967782, g: 1, b: 0.5990566, a: 1}
     - _ColorMaskColor1: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor2: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor3: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor4: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 1, g: 0.9262732, b: 0.6603774, a: 1}
+    - _EmissionColor: {r: 2, g: 1.8558301, b: 0, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

@@ -7,14 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: CasinoEmission
+  m_Name: TableColorRed
   m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _EMISSION
+  m_ValidKeywords: []
   m_InvalidKeywords: []
-  m_LightmapFlags: 2
+  m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
@@ -127,12 +126,12 @@ Material:
     - _DetailUV: 0
     - _DstBlend: 0
     - _EmissionHueShift: 0
-    - _EmissionStrength: 2
+    - _EmissionStrength: 0
     - _EmissionUV: 0
     - _GlossMapChannel: 3
     - _GlossMapScale: 1
     - _GlossStrength: 0.5
-    - _Glossiness: 0.5
+    - _Glossiness: 0
     - _GlossyReflections: 1
     - _HueShift: 0
     - _HueShiftMaskChannel: 1
@@ -165,11 +164,11 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _ALTint: {r: 0, g: 0.8980392, b: 0.62745106, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.5, g: 0.2570755, b: 0.27118853, a: 1}
     - _ColorMaskColor1: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor2: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor3: {r: 1, g: 1, b: 1, a: 1}
     - _ColorMaskColor4: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 0, g: 2.8899918, b: 4, a: 1}
+    - _EmissionColor: {r: 1, g: 0.9262732, b: 0.6603774, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
