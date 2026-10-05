@@ -33,7 +33,7 @@ public class GameInteract : UdonSharpBehaviour
 
     private string PromptText()
     {
-        return storedEntryFee > 0 ? $"Start ({storedEntryFee} coins)" : "Start";
+        return storedEntryFee > 0 ? $"Start ({storedEntryFee} chips)" : "Start";
     }
 
     // The interactable moves onto this button so only its mesh lights up on

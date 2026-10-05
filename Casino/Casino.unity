@@ -4853,7 +4853,7 @@ PrefabInstance:
     - target: {fileID: 7650923164703984175, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: m_text
-      value: 'Payout: 20 coins per foundation card + 1.5x win bonus'
+      value: 'Payout: 20 chips per foundation card + 1.5x win bonus'
       objectReference: {fileID: 0}
     - target: {fileID: 7712191991663953116, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
@@ -5835,7 +5835,7 @@ PrefabInstance:
     - target: {fileID: 7650923164703984175, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: m_text
-      value: 'Payout: 100 coins per foundation card + 2x win bonus'
+      value: 'Payout: 100 chips per foundation card + 2x win bonus'
       objectReference: {fileID: 0}
     - target: {fileID: 7712191991663953116, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
@@ -6833,6 +6833,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 585374532848344921, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
         type: 3}
+    - target: {fileID: 3149924054619895296, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3149924054619895358, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
+        type: 3}
+      propertyPath: m_text
+      value: Chips
+      objectReference: {fileID: 0}
+    - target: {fileID: 3149924054619895358, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
+        type: 3}
+      propertyPath: m_HorizontalAlignment
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3149924055672011046, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
         type: 3}
       propertyPath: m_Pivot.x
@@ -6916,7 +6931,7 @@ PrefabInstance:
     - target: {fileID: 3149924055672011046, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
         type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 3.061
+      value: 2.891
       objectReference: {fileID: 0}
     - target: {fileID: 3149924055672011046, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
         type: 3}
@@ -6937,6 +6952,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: UdonChips_MoneyText
+      objectReference: {fileID: 0}
+    - target: {fileID: 3149924055909307076, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
+        type: 3}
+      propertyPath: m_HorizontalAlignment
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3149924055909307077, guid: 00d9dc5a4f84f21468018d7801a1bfc2,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
