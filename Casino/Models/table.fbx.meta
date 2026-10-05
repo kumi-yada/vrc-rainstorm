@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ab4502c97668a45c79f7c03caf480705
+guid: ed4670c4e3c791c278117f035115285f
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,13 +7,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Casino
-    second: {fileID: 2100000, guid: 2f1b3497c47e5380ea309f32f4a707f2, type: 2}
+      name: TableColor
+    second: {fileID: 2100000, guid: 0d3c83f79cda1b492b448058e6f7bb27, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Emission
-    second: {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
+      name: TableEmission
+    second: {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TableMaterial
+    second: {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -58,7 +63,7 @@ ModelImporter:
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 1
+    generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -71,10 +76,10 @@ ModelImporter:
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
-    secondaryUVAreaDistortion: 15
+    secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
     secondaryUVMarginMethod: 1
-    secondaryUVMinLightmapResolution: 10
+    secondaryUVMinLightmapResolution: 40
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
