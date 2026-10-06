@@ -1,6 +1,7 @@
 ﻿using System;
 using UdonSharp;
 using UnityEngine;
+using TMPro;
 using VRC.SDKBase;
 using VRC.SDK3.Persistence;
 using VRC.Udon;
@@ -15,7 +16,7 @@ public class PoorMoney : UdonSharpBehaviour
     [SerializeField] private float TimeLimit = 60f;
 
     [Tooltip("Optional label showing the remaining cooldown time.")]
-    [SerializeField] private UnityEngine.UI.Text timeLabel;
+    [SerializeField] private TextMeshProUGUI timeLabel;
 
     private const string LastTakeKey = "_RAINSTORM/POOR_MONEY_LAST_TAKE";
 
@@ -59,14 +60,6 @@ public class PoorMoney : UdonSharpBehaviour
 
     void Update()
     {
-        bool canGain = udonChips.money < maxMoney;
-
-        if (!canGain)
-        {
-            InteractionText = "Only for the poor (< " + maxMoney + ")";
-            return;
-        }
-
         float remaining = RemainingCooldown();
 
         if (remaining > 0f)
@@ -81,13 +74,22 @@ public class PoorMoney : UdonSharpBehaviour
         }
         else
         {
-            InteractionText = "Take Money";
+            bool canGain = udonChips.money < maxMoney;
+            if (!canGain)
+            {
+                InteractionText = "Only for < " + maxMoney;
+            }
+            else
+            {
+                InteractionText = "Take";
+            }
 
             if (timeLabel != null)
             {
                 timeLabel.text = "";
             }
         }
+
     }
 
     public override void Interact()
