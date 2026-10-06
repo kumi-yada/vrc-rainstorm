@@ -18,6 +18,9 @@ public class PoorMoney : UdonSharpBehaviour
     [Tooltip("Optional label showing the remaining cooldown time.")]
     [SerializeField] private TextMeshProUGUI timeLabel;
 
+    [Tooltip("AudioSource played when the player takes money.")]
+    [SerializeField] private AudioSource takeAudio;
+
     private const string LastTakeKey = "_RAINSTORM/POOR_MONEY_LAST_TAKE";
 
     private bool _dataRestored = false;
@@ -110,6 +113,11 @@ public class PoorMoney : UdonSharpBehaviour
         }
 
         udonChips.money += maxMoney - udonChips.money;
+
+        if (takeAudio != null)
+        {
+            takeAudio.Play();
+        }
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         _lastTakeTime = now;

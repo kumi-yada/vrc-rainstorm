@@ -66,6 +66,19 @@ namespace org.kumagee
         [Tooltip("Multiplies the total accrued payout when the game is completed (won) rather than quit early. 1 means no bonus; 2 doubles the winnings only on a win, never on an early quit.")]
         public float CompletePayoutMultiplier = 1f;
 
+        [Header("Audio")]
+        [Tooltip("AudioSource played when the entry fee is deducted to start a game.")]
+        public AudioSource PayAudio;
+
+        [Tooltip("Shared pool that plays the card dealing and movement sounds, locally or on every client.")]
+        public AudioPool CardAudio;
+
+        [Tooltip("Index into CardAudio's Clips list of the sound played once per card dealt onto the table.")]
+        public int DealClipIndex = 0;
+
+        [Tooltip("Index into CardAudio's Clips list of the sound played once per card moved to a new pile.")]
+        public int MoveClipIndex = 1;
+
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
         public DeckManager DeckOfCards;
@@ -1132,6 +1145,18 @@ namespace org.kumagee
             if (Notification != null) Notification.Notify(message);
         }
 
+        // Plays a short card sound on every client through the shared pool, at
+        // the card's world position so it is spatialised where it landed. The
+        // index addresses a clip in the pool's Clips list, which is the single
+        // source of truth for which sound is which.
+        private void PlayCardAudio(int clipIndex, CardLogic card)
+        {
+            if (CardAudio == null || card == null) return;
+            Transform root = card.CardRoot != null ? card.CardRoot : card.transform;
+            if (root == null) return;
+            CardAudio.PlayNetworkedIndex(clipIndex, root.position);
+        }
+
         private bool TryPayEntryFee()
         {
             if (UdonChips == null) return true;
@@ -1139,6 +1164,7 @@ namespace org.kumagee
             if (fee <= 0f) return true;
             if (UdonChips.money < fee) return false;
             UdonChips.money -= fee;
+            if (PayAudio != null) PayAudio.Play();
             return true;
         }
 
@@ -1419,6 +1445,7 @@ namespace org.kumagee
                 // the rule in every mode - Canfield deals one card per column, so
                 // there it means the whole tableau comes up face-up.
                 card._ForcePlace(slot._GetTopSlot(), dealDepth == DealCountFor(dealCol) - 1);
+                PlayCardAudio(DealClipIndex, card);
             }
             dealDepth++;
 
@@ -1455,6 +1482,7 @@ namespace org.kumagee
             if (card != null)
             {
                 card._ForcePlace(ReserveSlot._GetTopSlot(), dealDepth == want - 1);
+                PlayCardAudio(DealClipIndex, card);
             }
             dealDepth++;
 
@@ -1488,6 +1516,7 @@ namespace org.kumagee
                 if (card != null)
                 {
                     card._ForcePlace(foundation._GetTopSlot(), true);
+                    PlayCardAudio(DealClipIndex, card);
                     Debug.Log($"Solitaire: Canfield base rank is {card.CardRank}.");
                 }
             }
@@ -1637,6 +1666,7 @@ namespace org.kumagee
                 // Stock cards always land face-up in Spider - that is the whole cost
                 // of the row, and why burying an empty column matters.
                 card._ForcePlace(slot._GetTopSlot(), true);
+                PlayCardAudio(DealClipIndex, card);
             }
             dealCol++;
 
@@ -1777,6 +1807,7 @@ namespace org.kumagee
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card == null) return false;
             card._ForcePlace(WasteSlot._GetTopSlot(), true);
+            PlayCardAudio(DealClipIndex, card);
             return true;
         }
 
@@ -2166,6 +2197,7 @@ namespace org.kumagee
             if (target != null)
             {
                 card._SetPrevSlot(target);
+                PlayCardAudio(MoveClipIndex, card);
                 if (IsFoundationChain(target))
                 {
                     AccumulateFoundationReward(1);
