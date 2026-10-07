@@ -2254,7 +2254,7 @@ GameObject:
   m_Component:
   - component: {fileID: 144465340}
   - component: {fileID: 144465341}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3169,7 +3169,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 247007854}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Sliding Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7273,7 +7273,7 @@ GameObject:
   - component: {fileID: 516122840}
   - component: {fileID: 516122839}
   - component: {fileID: 516122838}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Scroll View
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8275,7 +8275,7 @@ GameObject:
   - component: {fileID: 619590166}
   - component: {fileID: 619590168}
   - component: {fileID: 619590167}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14073,7 +14073,7 @@ GameObject:
   - component: {fileID: 805286098}
   - component: {fileID: 805286100}
   - component: {fileID: 805286099}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Text (TMP) (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -15390,7 +15390,7 @@ GameObject:
   - component: {fileID: 938496276}
   - component: {fileID: 938496277}
   - component: {fileID: 938496278}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Content
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17137,7 +17137,7 @@ GameObject:
   - component: {fileID: 1072482708}
   - component: {fileID: 1072482710}
   - component: {fileID: 1072482709}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17554,6 +17554,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: CreditLine (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 1307154620268370368, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849036498360407583, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2932854924901312837, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3273860184818011627, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Text
@@ -17563,6 +17578,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_text
       value: Bootstrap Icons
+      objectReference: {fileID: 0}
+    - target: {fileID: 5908870954413665387, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288203248158406026, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
@@ -17669,11 +17689,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8066209527506726835, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8856787270941641301, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Material
       value: 
       objectReference: {fileID: 2100000, guid: 35630e38b4e5ffb40b44ec5348b4333f, type: 2}
+    - target: {fileID: 9106145067504824945, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -17698,6 +17728,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: CreditLine (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 1307154620268370368, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849036498360407583, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2932854924901312837, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3273860184818011627, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Text
@@ -17707,6 +17752,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_text
       value: BGM - OpenTracks
+      objectReference: {fileID: 0}
+    - target: {fileID: 5908870954413665387, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288203248158406026, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
@@ -17813,11 +17863,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8066209527506726835, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8856787270941641301, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Material
       value: 
       objectReference: {fileID: 2100000, guid: 35630e38b4e5ffb40b44ec5348b4333f, type: 2}
+    - target: {fileID: 9106145067504824945, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19718,7 +19778,7 @@ GameObject:
   - component: {fileID: 1346806239}
   - component: {fileID: 1346806238}
   - component: {fileID: 1346806237}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Scrollbar Vertical
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19855,7 +19915,7 @@ GameObject:
   - component: {fileID: 1356330216}
   - component: {fileID: 1356330218}
   - component: {fileID: 1356330217}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Handle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -20211,7 +20271,7 @@ GameObject:
   - component: {fileID: 1381853950}
   - component: {fileID: 1381853949}
   - component: {fileID: 1381853948}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Scrollbar Horizontal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -24321,7 +24381,7 @@ GameObject:
   - component: {fileID: 1492122570}
   - component: {fileID: 1492122569}
   - component: {fileID: 1492122568}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Viewport
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -25099,7 +25159,7 @@ GameObject:
   - component: {fileID: 1548720591}
   - component: {fileID: 1548720594}
   - component: {fileID: 1548720595}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Supporter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -26956,6 +27016,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: CreditLine (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1307154620268370368, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849036498360407583, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2932854924901312837, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3273860184818011627, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Text
@@ -26965,6 +27040,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_text
       value: UdonChips
+      objectReference: {fileID: 0}
+    - target: {fileID: 5908870954413665387, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6288203248158406026, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
@@ -27071,11 +27151,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8066209527506726835, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8856787270941641301, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Material
       value: 
       objectReference: {fileID: 2100000, guid: 35630e38b4e5ffb40b44ec5348b4333f, type: 2}
+    - target: {fileID: 9106145067504824945, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -27272,6 +27362,16 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2044824266}
     m_Modifications:
+    - target: {fileID: 429516521565445586, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 587344770789729447, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1983413144870300796, guid: 7aa21d8ea3df2a512869714359810c55,
         type: 3}
       propertyPath: m_Text
@@ -27392,6 +27492,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Twitter
+      objectReference: {fileID: 0}
+    - target: {fileID: 7449042242096739632, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8103945880029874529, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8677091879877974971, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -28496,7 +28611,7 @@ GameObject:
   - component: {fileID: 1830188229}
   - component: {fileID: 1830188231}
   - component: {fileID: 1830188230}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Handle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29631,7 +29746,7 @@ GameObject:
   - component: {fileID: 1976399385}
   - component: {fileID: 1976399384}
   - component: {fileID: 1976399388}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Credits
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30216,7 +30331,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2044824266}
   - component: {fileID: 2044824267}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Links
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30603,7 +30718,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2083787162}
-  m_Layer: 5
+  m_Layer: 0
   m_Name: Sliding Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -31770,6 +31885,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: CreditLine
       objectReference: {fileID: 0}
+    - target: {fileID: 1307154620268370368, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849036498360407583, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2932854924901312837, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5908870954413665387, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7243342720785132244, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Pivot.x
@@ -31870,11 +32005,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8066209527506726835, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8856787270941641301, guid: 285b358bcd02ca49b9aedda45cfabe2d,
         type: 3}
       propertyPath: m_Material
       value: 
       objectReference: {fileID: 2100000, guid: 35630e38b4e5ffb40b44ec5348b4333f, type: 2}
+    - target: {fileID: 9106145067504824945, guid: 285b358bcd02ca49b9aedda45cfabe2d,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -31888,6 +32033,16 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2044824266}
     m_Modifications:
+    - target: {fileID: 429516521565445586, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 587344770789729447, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3597622068659884089, guid: 7aa21d8ea3df2a512869714359810c55,
         type: 3}
       propertyPath: m_Material
@@ -31993,6 +32148,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: Patreon
       objectReference: {fileID: 0}
+    - target: {fileID: 7449042242096739632, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8103945880029874529, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8677091879877974971, guid: 7aa21d8ea3df2a512869714359810c55,
+        type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -32040,15 +32210,15 @@ MonoBehaviour:
   DynamicPrefabs: []
   DynamicMaterials:
   - {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
-  - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
-  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
-  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
-  - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
-  - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
   - {fileID: 2100000, guid: e62206080ef3052a6851b35069300595, type: 2}
   - {fileID: 2100000, guid: 3499aaa1083834501877d4c561fe5856, type: 2}
-  - {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
+  - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
+  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
   - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
+  - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
+  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
+  - {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
   LightMapsNear: []
   LightMapsFar: []
   LightMode: 0
