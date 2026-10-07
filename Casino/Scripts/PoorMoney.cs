@@ -12,8 +12,14 @@ public class PoorMoney : UdonSharpBehaviour
     [SerializeField] private UdonChips udonChips;
     [SerializeField] private float maxMoney = 1000f;
 
+    [Tooltip("Higher money cap for supporters. Ignored if no supporter list is set.")]
+    [SerializeField] private float supporterMaxMoney = 2000f;
+
     [Tooltip("Seconds the player must wait before taking money again.")]
     [SerializeField] private float TimeLimit = 60f;
+
+    [Tooltip("Optional supporter list. Supporters bypass the cooldown time limit and use supporterMaxMoney.")]
+    [SerializeField] private Supporters supporters;
 
     [Tooltip("Optional label showing the remaining cooldown time.")]
     [SerializeField] private TextMeshProUGUI timeLabel;
@@ -49,8 +55,28 @@ public class PoorMoney : UdonSharpBehaviour
         _dataRestored = true;
     }
 
+    private bool _IsLocalSupporter()
+    {
+        if (supporters == null) return false;
+        return supporters.IsSupporter(Networking.LocalPlayer);
+    }
+
+    private float _MaxMoney()
+    {
+        if (_IsLocalSupporter())
+        {
+            return supporterMaxMoney;
+        }
+        return maxMoney;
+    }
+
     private float RemainingCooldown()
     {
+        if (_IsLocalSupporter())
+        {
+            return 0f;
+        }
+
         if (_lastTakeTime <= 0)
         {
             return 0f;
@@ -77,10 +103,11 @@ public class PoorMoney : UdonSharpBehaviour
         }
         else
         {
-            bool canGain = udonChips.money < maxMoney;
+            float limit = _MaxMoney();
+            bool canGain = udonChips.money < limit;
             if (!canGain)
             {
-                InteractionText = "Only for < " + maxMoney;
+                InteractionText = "Only for < " + limit;
             }
             else
             {
@@ -102,7 +129,8 @@ public class PoorMoney : UdonSharpBehaviour
             return;
         }
 
-        if (udonChips.money >= maxMoney)
+        float limit = _MaxMoney();
+        if (udonChips.money >= limit)
         {
             return;
         }
@@ -112,7 +140,7 @@ public class PoorMoney : UdonSharpBehaviour
             return;
         }
 
-        udonChips.money += maxMoney - udonChips.money;
+        udonChips.money += limit - udonChips.money;
 
         if (takeAudio != null)
         {
