@@ -27,10 +27,36 @@ public class PoorMoney : UdonSharpBehaviour
     [Tooltip("AudioSource played when the player takes money.")]
     [SerializeField] private AudioSource takeAudio;
 
+    [Header("Floating Bob")]
+    [Tooltip("Object to float up and down. Falls back to this GameObject's transform if empty.")]
+    [SerializeField] private Transform floatTarget;
+
+    [Tooltip("Float speed multiplier.")]
+    [SerializeField] private float floatSpeed = 1f;
+
+    [Tooltip("How far up and down the object travels, in meters.")]
+    [SerializeField] private float floatAmount = 0.1f;
+
+    [Tooltip("Spin speed in degrees per second. Zero disables rotation.")]
+    [SerializeField] private float rotateSpeed = 90f;
+
+    [Tooltip("Local axis the object spins around.")]
+    [SerializeField] private Vector3 rotateAxis = Vector3.up;
+
+    [Tooltip("Scale the object shrinks to while the cooldown is running.")]
+    [SerializeField] private Vector3 stoppedScale = new Vector3(0.5f, 0.5f, 0.5f);
+
+    [Tooltip("How fast the object scales toward its target size.")]
+    [SerializeField] private float scaleLerpSpeed = 5f;
+
     private const string LastTakeKey = "_RAINSTORM/POOR_MONEY_LAST_TAKE";
 
     private bool _dataRestored = false;
     private long _lastTakeTime = 0;
+
+    private Transform _bobTransform;
+    private Vector3 _bobStartLocalPos;
+    private Vector3 _bobStartScale;
 
     void Start()
     {
@@ -38,6 +64,10 @@ public class PoorMoney : UdonSharpBehaviour
         {
             udonChips = GameObject.Find("UdonChips").GetComponent<UdonChips>();
         }
+
+        _bobTransform = floatTarget != null ? floatTarget : transform;
+        _bobStartLocalPos = _bobTransform.localPosition;
+        _bobStartScale = _bobTransform.localScale;
     }
 
     public override void OnPlayerRestored(VRCPlayerApi player)
@@ -90,6 +120,28 @@ public class PoorMoney : UdonSharpBehaviour
     void Update()
     {
         float remaining = RemainingCooldown();
+        float limit = _MaxMoney();
+        bool canGain = udonChips.money < limit;
+
+        bool active = remaining <= 0f && canGain;
+
+        if (_bobTransform != null)
+        {
+            if (active)
+            {
+                float y = Mathf.Sin(Time.time * floatSpeed) * floatAmount;
+                _bobTransform.localPosition = _bobStartLocalPos + Vector3.up * y;
+
+                if (rotateSpeed != 0f)
+                {
+                    _bobTransform.Rotate(rotateAxis, rotateSpeed * Time.deltaTime, Space.Self);
+                }
+            }
+
+            Vector3 targetScale = active ? _bobStartScale : stoppedScale;
+            _bobTransform.localScale = Vector3.Lerp(_bobTransform.localScale, targetScale, scaleLerpSpeed * Time.deltaTime);
+        }
+
 
         if (remaining > 0f)
         {
@@ -103,8 +155,6 @@ public class PoorMoney : UdonSharpBehaviour
         }
         else
         {
-            float limit = _MaxMoney();
-            bool canGain = udonChips.money < limit;
             if (!canGain)
             {
                 InteractionText = "Only for < " + limit;

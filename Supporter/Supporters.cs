@@ -200,10 +200,16 @@ public class Supporters : UdonSharpBehaviour
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < _count; i++)
         {
+            if (_IsHiddenFromList(_names[i])) continue;
+            if (builder.Length > 0) builder.Append("\n");
             builder.Append(_names[i]);
-            if (i < _count - 1) builder.Append("\n");
         }
         listText.text = builder.ToString();
+    }
+
+    private bool _IsHiddenFromList(string name)
+    {
+        return name == "[1] Local Player" || name == "ChouKuma";
     }
 
     private void _UpdateSupporterObjects()
