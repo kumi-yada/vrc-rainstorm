@@ -31,6 +31,19 @@ namespace org.kumagee
         Spades
     }
 
+    // Card back designs on the back atlas. The value is the atlas column, so
+    // the whole enum is offset by nothing beyond its own order.
+    public enum CardBack
+    {
+        Gold,
+        Blue,
+        Red,
+        Yellow,
+        Green,
+        Dual,
+        White,
+    }
+
     // A card. Nothing here is synced.
     //
     // Where this card sits, which way it is facing and whether it is in someone's
@@ -53,6 +66,7 @@ namespace org.kumagee
         private const int AtlasRows = 10;
         private const int JokerRowIndex = 4;
         private const int HiddenColIndex = 2;
+        public const int BackColumns = 9;
 
         public DeckManager DeckManager;
         public Solitaire Solitaire;
@@ -69,6 +83,10 @@ namespace org.kumagee
 
         [Tooltip("The material displaying the face texture atlas. Must be assigned so the correct renderer/slot is targeted.")]
         [SerializeField] private Material FaceMaterial;
+
+        [Header("Back")]
+        [Tooltip("The material displaying the card back texture atlas (9 columns). Must be assigned so the correct renderer/slot is targeted for SetBackDesign.")]
+        [SerializeField] private Material BackMaterial;
 
         [Header("Placement")]
         [Tooltip("SlotId of the slot this card is sitting in, or -1 when the card is loose. Mirror of the board; write it with _SetPrevSlot or _ForcePlace.")]
@@ -92,6 +110,9 @@ namespace org.kumagee
         private Renderer faceRenderer;
         private Material faceMaterial;
         private int faceMaterialIndex;
+        private Renderer backRenderer;
+        private Material backMaterial;
+        private int backMaterialIndex;
         private bool initialized;
         private bool rejecting;
         private bool suppressDrop;
@@ -165,7 +186,7 @@ namespace org.kumagee
         private void Init()
         {
             initialized = true;
-            ResolveFaceMaterial();
+            ResolveMaterials();
             if (Slot == null) Slot = GetComponent<CardSlot>();
             if (Slot != null) Slot.Owner = this;
             pickup = GetComponent<VRCPickup>();
@@ -188,40 +209,75 @@ namespace org.kumagee
             CardRoot = pickup != null ? pickup.transform : transform;
         }
 
-        private void ResolveFaceMaterial()
+        private void ResolveMaterials()
         {
             faceRenderer = null;
             faceMaterial = null;
             faceMaterialIndex = 0;
+            backRenderer = null;
+            backMaterial = null;
+            backMaterialIndex = -1;
 
             Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
             if (renderers == null || renderers.Length == 0) return;
 
-            if (FaceMaterial != null)
+            // Match the face and back submesh slots against the shared (still
+            // un-instantiated) materials in a single pass. Resolving them in two
+            // passes breaks the second one: the first `renderer.materials` access
+            // replaces every shared material with a fresh instance, so a later
+            // `sharedMaterials[i] == Material` comparison against the authored
+            // asset can no longer match. Resolve both slots first, then instantiate
+            // the array once and take both materials out of it.
+            Renderer cardRenderer = renderers[0];
+            int faceIndex = -1;
+            int backIndex = -1;
+
+            for (int r = 0; r < renderers.Length; r++)
             {
-                foreach (Renderer renderer in renderers)
+                Material[] shared = renderers[r].sharedMaterials;
+                if (shared == null) continue;
+                for (int i = 0; i < shared.Length; i++)
                 {
-                    Material[] materials = renderer.sharedMaterials;
-                    if (materials == null) continue;
-                    for (int i = 0; i < materials.Length; i++)
+                    if (faceIndex < 0 && FaceMaterial != null && shared[i] == FaceMaterial)
                     {
-                        if (materials[i] == FaceMaterial)
-                        {
-                            faceRenderer = renderer;
-                            faceMaterialIndex = i;
-                            break;
-                        }
+                        cardRenderer = renderers[r];
+                        faceIndex = i;
                     }
-                    if (faceRenderer != null) break;
+                    if (backIndex < 0 && BackMaterial != null && shared[i] == BackMaterial)
+                    {
+                        cardRenderer = renderers[r];
+                        backIndex = i;
+                    }
                 }
+                if (faceIndex >= 0 && backIndex >= 0) break;
             }
 
-            if (faceRenderer == null)
+            // Face keeps its old fallback to the first slot when unassigned or
+            // unmatched; the back has none and simply stays null.
+            if (faceIndex < 0) faceIndex = 0;
+
+            Material[] instanced = cardRenderer.materials;
+
+            faceRenderer = cardRenderer;
+            faceMaterialIndex = faceIndex;
+            faceMaterial = instanced[faceIndex];
+
+            if (backIndex >= 0)
             {
-                faceRenderer = renderers[0];
+                backRenderer = cardRenderer;
+                backMaterialIndex = backIndex;
+                backMaterial = instanced[backIndex];
             }
+        }
 
-            faceMaterial = faceRenderer.materials[faceMaterialIndex];
+        public void SetBackDesign(CardBack back)
+        {
+            if (!initialized) Init();
+            if (backMaterial == null) return;
+
+            int col = (int)back % BackColumns;
+            float cellX = 1f / (float)BackColumns;
+            backMaterial.SetTextureOffset("_MainTex", new Vector2(col * cellX, 0f));
         }
 
         public void SetCardIdentity(Rank rank, Suit suit)

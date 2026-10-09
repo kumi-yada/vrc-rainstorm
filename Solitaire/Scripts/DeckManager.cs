@@ -3,6 +3,7 @@ using System;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Components;
+using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common;
@@ -44,6 +45,12 @@ namespace org.kumagee
         [UdonSynced] private int gameOwnerId = -1;
         public int GameOwnerId => gameOwnerId;
 
+        // Card back design this deck's cards render, synced from the deck owner's
+        // equipped theme so everyone sees the same backs. Authored only by the owner
+        // (PlayerObject ownership never transfers); applied by _RefreshCardBack and
+        // OnDeserialization.
+        [UdonSynced] private int syncedCardBack = (int)CardBack.White;
+
         // True once every foundation is complete and the payout has been credited.
         // The game is over but the table has not been reset yet - the player may
         // still be looking at their winnings. Local-only: FindActiveDeckFor only
@@ -71,6 +78,90 @@ namespace org.kumagee
         public void _SetGameWon(bool won)
         {
             gameWon = won;
+        }
+
+        // Re-read the local player's equipped back and push it to this deck's cards.
+        // Called by CardTheme on equip and by OnPlayerRestored on join. Only the deck's
+        // owner has a meaningful PlayerData answer, and only they may author
+        // syncedCardBack, so everyone else just renders what the owner last synced.
+        public void _RefreshCardBack()
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+            if (!Networking.IsOwner(local, gameObject)) return;
+
+            int equipped = (int)CardBack.White;
+            if (PlayerData.TryGetInt(local, CardTheme.EquippedKey, out int saved))
+            {
+                equipped = saved;
+            }
+
+            if (equipped == syncedCardBack)
+            {
+                _ApplyCardBack();
+                return;
+            }
+
+            syncedCardBack = equipped;
+            _ApplyCardBack();
+            RequestSerialization();
+        }
+
+        private void _ApplyCardBack()
+        {
+            _ApplyDeckBack();
+
+            if (cards == null) return;
+            CardBack back = (CardBack)syncedCardBack;
+            for (int i = 0; i < cards.Length; i++)
+            {
+                if (cards[i] != null) cards[i].SetBackDesign(back);
+            }
+        }
+
+        // The deck (stock pile) visual is a separate mesh carrying its own copy of
+        // the card back material, so it needs the same offset treatment as the cards.
+        // The instance is resolved lazily and cached - the material is only
+        // instantiated once, so repeated re-applies reuse the same object.
+        private void _ApplyDeckBack()
+        {
+            if (deckBackMaterial == null)
+            {
+                deckBackMaterial = ResolveDeckBackMaterial();
+            }
+            if (deckBackMaterial == null) return;
+
+            int col = (int)syncedCardBack % CardLogic.BackColumns;
+            float cellX = 1f / (float)CardLogic.BackColumns;
+            deckBackMaterial.SetTextureOffset("_MainTex", new Vector2(col * cellX, 0f));
+        }
+
+        private Material ResolveDeckBackMaterial()
+        {
+            if (Deck == null || DeckBackMaterial == null) return null;
+
+            Renderer[] renderers = Deck.GetComponentsInChildren<Renderer>(true);
+            if (renderers == null || renderers.Length == 0) return null;
+
+            foreach (Renderer renderer in renderers)
+            {
+                Material[] shared = renderer.sharedMaterials;
+                if (shared == null) continue;
+                for (int i = 0; i < shared.Length; i++)
+                {
+                    if (shared[i] == DeckBackMaterial)
+                    {
+                        return renderer.materials[i];
+                    }
+                }
+            }
+            return null;
+        }
+
+        public override void OnPlayerRestored(VRCPlayerApi player)
+        {
+            if (player == null || !player.IsValid() || !player.isLocal) return;
+            _RefreshCardBack();
         }
 
         // The stock deck only invites an interact from the player whose game it is.
@@ -113,6 +204,9 @@ namespace org.kumagee
         public Transform Deck;
         public VRCObjectPool Pool;
 
+        [Tooltip("Card back material on the deck (stock pile) visual mesh. Its _MainTex offset is set to match the equipped design, the same way the cards are.")]
+        [SerializeField] private Material DeckBackMaterial;
+
         [Tooltip("Assigned by Solitaire at startup; drives what a draw does.")]
         [HideInInspector] public Solitaire Solitaire;
         
@@ -120,6 +214,7 @@ namespace org.kumagee
         private CardLogic[] cards;
         private GameObject currentCard;
         private Collider interactCollider;
+        private Material deckBackMaterial;
         
         
         private void Start()
@@ -167,6 +262,8 @@ namespace org.kumagee
                 cards[i].ApplyFaceTexture();
             }
             Debug.Log($"DeckManager: Built {Pool.Pool.Length} cards as {copies} copies of {CardLogic.RankDefinitionsCount} ranks over {suitCount} suit(s), key {DeckKey}.");
+
+            _ApplyCardBack();
 
             // Pool is only known now, so the derived count is only meaningful now.
             RefreshDeckVisual();
@@ -293,6 +390,7 @@ namespace org.kumagee
 
         public override void OnDeserialization()
         {
+            _ApplyCardBack();
             _RefreshInteractable();
             if (Solitaire != null) Solitaire._RefreshStartInteractable();
         }

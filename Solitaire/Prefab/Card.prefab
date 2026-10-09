@@ -32,7 +32,7 @@ Transform:
   m_GameObject: {fileID: 5609793481763047951}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: -0.0372, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -151,8 +151,10 @@ MonoBehaviour:
   FaceVisible: 0
   FaceUp: 0
   FaceMaterial: {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
+  BackMaterial: {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
   PrevSlotId: -1
   Slot: {fileID: 0}
+  PoolIndex: -1
   IsJoker: 0
   JokerIndex: 0
 --- !u!114 &1476436983246557894

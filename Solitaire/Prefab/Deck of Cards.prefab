@@ -64,6 +64,7 @@ MonoBehaviour:
   SuitPalette: 00000000010000000200000003000000
   Deck: {fileID: 6946164228049035731}
   Pool: {fileID: 3991102137081985433}
+  DeckBackMaterial: {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
   Solitaire: {fileID: 0}
 --- !u!114 &2549911097167928658
 MonoBehaviour:
