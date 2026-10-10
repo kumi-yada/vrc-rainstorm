@@ -4,7 +4,7 @@ using UnityEngine;
 using TMPro;
 
 [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
-public class LocalizedPanel : UdonSharpBehaviour
+public class LocalizedText : UdonSharpBehaviour
 {
     [SerializeField] private LocalizationManager localization;
     [SerializeField] private TextMeshProUGUI textElement;
@@ -66,12 +66,12 @@ public class LocalizedPanel : UdonSharpBehaviour
         var foundObject = GameObject.Find("LocalizationManager");
         if (foundObject == null || foundObject.Equals(null))
         {
-            Debug.LogWarning("LocalizedPanel: LocalizationManagerがシーンに配置されていません");
+            Debug.LogWarning("LocalizedText: LocalizationManagerがシーンに配置されていません");
         }
         else
         {
             localization = foundObject.GetComponent<LocalizationManager>();
-            Debug.Log("LocalizedPanel: LocalizationManagerを自動設定しました");
+            Debug.Log("LocalizedText: LocalizationManagerを自動設定しました");
         }
     }
 #endif
