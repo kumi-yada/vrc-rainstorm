@@ -229,10 +229,16 @@ namespace org.kumagee
         private bool gameStarted;
         private bool won;
 
-        // Payout accumulated while the game is running. Not credited to the player's
-        // chips until the game finishes (a win or an early quit), so a player cannot
-        // bank chips mid-game and walk off mid-table.
+        // Total payout accrued by this game. Credited into the wallet as it is earned
+        // (see AccumulateFoundationReward) rather than held to the finish: UdonChips
+        // only persists money on its own auto-save cadence, so a payout still sitting
+        // in this field when a player quits the world never reaches their saved wallet.
         private float payoutEarned;
+
+        // How much of payoutEarned has already been pushed into UdonChips.money. The
+        // difference is what a win bonus still owes (payoutEarned is multiplied by the
+        // bonus before CreditPayout runs, so the gap is exactly the bonus).
+        private float payoutCredited;
 
         // Text shown on the banner once the game has ended (win or early quit). Set
         // to null on reset so the idle entry-fee prompt is restored.
@@ -1182,20 +1188,35 @@ namespace org.kumagee
             return true;
         }
 
-        // Accrues the per-card payout into payoutEarned without paying it out. The
-        // chips are only credited once, when the game finishes (see CreditPayout).
+        // Accrues the per-card payout and credits it straight into the wallet. It is
+        // credited as it is earned, not at the finish: UdonChips only saves money to
+        // PlayerData on its own schedule, and a player who leaves mid-game never gets
+        // that schedule - so a payout held until the end was lost the moment the
+        // dealer's client disconnected. The win bonus still lands at the finish (see
+        // CreditPayout), where payoutEarned has been multiplied past what is credited.
         private void AccumulateFoundationReward(int cardCount)
         {
             if (FoundationPayout <= 0f) return;
-            payoutEarned += FoundationPayout * cardCount;
+            float reward = FoundationPayout * cardCount;
+            payoutEarned += reward;
+            if (UdonChips != null)
+            {
+                UdonChips.money += reward;
+                payoutCredited += reward;
+            }
         }
 
-        // Pays out everything accrued so far and returns the amount credited, so the
-        // caller can report it. Called exactly once per game, at the finish.
+        // Pays out whatever payoutEarned has that the wallet has not yet received, and
+        // returns the full accrued amount so the caller can report it. In practice that
+        // gap is only ever the win bonus: the per-card payout was already credited as
+        // it was earned, and CheckWon multiplies payoutEarned before calling here, so
+        // the difference is exactly the bonus portion.
         private float CreditPayout()
         {
             float amount = payoutEarned;
-            if (UdonChips != null && amount > 0f) UdonChips.money += amount;
+            float delta = amount - payoutCredited;
+            if (UdonChips != null && delta > 0f) UdonChips.money += delta;
+            payoutCredited = amount;
             return amount;
         }
 
@@ -1292,6 +1313,7 @@ namespace org.kumagee
             gameStarted = true;
             won = false;
             payoutEarned = 0f;
+            payoutCredited = 0f;
             winMessageOverride = null;
             RefreshStartLabel();
             _RefreshStartInteractable();
@@ -2067,10 +2089,11 @@ namespace org.kumagee
             // table exactly as it was.
             if (syncedDealerId == -1 || syncedDealerId != player.playerId) return;
 
-            // UdonChips money is offline/local per-player. Only the leaver's own
-            // client can settle their wallet, so credit their accrued payout here
-            // before the game is torn down. Do nothing for a win (already credited).
-            if (player.isLocal && !won) CreditPayout();
+            // The payout was already credited into the wallet as it was earned
+            // (AccumulateFoundationReward), so there is nothing left to settle here:
+            // UdonChips keeps saving money to PlayerData on its own cadence, and by
+            // the time this event fires for the leaver it is far too late to persist
+            // anything else anyway.
 
             // The leaver's deck PlayerObjects die with them, so this client's
             // registry points at dead objects. Drop it and restore the idle UI; the
