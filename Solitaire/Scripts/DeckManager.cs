@@ -104,7 +104,7 @@ namespace org.kumagee
 
             syncedCardBack = equipped;
             _ApplyCardBack();
-            RequestSerialization();
+            QueueSerialization();
         }
 
         private void _ApplyCardBack()

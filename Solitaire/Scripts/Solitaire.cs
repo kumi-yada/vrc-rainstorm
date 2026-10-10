@@ -2090,24 +2090,48 @@ namespace org.kumagee
             _RefreshStartInteractable();
             RefreshWinMessage();
 
-            // Ownership of the table lands on one of the remaining players; that
-            // client clears the synced id so a late joiner doesn't inherit a ghost
-            // dealer. Everyone else re-memoizes the id they already see, so the
-            // eventual -1 doesn't read as a no-op on their OnDeserialization.
-            //
-            // Has to be the ownership test, not _IsLocalGameOwner: by identity this
-            // is the departed player's game, so nobody would answer yes and the
-            // ghost id would never be cleared.
-            if (_IsLocalTableOwner())
-            {
-                syncedDealerId = -1;
-                lastDealerId = -1;
-                RequestSerialization();
-            }
-            else
-            {
-                lastDealerId = syncedDealerId;
-            }
+            // The id still reads the departed dealer here, so refreshing the UI now
+            // would just re-derive "locked". Re-memoize the id we already see (so the
+            // eventual -1 still registers as a change on OnDeserialization) and defer
+            // the rest: ownership of the table lands on a remaining player on its own
+            // schedule, and that client is the one who has to clear the ghost id and
+            // follow it up with a UI refresh. The transfer may not have settled by the
+            // time this callback runs, so the decision is made a few frames later.
+            lastDealerId = syncedDealerId;
+            SendCustomEventDelayedFrames(nameof(_ReclaimGhostTable), 5);
+        }
+
+        // The table's ownership moves on a schedule this code cannot see, so both
+        // OnPlayerLeft and OnOwnershipTransferred funnel into here rather than try to
+        // resolve the owner inline. Runs on the new owner once the transfer has landed:
+        // if the synced dealer id no longer resolves to anyone in the instance it is a
+        // ghost, and clearing it frees the table. The UI refresh is part of the same
+        // step - a client that clears the id locally never deserializes its own write,
+        // so without it the start button would stay stuck on "locked".
+        public void _ReclaimGhostTable()
+        {
+            if (!_IsLocalTableOwner()) return;
+            if (syncedDealerId == -1) return;
+
+            VRCPlayerApi dealer = VRCPlayerApi.GetPlayerById(syncedDealerId);
+            if (Utilities.IsValid(dealer)) return; // a new game was dealt meanwhile
+
+            syncedDealerId = -1;
+            lastDealerId = -1;
+            RequestSerialization();
+            RefreshStartLabel();
+            _RefreshStartInteractable();
+            RefreshWinMessage();
+        }
+
+        // Fires on every client when the table changes hands. On the new owner this
+        // nudges the ghost cleanup a frame out, so the serialization does not race the
+        // transfer and get dropped; on everyone else it is a no-op.
+        public override void OnOwnershipTransferred(VRCPlayerApi player)
+        {
+            if (!Utilities.IsValid(player) || !player.isLocal) return;
+            if (syncedDealerId == -1) return;
+            SendCustomEventDelayedFrames(nameof(_ReclaimGhostTable), 1);
         }
 
         public void _OnCardPickup(CardLogic card)
