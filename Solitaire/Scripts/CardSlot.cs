@@ -248,6 +248,7 @@ namespace org.kumagee
         public const int RejectRule = 6;
         public const int RejectDropDisabled = 7;
         public const int RejectGroupDrop = 8;
+        public const int RejectHeld = 9;
 
         // Single source of truth for placement; _CanAccept is just the boolean view
         // and the code is what the drop diagnostics report.
@@ -260,6 +261,9 @@ namespace org.kumagee
             if (card.PrevSlot == this) return AcceptOk;
             if (card.Slot == this) return RejectOwnSlot;
             if (DescendsFrom(card)) return RejectAboveDragged;
+            // A held card's vacated slot is not genuinely free - another card dropped
+            // here would collide with it when it snaps back (see Solitaire).
+            if (Solitaire != null && Solitaire._IsSlotReservedByHeld(SlotId, card)) return RejectHeld;
             if (_IsOccupied()) return RejectOccupied;
 
             // A card slot only takes cards while its own card is part of a pile.
@@ -298,6 +302,7 @@ namespace org.kumagee
             if (code == RejectRule) return "rule rejected";
             if (code == RejectDropDisabled) return "drop disabled";
             if (code == RejectGroupDrop) return "group drop";
+            if (code == RejectHeld) return "held card's slot";
             return "unknown";
         }
     }

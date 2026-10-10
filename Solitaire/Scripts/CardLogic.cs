@@ -589,6 +589,14 @@ namespace org.kumagee
             Solitaire._WriteCard(this, savedPrevSlotId, FaceUp, FaceVisible);
         }
 
+        // The slot this card sat on when it was last picked up. Solitaire needs it
+        // to reveal the card it was covering and to keep that slot from being
+        // stolen by another card while this one is held.
+        public int _GetSavedPrevSlotId()
+        {
+            return savedPrevSlotId;
+        }
+
         public CardSlot _GetCurrentSlot()
         {
             return PrevSlot;

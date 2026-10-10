@@ -887,6 +887,20 @@ namespace org.kumagee
             if (changed) MarkBoardDirty();
         }
 
+        // True when `slotId` is where a held card's grab started and that held card
+        // is not `except`. A slot a held card vacated is not really free: the card
+        // hovering above it snaps back there if its own drop finds nowhere, so a
+        // second card dropped into it would leave two cards claiming one slot.
+        public bool _IsSlotReservedByHeld(int slotId, CardLogic except)
+        {
+            if (slotId < 0) return false;
+            CardLogic a = ResolveGrabbedCard(true);
+            if (a != null && a != except && a._GetSavedPrevSlotId() == slotId) return true;
+            CardLogic b = ResolveGrabbedCard(false);
+            if (b != null && b != except && b._GetSavedPrevSlotId() == slotId) return true;
+            return false;
+        }
+
         // Drop whatever is in hand without running the drop rules. The slots are
         // cleared before the pickups are released, so the OnDrop each release fires
         // finds nothing left to clear and can't re-enter this.
@@ -2348,8 +2362,7 @@ namespace org.kumagee
                 {
                     CardSlot slot = TableauSlots[s];
                     if (slot == null) continue;
-                    CardLogic top = slot._GetTopCard();
-                    if (top != null && !top.FaceUp) top.SetFaceUp(true);
+                    RevealTop(slot._GetTopCard());
                 }
             }
 
@@ -2357,9 +2370,19 @@ namespace org.kumagee
             // spending that card has to expose the next one. Null outside Canfield.
             if (ReserveSlot != null)
             {
-                CardLogic reserveTop = ReserveSlot._GetTopCard();
-                if (reserveTop != null && !reserveTop.FaceUp) reserveTop.SetFaceUp(true);
+                RevealTop(ReserveSlot._GetTopCard());
             }
+        }
+
+        // Flip a pile's top card face-up, unless it is only on top because the card
+        // covering it is still being held. A held card's vacated slot still belongs
+        // to it, so the face-down card under it must not turn over until the held
+        // card actually lands somewhere else - not even when an unrelated card drops.
+        private void RevealTop(CardLogic top)
+        {
+            if (top == null || top.FaceUp) return;
+            if (top.Slot != null && _IsSlotReservedByHeld(top.Slot.SlotId, null)) return;
+            top.SetFaceUp(true);
         }
 
         // Canfield refills an empty column from the reserve rather than leaving it
@@ -2380,6 +2403,10 @@ namespace org.kumagee
             {
                 CardSlot column = TableauSlots[s];
                 if (column == null || column._IsOccupied()) continue;
+
+                // A column a held card just vacated is not genuinely empty - filling
+                // it would strand the held card when it snaps back.
+                if (_IsSlotReservedByHeld(column.SlotId, null)) continue;
 
                 CardLogic top = ReserveSlot._GetTopCard();
                 if (top == null) break; // reserve spent; the rest stay open
