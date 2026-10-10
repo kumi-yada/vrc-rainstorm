@@ -1,7 +1,6 @@
 ﻿using System;
 using UdonSharp;
 using UnityEngine;
-using TMPro;
 using VRC.SDKBase;
 using VRC.SDK3.Persistence;
 using VRC.Udon;
@@ -22,7 +21,10 @@ public class PoorMoney : UdonSharpBehaviour
     [SerializeField] private Supporters supporters;
 
     [Tooltip("Optional label showing the remaining cooldown time.")]
-    [SerializeField] private TextMeshProUGUI timeLabel;
+    [SerializeField] private LocalizedText timeLabel;
+
+    [Tooltip("Localization manager used to translate the interact prompt. Falls back to a scene search if empty.")]
+    [SerializeField] private LocalizationManager localization;
 
     [Tooltip("AudioSource played when the player takes money.")]
     [SerializeField] private AudioSource takeAudio;
@@ -63,6 +65,11 @@ public class PoorMoney : UdonSharpBehaviour
         if (udonChips == null)
         {
             udonChips = GameObject.Find("UdonChips").GetComponent<UdonChips>();
+        }
+
+        if (localization == null)
+        {
+            localization = GameObject.Find("Localization").GetComponent<LocalizationManager>();
         }
 
         _bobTransform = floatTarget != null ? floatTarget : transform;
@@ -146,30 +153,36 @@ public class PoorMoney : UdonSharpBehaviour
         if (remaining > 0f)
         {
             int seconds = Mathf.CeilToInt(remaining);
-            InteractionText = "Wait " + seconds + "s";
+            InteractionText = _Text("WAIT") + " " + seconds + _Text("SECONDS");
 
             if (timeLabel != null)
             {
-                timeLabel.text = seconds + "s";
+                timeLabel.SetPrefixKeyAndSuffix(seconds.ToString(), "SECONDS", "");
             }
         }
         else
         {
             if (!canGain)
             {
-                InteractionText = "Only for < " + limit;
+                InteractionText = _Text("ONLY_FOR_LESS_THAN") + " " + limit;
             }
             else
             {
-                InteractionText = "Take";
+                InteractionText = _Text("TAKE");
             }
 
             if (timeLabel != null)
             {
-                timeLabel.text = "";
+                timeLabel.SetPrefixKeyAndSuffix("", "", "");
             }
         }
 
+    }
+
+    private string _Text(string key)
+    {
+        if (localization == null) return key;
+        return localization.GetText(key);
     }
 
     public override void Interact()

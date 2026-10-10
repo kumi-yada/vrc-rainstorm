@@ -1,6 +1,5 @@
 using UdonSharp;
 using UnityEngine;
-using TMPro;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -121,7 +120,7 @@ namespace org.kumagee
 
         [Header("UI")]
         [Tooltip("Label on the start/quit trigger. Shows \"Start\" before a game, \"Quit\" while one is running.")]
-        public TextMeshProUGUI StartButtonLabel;
+        public LocalizedText StartButtonLabel;
 
         [Tooltip("Interact collider on the start/quit button. While a game is running by another player it is disabled so they cannot start a competing game.")]
         public Collider StartButtonInteract;
@@ -216,10 +215,10 @@ namespace org.kumagee
         private CardLogic[] cardOnSlot;
         private bool indexDirty = true;
 
-        // The banner's text component and the text it was authored with, so the
-        // idle entry-fee prompt can be swapped out for the real win message.
-        private TextMeshProUGUI winMessageText;
-        private string winMessageDefaultText;
+        // The banner's localized text component. Before any game it shows the entry
+        // fee, during a running game it shows the accrued payout, and once won it
+        // shows the win message.
+        private LocalizedText winMessageText;
 
         // The interactable behind the start/quit button is the GameInteract
         // behaviour, which owns its hover text. This file only feeds it the fee.
@@ -240,9 +239,6 @@ namespace org.kumagee
         // bonus before CreditPayout runs, so the gap is exactly the bonus).
         private float payoutCredited;
 
-        // Text shown on the banner once the game has ended (win or early quit). Set
-        // to null on reset so the idle entry-fee prompt is restored.
-        private string winMessageOverride;
         private int dealCol;
         private int dealDepth;
         private VRCPlayerApi dealOwner;
@@ -314,8 +310,7 @@ namespace org.kumagee
         {
             if (WinMessage != null)
             {
-                winMessageText = WinMessage.GetComponentInChildren<TextMeshProUGUI>(true);
-                if (winMessageText != null) winMessageDefaultText = winMessageText.text;
+                winMessageText = WinMessage.GetComponentInChildren<LocalizedText>(true);
                 RefreshWinMessage();
             }
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
@@ -1135,7 +1130,7 @@ namespace org.kumagee
             _ResetGame();
             if (WinMessage != null && UdonChips != null && earned > 0f)
             {
-                if (winMessageText != null) winMessageText.text = $"You earned {BuildPayoutAmount()}c";
+                if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix("", "YOU_EARNED", " " + BuildPayoutAmount() + "c");
                 WinMessage.SetActive(true);
                 SendCustomEventDelayedSeconds(nameof(_RevertIdleBanner), 4f);
             }
@@ -1314,7 +1309,6 @@ namespace org.kumagee
             won = false;
             payoutEarned = 0f;
             payoutCredited = 0f;
-            winMessageOverride = null;
             RefreshStartLabel();
             _RefreshStartInteractable();
             RefreshWinMessage();
@@ -1918,7 +1912,14 @@ namespace org.kumagee
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
             if (StartButtonLabel != null)
             {
-                StartButtonLabel.text = (running && !localOwner) ? "" : (gameStarted ? "Quit" : "Start");
+                if (running && !localOwner)
+                {
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", "", "");
+                }
+                else
+                {
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", gameStarted ? "QUIT" : "START", "");
+                }
             }
             if (StartInteract != null) StartInteract._SetRunning(gameStarted);
         }
@@ -2567,9 +2568,9 @@ namespace org.kumagee
 
         // The banner under the start button (WinMessage) doubles as the idle
         // prompt: before any game it says "200 coins to start" instead of floating
-        // dead over the table. Its authored text is restored when the game is won,
-        // and the whole banner hides once a game is dealt - the running table is
-        // thanks enough, and showing the fee mid-game would read as a double charge.
+        // dead over the table. Once won it shows the win message, and the whole
+        // banner hides while a game is dealt - the running table is thanks enough,
+        // and showing the fee mid-game would read as a double charge.
         private void RefreshWinMessage()
         {
             if (WinMessage == null) return;
@@ -2578,7 +2579,7 @@ namespace org.kumagee
             {
                 if (winMessageText != null)
                 {
-                    winMessageText.text = winMessageOverride != null ? winMessageOverride : winMessageDefaultText;
+                    winMessageText.SetPrefixKeyAndSuffix("", "YOU_WON", " " + BuildPayoutAmount() + "c");
                 }
                 WinMessage.SetActive(true);
                 return;
@@ -2598,7 +2599,7 @@ namespace org.kumagee
             {
                 if (payoutEarned > 0f)
                 {
-                    if (winMessageText != null) winMessageText.text = $"Payout: {BuildPayoutAmount()}c";
+                    if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix("", "PAYOUT", " " + BuildPayoutAmount() + "c");
                     WinMessage.SetActive(true);
                 }
                 else
@@ -2610,7 +2611,7 @@ namespace org.kumagee
 
             if (EntryFee > 0f)
             {
-                if (winMessageText != null) winMessageText.text = BuildEntryFeeLabel();
+                if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix(BuildEntryFeeAmount(), "COINS_TO_START", "");
                 WinMessage.SetActive(true);
             }
             else
@@ -2628,11 +2629,6 @@ namespace org.kumagee
             return $"{EntryFee:0.##}";
         }
 
-        private string BuildEntryFeeLabel()
-        {
-            return $"{BuildEntryFeeAmount()} coins to start";
-        }
-
         private void CheckWon()
         {
             if (won || FoundationSlots == null) return;
@@ -2645,7 +2641,6 @@ namespace org.kumagee
             if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
             CreditPayout();
             if (resolvedDeck != null) resolvedDeck._SetGameWon(true);
-            winMessageOverride = $"You won {BuildPayoutAmount()}c";
             RefreshWinMessage();
             _RefreshStartInteractable();
         }

@@ -30,10 +30,10 @@ public class Supporters : UdonSharpBehaviour
     public GameObject[] supporterObjects;
 
     [Tooltip("If set, this text is written when the local player is a supporter")]
-    public TextMeshProUGUI supporterText;
+    public LocalizedText supporterText;
 
-    [Tooltip("Text shown when the local player is a supporter")]
-    public string supporterTextMessage = "Thank you for your support";
+    [Tooltip("Localization key for the text shown when the local player is a supporter")]
+    public string supporterTextMessage = "THANK_YOU_SUPPORT";
 
     [Header("Auto Scroll")]
     [Tooltip("ScrollRect to auto-scroll vertically. Leave empty to disable.")]
@@ -226,6 +226,6 @@ public class Supporters : UdonSharpBehaviour
     private void _UpdateSupporterText()
     {
         if (supporterText == null) return;
-        supporterText.text = IsSupporter(Networking.LocalPlayer) ? supporterTextMessage : "";
+        supporterText.SetPrefixKeyAndSuffix("", IsSupporter(Networking.LocalPlayer) ? supporterTextMessage : "", "");
     }
 }

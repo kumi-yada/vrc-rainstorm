@@ -1,5 +1,4 @@
 ﻿
-using TMPro;
 using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,7 +23,7 @@ public class CardTheme : UdonSharpBehaviour
     [SerializeField] private Button buyButton;
 
     [Tooltip("Button label. Text is managed automatically.")]
-    [SerializeField] private TextMeshProUGUI buttonLabel;
+    [SerializeField] private LocalizedText buttonLabel;
 
     [Tooltip("Chips wallet used to pay for the card back.")]
     [SerializeField] private UdonChips udonChips;
@@ -159,19 +158,19 @@ public class CardTheme : UdonSharpBehaviour
             return;
         }
 
-        buttonLabel.color = equipped ? Color.gray : Color.white;
+        buttonLabel.TextElement.color = equipped ? Color.gray : Color.white;
 
         if (!unlocked)
         {
-            buttonLabel.text = "Buy (" + price + ")";
+            buttonLabel.SetPrefixKeyAndSuffix("", "BUY", " (" + price + ")");
         }
         else if (equipped)
         {
-            buttonLabel.text = "Equipped";
+            buttonLabel.SetPrefixKeyAndSuffix("", "EQUIPPED", "");
         }
         else
         {
-            buttonLabel.text = "Use";
+            buttonLabel.SetPrefixKeyAndSuffix("", "USE", "");
         }
     }
 }

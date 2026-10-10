@@ -9,13 +9,18 @@ public class LocalizedText : UdonSharpBehaviour
     [SerializeField] private LocalizationManager localization;
     [SerializeField] private TextMeshProUGUI textElement;
 
+    private string _prefix = "";
     private string _key;
-    private string _suffix;
+    private string _suffix = "";
+
+    public TextMeshProUGUI TextElement => textElement;
 
     private void Start()
     {
         if (localization == null)
-            localization = GameObject.Find("LocalizationManager").GetComponent<LocalizationManager>();
+            localization = GameObject.Find("Localization").GetComponent<LocalizationManager>();
+        if (textElement == null)
+            textElement = GetComponent<TextMeshProUGUI>();
         if (localization == null) return;
         if (textElement != null)
             _key = textElement.text;
@@ -42,11 +47,18 @@ public class LocalizedText : UdonSharpBehaviour
         _OnLanguageChanged();
     }
 
+    public void SetPrefixKeyAndSuffix(string prefix, string key, string suffix)
+    {
+        _prefix = prefix;
+        _key = key;
+        _suffix = suffix;
+        _OnLanguageChanged();
+    }
+
     public void _OnLanguageChanged()
     {
         if (localization == null || textElement == null) return;
-        if (!string.IsNullOrEmpty(_key))
-            textElement.text = localization.GetText(_key) + _suffix;
+        textElement.text = _prefix + localization.GetText(_key) + _suffix;
     }
 
 #if !COMPILER_UDONSHARP && UNITY_EDITOR
@@ -63,7 +75,9 @@ public class LocalizedText : UdonSharpBehaviour
 
     public void LocalizationManagerAutoSet()
     {
-        var foundObject = GameObject.Find("LocalizationManager");
+        if (textElement == null)
+            textElement = GetComponent<TextMeshProUGUI>();
+        var foundObject = GameObject.Find("Localization");
         if (foundObject == null || foundObject.Equals(null))
         {
             Debug.LogWarning("LocalizedText: LocalizationManagerがシーンに配置されていません");
