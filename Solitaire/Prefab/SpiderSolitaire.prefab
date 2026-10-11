@@ -2442,7 +2442,7 @@ MonoBehaviour:
   DealCounts: 06000000060000000600000006000000050000000500000005000000050000000500000005000000
   ReserveCount: 13
   WinMessage: {fileID: 2682924764504615210}
-  StartButtonLabel: {fileID: 0}
+  StartButtonLabel: {fileID: 2721433753177739635}
   StartButtonInteract: {fileID: 3543745364449709572}
   StartInteract: {fileID: 188899628847439214}
   ConfirmDialog: {fileID: 2452246828101581707}
@@ -3177,7 +3177,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0.12, y: 0}
-  m_SizeDelta: {x: 120, y: 60}
+  m_SizeDelta: {x: 180, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &6270508128072441165
 Canvas:
@@ -4749,7 +4749,7 @@ PrefabInstance:
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
       propertyPath: m_text
-      value: CONFIRM
+      value: YES
       objectReference: {fileID: 0}
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
@@ -7114,7 +7114,7 @@ PrefabInstance:
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
       propertyPath: m_text
-      value: CANCEL
+      value: NO
       objectReference: {fileID: 0}
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}

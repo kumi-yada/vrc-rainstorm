@@ -1219,9 +1219,10 @@ namespace org.kumagee
         {
             if (Mathf.Approximately(payoutEarned, Mathf.Floor(payoutEarned)))
             {
-                return $"{(int)payoutEarned}";
+                int amount = (int)payoutEarned;
+                return $"{amount}";
             }
-            return $"{payoutEarned:0.##}";
+            return $"{payoutEarned}";
         }
 
         public void Deal(VRCPlayerApi owner = null)
@@ -2624,9 +2625,10 @@ namespace org.kumagee
         {
             if (Mathf.Approximately(EntryFee, Mathf.Floor(EntryFee)))
             {
-                return $"{(int)EntryFee}";
+                int fee = (int)EntryFee;
+                return $"{fee}";
             }
-            return $"{EntryFee:0.##}";
+            return $"{EntryFee}";
         }
 
         private void CheckWon()

@@ -93,6 +93,7 @@ MonoBehaviour:
   buyButton: {fileID: 2610314062685285895}
   buttonLabel: {fileID: 3240581812955761112}
   udonChips: {fileID: 0}
+  whiteColor: {r: 0, g: 0.90588236, b: 1, a: 1}
 --- !u!114 &4713075746357052452
 MonoBehaviour:
   m_ObjectHideFlags: 0

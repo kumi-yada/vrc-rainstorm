@@ -13,7 +13,7 @@ public class LocalizationManager : UdonSharpBehaviour
     [SerializeField] private string[] keys;
 
     [Header("Registered UI scripts (auto-filled at runtime)")]
-    [SerializeField] private UdonSharpBehaviour[] listeners = new UdonSharpBehaviour[32];
+    private UdonSharpBehaviour[] listeners = new UdonSharpBehaviour[128];
     private int _listenerCount;
 
     private int _language;
@@ -41,6 +41,11 @@ public class LocalizationManager : UdonSharpBehaviour
         RefreshAll();
     }
 
+    public void SetLanguageByCode(string code)
+    {
+        SetLanguage(FindTableIndex(code));
+    }
+
     public void _CycleLanguage()
     {
         if (tables == null || tables.Length == 0) return;
@@ -59,16 +64,26 @@ public class LocalizationManager : UdonSharpBehaviour
 
     public void Register(UdonSharpBehaviour listener)
     {
-        if (_listenerCount >= listeners.Length) return;
+        if (listener == null) return;
+
         for (int i = 0; i < _listenerCount; i++)
         {
             if (listeners[i] == listener) return;
         }
+
+        if (_listenerCount >= listeners.Length)
+        {
+            Debug.LogWarning($"[LocalizationManager] Register: listener list FULL ({_listenerCount}) — dropped '{listener.name}'");
+            return;
+        }
+
         listeners[_listenerCount++] = listener;
+        Debug.Log($"[LocalizationManager] Register: '{listener.name}' -> slot {_listenerCount - 1} (total {_listenerCount})");
     }
 
     private void RefreshAll()
     {
+        Debug.Log($"[LocalizationManager] RefreshAll: notifying {_listenerCount} listeners");
         for (int i = 0; i < _listenerCount; i++)
         {
             if (listeners[i] != null)

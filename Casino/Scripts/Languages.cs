@@ -18,16 +18,31 @@ public class Languages : UdonSharpBehaviour
     private void Start()
     {
         if (localization == null)
-            localization = GameObject.Find("Localization").GetComponent<LocalizationManager>();
-        if (localization == null) return;
+        {
+            GameObject locGo = GameObject.Find("Localization");
+            Debug.Log($"[Languages] Start: 'Localization' GameObject {(locGo != null ? "found" : "NOT FOUND")}");
+            if (locGo != null)
+                localization = locGo.GetComponent<LocalizationManager>();
+        }
+
+        if (localization == null)
+        {
+            Debug.LogError("[Languages] Start: localization is NULL — aborting setup");
+            return;
+        }
 
         for (int i = 0; i < buttons.Length; i++)
         {
-            if (buttons[i] == null) continue;
+            if (buttons[i] == null)
+            {
+                Debug.LogWarning($"[Languages] Start: buttons[{i}] is NULL");
+                continue;
+            }
 
             buttons[i].buttonIndex = i;
             buttons[i].targetScript = this;
             buttons[i].methodName = nameof(_OnLanguageButtonClicked);
+            Debug.Log($"[Languages] Start: wired buttons[{i}] -> '{buttons[i].gameObject.name}'");
         }
 
         localization.Register(this);
@@ -36,13 +51,37 @@ public class Languages : UdonSharpBehaviour
 
     public void _OnLanguageButtonClicked()
     {
-        if (localization == null) return;
+        Debug.Log($"[Languages] _OnLanguageButtonClicked entered, localization={(localization != null ? localization.name : "NULL")}, selectedIndex={selectedIndex}");
+
+        if (localization == null)
+        {
+            Debug.LogError("[Languages] _OnLanguageButtonClicked: localization is NULL — aborting");
+            return;
+        }
 
         int index = selectedIndex;
         selectedIndex = -1;
 
-        if (index < 0) return;
+        if (index < 0)
+        {
+            Debug.LogWarning($"[Languages] _OnLanguageButtonClicked: index={index} is invalid — aborting");
+            return;
+        }
+
+        Debug.Log($"[Languages] _OnLanguageButtonClicked: calling SetLanguage({index})");
         localization.SetLanguage(index);
+    }
+
+    public void SetEnglish()
+    {
+        if (localization == null) return;
+        localization.SetLanguageByCode("en");
+    }
+
+    public void SetJapanese()
+    {
+        if (localization == null) return;
+        localization.SetLanguageByCode("ja");
     }
 
     public void _OnLanguageChanged()
@@ -55,10 +94,12 @@ public class Languages : UdonSharpBehaviour
         if (localization == null) return;
 
         int current = localization.CurrentLanguage;
+        Debug.Log($"[Languages] RefreshSelected: current={current}");
 
         for (int i = 0; i < buttons.Length; i++)
         {
             if (buttons[i] == null) continue;
+            Debug.Log($"[Languages] RefreshSelected: buttons[{i}] '{buttons[i].gameObject.name}' buttonIndex={buttons[i].buttonIndex} selected={(buttons[i].buttonIndex == current)}");
             buttons[i]._SetSelected(buttons[i].buttonIndex == current);
         }
     }

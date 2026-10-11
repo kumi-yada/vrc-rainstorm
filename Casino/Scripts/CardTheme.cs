@@ -28,6 +28,9 @@ public class CardTheme : UdonSharpBehaviour
     [Tooltip("Chips wallet used to pay for the card back.")]
     [SerializeField] private UdonChips udonChips;
 
+    [Tooltip("Label color for unlocked (buyable/usable) card backs.")]
+    [SerializeField] private Color whiteColor = Color.white;
+
     private bool _dataRestored = false;
     private int _unlockedFlags = 1 << (int)CardBack.White;
     private int _equipped = (int)CardBack.White;
@@ -158,7 +161,7 @@ public class CardTheme : UdonSharpBehaviour
             return;
         }
 
-        buttonLabel.TextElement.color = equipped ? Color.gray : Color.white;
+        buttonLabel.TextElement.color = equipped ? Color.gray : whiteColor;
 
         if (!unlocked)
         {

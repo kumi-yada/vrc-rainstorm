@@ -59,6 +59,7 @@ public class LocalizedText : UdonSharpBehaviour
     {
         if (localization == null || textElement == null) return;
         textElement.text = _prefix + localization.GetText(_key) + _suffix;
+        Debug.Log($"[LocalizedText] _OnLanguageChanged '{gameObject.name}' key='{_key}' -> '{textElement.text}'");
     }
 
 #if !COMPILER_UDONSHARP && UNITY_EDITOR
