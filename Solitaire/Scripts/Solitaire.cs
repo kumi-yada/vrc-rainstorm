@@ -134,6 +134,9 @@ namespace org.kumagee
         [Tooltip("Notification popup for player-facing messages (illegal moves, insufficient chips, etc.). Leave unassigned to silence them.")]
         public Notification Notification;
 
+        [Tooltip("Localization manager used to translate notification text. Falls back to a scene search if empty.")]
+        [SerializeField] private LocalizationManager localization;
+
         // The per-player deck actually used for the running game. Unlike the
         // serialized DeckOfCards (the scene template/fallback reference), this one
         // is repointed at the dealing player's PlayerObject copy on every deal, so
@@ -308,6 +311,11 @@ namespace org.kumagee
 
         private void Start()
         {
+            if (localization == null)
+            {
+                GameObject locGo = GameObject.Find("Localization");
+                if (locGo != null) localization = locGo.GetComponent<LocalizationManager>();
+            }
             if (WinMessage != null)
             {
                 winMessageText = WinMessage.GetComponentInChildren<LocalizedText>(true);
@@ -1092,7 +1100,7 @@ namespace org.kumagee
                 if (!_IsLocalGameOwner())
                 {
                     Debug.Log("Solitaire: Only the player who started the game may quit it.");
-                    ShowNotification("Only the game owner can quit.");
+                    ShowNotification("NOTIFY_ONLY_OWNER_CAN_QUIT");
                     return;
                 }
 
@@ -1155,9 +1163,23 @@ namespace org.kumagee
             return EntryFee;
         }
 
-        private void ShowNotification(string message)
+        private void ShowNotification(string key)
         {
-            if (Notification != null) Notification.Notify(message);
+            if (Notification != null) Notification.Notify(_Text(key));
+        }
+
+        // Same, but appends an untranslated suffix (a chip amount) to the localized
+        // message. Udon has no string formatting, so amounts ride as raw suffixes the
+        // same way the win banner's " 200c" does.
+        private void ShowNotificationSuffix(string key, string suffix)
+        {
+            if (Notification != null) Notification.Notify(_Text(key) + suffix);
+        }
+
+        private string _Text(string key)
+        {
+            if (localization == null) return key;
+            return localization.GetText(key);
         }
 
         // Plays a short card sound on every client through the shared pool, at
@@ -1230,7 +1252,7 @@ namespace org.kumagee
             if (dealing)
             {
                 Debug.Log("Solitaire: Already dealing cards.");
-                ShowNotification("Already dealing cards.");
+                ShowNotification("NOTIFY_ALREADY_DEALING");
                 return;
             }
 
@@ -1241,7 +1263,7 @@ namespace org.kumagee
             if (syncedDealerId != -1)
             {
                 Debug.Log("Solitaire: Another player's game is already running at this table.");
-                ShowNotification("Someone else's game is running.");
+                ShowNotification("NOTIFY_SOMEONE_ELSES_GAME");
                 return;
             }
 
@@ -1254,14 +1276,14 @@ namespace org.kumagee
             {
                 string who = Utilities.IsValid(owner) ? owner.displayName : "this player";
                 Debug.Log($"Solitaire: {who} already has a game running, it has to be quit before dealing another.");
-                ShowNotification("You already have a game running. Quit it first.");
+                ShowNotification("NOTIFY_ALREADY_HAVE_GAME");
                 return;
             }
 
             if (!TryPayEntryFee())
             {
                 Debug.Log($"Solitaire: Not enough chips to start a {Mode} game (fee {_GetEntryFee()}).");
-                ShowNotification($"Not enough chips. Need {_GetEntryFee()}c.");
+                ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildEntryFeeAmount() + "c.");
                 return;
             }
 
@@ -1626,7 +1648,7 @@ namespace org.kumagee
             if (resolvedDeck._IsStockEmpty())
             {
                 Debug.Log("Solitaire: Stock is empty; there are no more rows to deal.");
-                ShowNotification("Stock is empty.");
+                ShowNotification("NOTIFY_STOCK_EMPTY");
                 return;
             }
 
@@ -1634,7 +1656,7 @@ namespace org.kumagee
             if (empty >= 0)
             {
                 Debug.Log($"Solitaire: Column {empty} is empty - every column has to be filled before dealing another row from the stock.");
-                ShowNotification("Fill all columns before dealing.");
+                ShowNotification("NOTIFY_FILL_COLUMNS");
                 return;
             }
 
@@ -1754,7 +1776,7 @@ namespace org.kumagee
             if (count <= 0)
             {
                 Debug.Log("Solitaire: Stock and waste are both empty, nothing to recycle.");
-                ShowNotification("No cards to recycle.");
+                ShowNotification("NOTIFY_NO_CARDS_TO_RECYCLE");
                 return;
             }
 
@@ -2168,7 +2190,7 @@ namespace org.kumagee
             if (!_IsLocalGameOwner() || dealing)
             {
                 card._Reject();
-                if (!_IsLocalGameOwner()) ShowNotification("Not your game.");
+                if (!_IsLocalGameOwner()) ShowNotification("NOTIFY_NOT_YOUR_GAME");
                 return;
             }
 
@@ -2180,7 +2202,7 @@ namespace org.kumagee
             if (!card.FaceUp)
             {
                 card._Reject();
-                ShowNotification("Card is face down.");
+                ShowNotification("NOTIFY_CARD_FACE_DOWN");
                 return;
             }
 
@@ -2190,7 +2212,7 @@ namespace org.kumagee
                 || (pickupMode == CardPickupMode.TopOnly && below._GetTopCard() != card))
             {
                 card._Reject();
-                ShowNotification("Can only pick up top card.");
+                ShowNotification("NOTIFY_TOP_CARD_ONLY");
                 return;
             }
 
@@ -2198,7 +2220,7 @@ namespace org.kumagee
             if (IsFoundationChain(below) && card.Slot != null && card.Slot._IsOccupied())
             {
                 card._Reject();
-                ShowNotification("Can only move top card from foundation.");
+                ShowNotification("NOTIFY_TOP_CARD_FROM_FOUNDATION");
                 return;
             }
 
@@ -2209,7 +2231,7 @@ namespace org.kumagee
             if (!_IsGroupMovable(card))
             {
                 card._Reject();
-                ShowNotification("Group must be same suit to move.");
+                ShowNotification("NOTIFY_GROUP_SAME_SUIT");
             }
         }
 

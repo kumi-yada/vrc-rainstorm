@@ -723,6 +723,19 @@ MonoBehaviour:
   - Post Processsing
   - SFX
   - BGM
+  - Only the game owner can quit.
+  - Already dealing cards.
+  - Someone else's game is running.
+  - You already have a game running. Quit it first.
+  - 'Not enough chips. Need '
+  - Stock is empty.
+  - Fill all columns before dealing.
+  - No cards to recycle.
+  - Not your game.
+  - Card is face down.
+  - Can only pick up top card.
+  - Can only move top card from foundation.
+  - Group must be same suit to move.
 --- !u!1 &25539176
 GameObject:
   m_ObjectHideFlags: 0
@@ -4262,12 +4275,27 @@ PrefabInstance:
       propertyPath: m_text
       value: SFX
       objectReference: {fileID: 0}
+    - target: {fileID: 4116371633113711720, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: m_fontSize
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 356741924}
     - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
+    - target: {fileID: 6316541056779967878, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 8470876506638055446, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: m_Pivot.x
@@ -6023,6 +6051,19 @@ MonoBehaviour:
   - POST_PROCESS
   - SFX
   - BGM
+  - NOTIFY_ONLY_OWNER_CAN_QUIT
+  - NOTIFY_ALREADY_DEALING
+  - NOTIFY_SOMEONE_ELSES_GAME
+  - NOTIFY_ALREADY_HAVE_GAME
+  - NOTIFY_NOT_ENOUGH_CHIPS
+  - NOTIFY_STOCK_EMPTY
+  - NOTIFY_FILL_COLUMNS
+  - NOTIFY_NO_CARDS_TO_RECYCLE
+  - NOTIFY_NOT_YOUR_GAME
+  - NOTIFY_CARD_FACE_DOWN
+  - NOTIFY_TOP_CARD_ONLY
+  - NOTIFY_TOP_CARD_FROM_FOUNDATION
+  - NOTIFY_GROUP_SAME_SUIT
 --- !u!1 &358170787
 GameObject:
   m_ObjectHideFlags: 0
@@ -32935,6 +32976,19 @@ MonoBehaviour:
   - "\u30DD\u30B9\u30C8\u30D7\u30ED\u30BB\u30C3\u30B7\u30F3\u30B0"
   - "\u52B9\u679C\u97F3"
   - BGM
+  - "\u3053\u306E\u30B2\u30FC\u30E0\u306E\u30AA\u30FC\u30CA\u30FC\u306E\u307F\u7D42\u4E86\u3067\u304D\u307E\u3059\u3002"
+  - "\u30AB\u30FC\u30C9\u3092\u914D\u3063\u3066\u3044\u307E\u3059\u3002"
+  - "\u4ED6\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u30B2\u30FC\u30E0\u304C\u9032\u884C\u4E2D\u3067\u3059\u3002"
+  - "\u65E2\u306B\u30B2\u30FC\u30E0\u3092\u9032\u884C\u4E2D\u3067\u3059\u3002\u5148\u306B\u7D42\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+  - "\u30B3\u30A4\u30F3\u304C\u8DB3\u308A\u307E\u305B\u3093\u3002\u3042\u3068 "
+  - "\u5C71\u672D\u304C\u7A7A\u3067\u3059\u3002"
+  - "\u5168\u3066\u306E\u5217\u3092\u57CB\u3081\u3066\u304B\u3089\u914D\u3063\u3066\u304F\u3060\u3055\u3044\u3002"
+  - "\u623B\u3059\u30AB\u30FC\u30C9\u304C\u3042\u308A\u307E\u305B\u3093\u3002"
+  - "\u3042\u306A\u305F\u306E\u30B2\u30FC\u30E0\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002"
+  - "\u30AB\u30FC\u30C9\u306F\u88CF\u5411\u304D\u3067\u3059\u3002"
+  - "\u4E00\u756A\u4E0A\u306E\u30AB\u30FC\u30C9\u306E\u307F\u53D6\u308C\u307E\u3059\u3002"
+  - "\u57FA\u790E\u306E\u4E00\u756A\u4E0A\u306E\u30AB\u30FC\u30C9\u306E\u307F\u52D5\u304B\u305B\u307E\u3059\u3002"
+  - "\u540C\u3058\u30B9\u30FC\u30C4\u306E\u30B0\u30EB\u30FC\u30D7\u306E\u307F\u52D5\u304B\u305B\u307E\u3059\u3002"
 --- !u!114 &1593721870
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -33849,8 +33903,13 @@ PrefabInstance:
     - target: {fileID: 4116371633113711720, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: m_fontSize
-      value: 58.3
+      value: 50
       objectReference: {fileID: 0}
+    - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 356741924}
     - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -44520,12 +44579,27 @@ PrefabInstance:
       propertyPath: m_text
       value: POST_PROCESS
       objectReference: {fileID: 0}
+    - target: {fileID: 4116371633113711720, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: m_fontSize
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 356741924}
     - target: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 4727259151340829433, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
+    - target: {fileID: 6316541056779967878, guid: a82702453fd6e504c9fd4b5cf513afc3,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 8470876506638055446, guid: a82702453fd6e504c9fd4b5cf513afc3,
         type: 3}
       propertyPath: m_Pivot.x
