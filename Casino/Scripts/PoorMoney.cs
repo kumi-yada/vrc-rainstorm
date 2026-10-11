@@ -26,8 +26,11 @@ public class PoorMoney : UdonSharpBehaviour
     [Tooltip("Localization manager used to translate the interact prompt. Falls back to a scene search if empty.")]
     [SerializeField] private LocalizationManager localization;
 
-    [Tooltip("AudioSource played when the player takes money.")]
-    [SerializeField] private AudioSource takeAudio;
+    [Tooltip("Shared audio pool the take sound is played through.")]
+    [SerializeField] private AudioPool audioPool;
+
+    [Tooltip("Index into audioPool's Clips list of the sound played when the player takes money.")]
+    [SerializeField] private int takeClipIndex = 3;
 
     [Header("Floating Bob")]
     [Tooltip("Object to float up and down. Falls back to this GameObject's transform if empty.")]
@@ -205,9 +208,9 @@ public class PoorMoney : UdonSharpBehaviour
 
         udonChips.money += limit - udonChips.money;
 
-        if (takeAudio != null)
+        if (audioPool != null)
         {
-            takeAudio.Play();
+            audioPool.PlayLocalIndex(takeClipIndex, transform.position);
         }
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

@@ -66,10 +66,7 @@ namespace org.kumagee
         public float CompletePayoutMultiplier = 1f;
 
         [Header("Audio")]
-        [Tooltip("AudioSource played when the entry fee is deducted to start a game.")]
-        public AudioSource PayAudio;
-
-        [Tooltip("Shared pool that plays the card dealing and movement sounds, locally or on every client.")]
+        [Tooltip("Shared pool that plays the card dealing, movement and entry-fee sounds, locally or on every client.")]
         public AudioPool CardAudio;
 
         [Tooltip("Index into CardAudio's Clips list of the sound played once per card dealt onto the table.")]
@@ -77,6 +74,9 @@ namespace org.kumagee
 
         [Tooltip("Index into CardAudio's Clips list of the sound played once per card moved to a new pile.")]
         public int MoveClipIndex = 1;
+
+        [Tooltip("Index into CardAudio's Clips list of the sound played when the entry fee is deducted to start a game.")]
+        public int PayClipIndex = 2;
 
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
@@ -1179,7 +1179,7 @@ namespace org.kumagee
             if (fee <= 0f) return true;
             if (UdonChips.money < fee) return false;
             UdonChips.money -= fee;
-            if (PayAudio != null) PayAudio.Play();
+            if (CardAudio != null) CardAudio.PlayLocalIndex(PayClipIndex, transform.position);
             return true;
         }
 
