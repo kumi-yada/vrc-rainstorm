@@ -16,7 +16,7 @@ public class LocalizationManager : UdonSharpBehaviour
     [SerializeField] private string[] keys;
 
     [Header("Registered UI scripts (auto-filled at runtime)")]
-    private UdonSharpBehaviour[] listeners = new UdonSharpBehaviour[256];
+    private UdonSharpBehaviour[] listeners = new UdonSharpBehaviour[512];
     private int _listenerCount;
 
     private int _language;

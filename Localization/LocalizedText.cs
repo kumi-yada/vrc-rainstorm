@@ -23,7 +23,12 @@ public class LocalizedText : UdonSharpBehaviour
         if (textElement == null)
             textElement = GetComponent<TextMeshProUGUI>();
         if (localization == null) return;
-        if (textElement != null)
+        // Only fall back to the authored scene text when no key was already set
+        // programmatically. Solitaire (and other scripts) call SetPrefixKeyAndSuffix
+        // from their own Start, which may run before this Start: capturing the raw
+        // text here would clobber that key with the prefab's placeholder (e.g. the
+        // win banner's "You win!"), leaving the label untranslated.
+        if (textElement != null && string.IsNullOrEmpty(_key))
             _key = textElement.text;
         localization.Register(this);
         _OnLanguageChanged();
