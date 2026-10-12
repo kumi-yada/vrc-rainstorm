@@ -35,6 +35,19 @@ public class ChangeAngle : UdonSharpBehaviour
     private Quaternion _baseRotation;
     private bool _baseCaptured = false;
 
+    // The interactable collider sharing this object. VRChat offers the "Rotate"
+    // prompt off whatever collider sits on the behaviour's GameObject, so turning
+    // it off is how the pivot stops advertising itself to players whose game this
+    // is not. Resolved lazily, because the whole object is deactivated while the
+    // table is idle and Start may not have run yet when the state first arrives.
+    private Collider _interactCollider;
+
+    // Whether the local player may interact right now: a game is running at the
+    // table and the local player is the one playing it. Pushed in by the game that
+    // owns the pivot (see _SetGameState), because this behaviour is kept generic
+    // and has no way to ask about the game's state itself.
+    private bool _allowed;
+
     // Registered by whoever needs to follow the pivot. Kept generic: this behaviour
     // stays reusable and knows nothing about what the target does with the event.
     public void _SetAngleChangedTarget(UdonBehaviour target, string eventName)
@@ -47,10 +60,53 @@ public class ChangeAngle : UdonSharpBehaviour
     {
         _CaptureBase();
         _Apply();
+        _RefreshInteractable();
+    }
+
+    // Called by the table's game whenever its state changes. `running` is true
+    // while any game is on - so a spectator's client sees it too - and `localOwner`
+    // is true only on the machine of the player whose game it is. The pivot only
+    // invites an interact from that player, and drops back to its default angle
+    // while the table is idle so the next game always starts from a known position.
+    public void _SetGameState(bool running, bool localOwner)
+    {
+        _allowed = running && localOwner;
+
+        // The whole control goes away while the table is idle - not just its
+        // collider. The label would otherwise float over a table nobody is using,
+        // and a disabled-but-visible control is not the same as a hidden one. It
+        // comes back for everyone once a game is on, since the label is the current
+        // angle; only the player whose game it is gets a live collider. The pivot it
+        // turns is a separate transform, so hiding this object leaves the table
+        // alone.
+        if (gameObject.activeSelf != running) gameObject.SetActive(running);
+        _RefreshInteractable();
+
+        if (!running && _open)
+        {
+            _open = false;
+            // Only the object's owner can put the reset on the wire. That is the
+            // player who last interacted, i.e. the one whose game just ended, so in
+            // practice this lands; a client that does not own it still resets its own
+            // copy below and every other client reaches the same place on its own.
+            if (Networking.IsOwner(gameObject)) RequestSerialization();
+            _Apply();
+        }
+    }
+
+    private void _RefreshInteractable()
+    {
+        if (_interactCollider == null) _interactCollider = GetComponent<Collider>();
+        if (_interactCollider != null) _interactCollider.enabled = _allowed;
     }
 
     public override void Interact()
     {
+        // Backstop for the collider swap: while another player's game is running,
+        // or none is, the pivot must not move for this player even if a press slips
+        // through the frame the state changed on.
+        if (!_allowed) return;
+
         if (!Networking.IsOwner(gameObject))
         {
             Networking.SetOwner(Networking.LocalPlayer, gameObject);

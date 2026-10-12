@@ -7,7 +7,7 @@ using VRC.Udon;
 public class Leaderboard : UdonSharpBehaviour
 {
     [SerializeField] private LeaderRow[] rows;
-    [SerializeField] private string moneyFormat = "$ {0:F0}";
+    [SerializeField] private string moneyFormat = "{0:F0}c";
     [SerializeField] private float refreshInterval = 0.25f;
 
     private float _nextRefreshTime;

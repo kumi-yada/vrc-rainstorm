@@ -233,6 +233,12 @@ namespace org.kumagee
         // behaviour, which owns its hover text. This file only feeds it the fee.
         private int baseSlotCount;
         private Transform cardHome;
+
+        // The table's angle pivot, found under this object at startup. It is told
+        // whether a game is running and whether the local player owns it, so it can
+        // hide its interact and fall back to its default angle while the table is
+        // idle. Left null on a table with no pivot.
+        private ChangeAngle changeAngle;
         private bool dealing;
         private bool gameStarted;
         private bool won;
@@ -329,22 +335,22 @@ namespace org.kumagee
             }
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             if (StartInteract != null) StartInteract._SetEntryFee((int)EntryFee);
-            if (StartButtonInteract != null)
-            {
-                _RefreshStartInteractable();
-            }
 
             // A pivot under this object (ChangeAngle) moves the table's card places
             // with it, but the deck is a per-player PlayerObject parked at CardHome
             // by world transform, so it has to be told to follow. Register here so
             // nothing in the inspector has to be wired; the event is only meaningful
             // once a game has parked a deck, which _OnPivotMoved checks for itself.
-            ChangeAngle changeAngle = GetComponentInChildren<ChangeAngle>(true);
+            changeAngle = GetComponentInChildren<ChangeAngle>(true);
             if (changeAngle != null)
             {
                 changeAngle._SetAngleChangedTarget(
                     (UdonBehaviour)GetComponent(typeof(UdonBehaviour)), nameof(_OnPivotMoved));
             }
+
+            // Registered before the refresh below so the pivot is told the table's
+            // state on the same pass that lights up the start button.
+            _RefreshStartInteractable();
         }
 
         private void Init(VRCPlayerApi dealer)
@@ -1971,14 +1977,18 @@ namespace org.kumagee
         // competing deal. Runs locally on each client; the synced ownerId drives it.
         public void _RefreshStartInteractable()
         {
-            if (StartButtonInteract == null) return;
             int ownerId = syncedDealerId;
             bool running = gameStarted || ownerId != -1;
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
-            StartButtonInteract.enabled = !running || localOwner;
+            if (StartButtonInteract != null) StartButtonInteract.enabled = !running || localOwner;
             RefreshStartLabel();
+
+            // The pivot follows the same rule as the start button: only the player
+            // whose game is running may turn it, and it returns to its default angle
+            // whenever the table goes idle.
+            if (changeAngle != null) changeAngle._SetGameState(running, localOwner);
         }
 
         // The dealer's client drives its own state straight out of Deal/_ResetGame
