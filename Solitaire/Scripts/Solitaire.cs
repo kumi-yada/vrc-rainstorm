@@ -81,6 +81,9 @@ namespace org.kumagee
         [Tooltip("Index into CardAudio's Clips list of the sound played when the game is won.")]
         public int WinClipIndex = 4;
 
+        [Tooltip("Index into CardAudio's Clips list of the sound played when a Spider run completes and leaves the table.")]
+        public int RunCompleteClipIndex = 3;
+
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
         public DeckManager DeckOfCards;
@@ -2540,6 +2543,7 @@ namespace org.kumagee
 
                     king._ForcePlace(foundation._GetTopSlot(), true);
                     _RepositionAbove(king);
+                    PlayCardAudio(RunCompleteClipIndex, king);
                     AccumulateFoundationReward(CardLogic.RankDefinitionsCount);
                     RefreshWinMessage();
                     collected = true;

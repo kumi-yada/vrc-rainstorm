@@ -1064,6 +1064,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 18617d0b8d627928ebb44e302959b8f6, type: 3}
   - {fileID: 8300000, guid: 110ebcee71ce215abb75d4bedc5bda10, type: 3}
   - {fileID: 8300000, guid: 38595ceec20cc2ef4be3ab65e01e8a9c, type: 3}
+  - {fileID: 8300000, guid: 63df9678462055cad821b09602a3d157, type: 3}
 --- !u!4 &48529228
 Transform:
   m_ObjectHideFlags: 0
@@ -18807,12 +18808,27 @@ PrefabInstance:
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
       propertyPath: m_fontSize
-      value: 25
+      value: 41.65
       objectReference: {fileID: 0}
     - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
       propertyPath: m_enableAutoSizing
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2917899287289086175, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
+        type: 3}
+      propertyPath: m_HorizontalAlignment
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4654960163939353653, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: -36
+      objectReference: {fileID: 0}
+    - target: {fileID: 4654960163939353653, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 18
       objectReference: {fileID: 0}
     - target: {fileID: 6187327070496013002, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
@@ -18863,7 +18879,7 @@ PrefabInstance:
     - target: {fileID: 7712744834326080042, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 200
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 7712744834326080042, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
@@ -42843,13 +42859,13 @@ MonoBehaviour:
   DynamicPrefabs: []
   DynamicMaterials:
   - {fileID: 2100000, guid: 6e2cb2c229e029bca99bc49f9cec3312, type: 2}
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
-  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
-  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
   - {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
-  - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
   - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
   - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
+  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
+  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
+  - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
+  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 2100000, guid: e62206080ef3052a6851b35069300595, type: 2}
   - {fileID: 2100000, guid: 3499aaa1083834501877d4c561fe5856, type: 2}
   - {fileID: 2100000, guid: 1b4219e8d6f34be54b999d981b5577d9, type: 2}
@@ -45410,7 +45426,6 @@ SceneRoots:
   - {fileID: 487918696}
   - {fileID: 615778644}
   - {fileID: 448716888}
-  - {fileID: 65700782}
   - {fileID: 1603442834}
   - {fileID: 1241458442}
   - {fileID: 1071185030}
@@ -45422,6 +45437,7 @@ SceneRoots:
   - {fileID: 933217152}
   - {fileID: 472805631}
   - {fileID: 48529228}
+  - {fileID: 65700782}
   - {fileID: 1976399387}
   - {fileID: 348533031}
   - {fileID: 10944854}

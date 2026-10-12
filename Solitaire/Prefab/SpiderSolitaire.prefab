@@ -2264,6 +2264,8 @@ MonoBehaviour:
   DealClipIndex: 0
   MoveClipIndex: 1
   PayClipIndex: 2
+  WinClipIndex: 4
+  RunCompleteClipIndex: 5
   DeckOfCards: {fileID: 0}
   DeckKey: 1
   CardHome: {fileID: 6453669226389092570}
@@ -2299,6 +2301,7 @@ MonoBehaviour:
   StartInteract: {fileID: 188899628847439214}
   ConfirmDialog: {fileID: 2452246828101581707}
   Notification: {fileID: 0}
+  localization: {fileID: 0}
 --- !u!114 &1768482966039099052
 MonoBehaviour:
   m_ObjectHideFlags: 0
