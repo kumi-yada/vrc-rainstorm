@@ -2,10 +2,13 @@
 using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
+using VRC.SDK3.Persistence;
 
 [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
 public class LocalizationManager : UdonSharpBehaviour
 {
+    private const string LANGUAGE_KEY = "language";
+    private bool _dataReady;
     [Header("Language tables ([0] = fallback for unknown client languages and missing keys)")]
     [SerializeField] private LanguageTable[] tables;
 
@@ -39,6 +42,29 @@ public class LocalizationManager : UdonSharpBehaviour
         if (tables == null || index < 0 || index >= tables.Length) return;
         _language = index;
         RefreshAll();
+        SaveLanguage();
+    }
+
+    public override void OnPlayerRestored(VRCPlayerApi player)
+    {
+        if (!player.isLocal) return;
+        _dataReady = true;
+
+        if (PlayerData.TryGetString(player, LANGUAGE_KEY, out string saved))
+        {
+            int idx = FindTableIndex(saved);
+            if (idx != _language)
+            {
+                _language = idx;
+                RefreshAll();
+            }
+        }
+    }
+
+    private void SaveLanguage()
+    {
+        if (!_dataReady || tables == null || _language < 0 || _language >= tables.Length || tables[_language] == null) return;
+        PlayerData.SetString(LANGUAGE_KEY, tables[_language].LanguageCode);
     }
 
     public void SetLanguageByCode(string code)
