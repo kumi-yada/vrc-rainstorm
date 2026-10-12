@@ -2601,6 +2601,7 @@ MonoBehaviour:
   fallbackFontAssets: []
   m_FallbackFontAssetTable:
   - {fileID: 11400000, guid: e37d953484f9a045e90b41ef4716c6fe, type: 2}
+  - {fileID: 11400000, guid: 3776de77f309db1ff8ad537fd6e54d0c, type: 2}
   m_CreationSettings:
     sourceFontFileName: 
     sourceFontFileGUID: 472b7d28c0d1db644bf987809d2905d7
