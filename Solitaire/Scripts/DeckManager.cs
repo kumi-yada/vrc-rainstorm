@@ -51,6 +51,10 @@ namespace org.kumagee
         // OnDeserialization.
         [UdonSynced] private int syncedCardBack = (int)CardBack.White;
 
+        // Whether this deck's owner toggled dark mode. Authored only by the owner
+        // (like syncedCardBack) so everyone renders the owner's dark choice.
+        [UdonSynced] private bool syncedDark = false;
+
         // True once every foundation is complete and the payout has been credited.
         // The game is over but the table has not been reset yet - the player may
         // still be looking at their winnings. Local-only: FindActiveDeckFor only
@@ -80,10 +84,11 @@ namespace org.kumagee
             gameWon = won;
         }
 
-        // Re-read the local player's equipped back and push it to this deck's cards.
-        // Called by CardTheme on equip and by OnPlayerRestored on join. Only the deck's
-        // owner has a meaningful PlayerData answer, and only they may author
-        // syncedCardBack, so everyone else just renders what the owner last synced.
+        // Re-read the local player's equipped back and dark flag, then push them to
+        // this deck's cards. Called by CardTheme on equip and by OnPlayerRestored on
+        // join. Only the deck's owner has a meaningful PlayerData answer, and only
+        // they may author syncedCardBack/syncedDark, so everyone else just renders
+        // what the owner last synced.
         public void _RefreshCardBack()
         {
             VRCPlayerApi local = Networking.LocalPlayer;
@@ -96,13 +101,20 @@ namespace org.kumagee
                 equipped = saved;
             }
 
-            if (equipped == syncedCardBack)
+            bool dark = false;
+            if (PlayerData.TryGetBool(local, CardTheme.DarkKey, out bool savedDark))
+            {
+                dark = savedDark;
+            }
+
+            if (equipped == syncedCardBack && dark == syncedDark)
             {
                 _ApplyCardBack();
                 return;
             }
 
             syncedCardBack = equipped;
+            syncedDark = dark;
             _ApplyCardBack();
             QueueSerialization();
         }
@@ -113,9 +125,26 @@ namespace org.kumagee
 
             if (cards == null) return;
             CardBack back = (CardBack)syncedCardBack;
+            Texture backTexture = syncedDark && darkBackTexture != null ? darkBackTexture : _defaultBackTexture;
             for (int i = 0; i < cards.Length; i++)
             {
-                if (cards[i] != null) cards[i].SetBackDesign(back);
+                if (cards[i] != null)
+                {
+                    if (syncedDark && darkFaceTexture != null)
+                    {
+                        cards[i]._SetFaceTexture(darkFaceTexture);
+                    }
+                    else
+                    {
+                        cards[i]._RestoreFaceTexture();
+                    }
+
+                    if (backTexture != null)
+                    {
+                        cards[i]._SetBackTexture(backTexture);
+                    }
+                    cards[i].SetBackDesign(back);
+                }
             }
         }
 
@@ -130,6 +159,15 @@ namespace org.kumagee
                 deckBackMaterial = ResolveDeckBackMaterial();
             }
             if (deckBackMaterial == null) return;
+
+            if (syncedDark && darkBackTexture != null)
+            {
+                deckBackMaterial.mainTexture = darkBackTexture;
+            }
+            else if (_defaultBackTexture != null)
+            {
+                deckBackMaterial.mainTexture = _defaultBackTexture;
+            }
 
             int col = (int)syncedCardBack % CardLogic.BackColumns;
             float cellX = 1f / (float)CardLogic.BackColumns;
@@ -207,6 +245,12 @@ namespace org.kumagee
         [Tooltip("Card back material on the deck (stock pile) visual mesh. Its _MainTex offset is set to match the equipped design, the same way the cards are.")]
         [SerializeField] private Material DeckBackMaterial;
 
+        [Tooltip("Dark card back atlas texture. Swapped into _MainTex when dark mode is on. Same columns as the default atlas, so the enum offset is unchanged.")]
+        [SerializeField] private Texture darkBackTexture;
+
+        [Tooltip("Dark face atlas texture. Swapped into the cards' face material when dark mode is on. Same layout as the default face atlas.")]
+        [SerializeField] private Texture darkFaceTexture;
+
         [Tooltip("Assigned by Solitaire at startup; drives what a draw does.")]
         [HideInInspector] public Solitaire Solitaire;
         
@@ -215,12 +259,17 @@ namespace org.kumagee
         private GameObject currentCard;
         private Collider interactCollider;
         private Material deckBackMaterial;
+        private Texture _defaultBackTexture;
         
         
         private void Start()
         {
             playerLocal = Networking.LocalPlayer;
             interactCollider = GetComponent<Collider>();
+            if (DeckBackMaterial != null)
+            {
+                _defaultBackTexture = DeckBackMaterial.mainTexture;
+            }
 
             // Pool is an inspector reference, so it can sit on any GameObject rather
             // than having to share this one. Decks authored before that carry no

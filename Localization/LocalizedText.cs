@@ -12,6 +12,7 @@ public class LocalizedText : UdonSharpBehaviour
     private string _prefix = "";
     private string _key;
     private string _suffix = "";
+    private string _suffixKey = "";
 
     public TextMeshProUGUI TextElement => textElement;
 
@@ -31,12 +32,14 @@ public class LocalizedText : UdonSharpBehaviour
     public void SetKey(string key)
     {
         _key = key;
+        _suffixKey = "";
         _OnLanguageChanged();
     }
 
     public void SetSuffix(string suffix)
     {
         _suffix = suffix;
+        _suffixKey = "";
         _OnLanguageChanged();
     }
 
@@ -44,6 +47,7 @@ public class LocalizedText : UdonSharpBehaviour
     {
         _key = key;
         _suffix = suffix;
+        _suffixKey = "";
         _OnLanguageChanged();
     }
 
@@ -52,13 +56,24 @@ public class LocalizedText : UdonSharpBehaviour
         _prefix = prefix;
         _key = key;
         _suffix = suffix;
+        _suffixKey = "";
+        _OnLanguageChanged();
+    }
+
+    public void SetPrefixKeyAndSuffixKey(string prefix, string key, string suffixKey)
+    {
+        _prefix = prefix;
+        _key = key;
+        _suffix = "";
+        _suffixKey = suffixKey;
         _OnLanguageChanged();
     }
 
     public void _OnLanguageChanged()
     {
         if (localization == null || textElement == null) return;
-        textElement.text = _prefix + localization.GetText(_key) + _suffix;
+        string suffix = string.IsNullOrEmpty(_suffixKey) ? _suffix : localization.GetText(_suffixKey);
+        textElement.text = _prefix + localization.GetText(_key) + suffix;
         Debug.Log($"[LocalizedText] _OnLanguageChanged '{gameObject.name}' key='{_key}' -> '{textElement.text}'");
     }
 

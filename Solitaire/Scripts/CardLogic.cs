@@ -110,6 +110,7 @@ namespace org.kumagee
         private Renderer faceRenderer;
         private Material faceMaterial;
         private int faceMaterialIndex;
+        private Texture _defaultFaceTexture;
         private Renderer backRenderer;
         private Material backMaterial;
         private int backMaterialIndex;
@@ -261,6 +262,10 @@ namespace org.kumagee
             faceRenderer = cardRenderer;
             faceMaterialIndex = faceIndex;
             faceMaterial = instanced[faceIndex];
+            if (faceMaterial != null)
+            {
+                _defaultFaceTexture = faceMaterial.mainTexture;
+            }
 
             if (backIndex >= 0)
             {
@@ -278,6 +283,33 @@ namespace org.kumagee
             int col = (int)back % BackColumns;
             float cellX = 1f / (float)BackColumns;
             backMaterial.SetTextureOffset("_MainTex", new Vector2(col * cellX, 0f));
+        }
+
+        // Swap the card back atlas texture (light vs dark) without touching the
+        // design column. DeckManager calls this before SetBackDesign when applying
+        // the equipped back.
+        public void _SetBackTexture(Texture texture)
+        {
+            if (!initialized) Init();
+            if (backMaterial == null) return;
+            backMaterial.mainTexture = texture;
+        }
+
+        // Swap the face atlas texture (light vs dark) without touching the rank/suit
+        // offset, which ApplyFaceTexture owns.
+        public void _SetFaceTexture(Texture texture)
+        {
+            if (!initialized) Init();
+            if (faceMaterial == null) return;
+            faceMaterial.mainTexture = texture;
+        }
+
+        // Put the face back on its authored default atlas.
+        public void _RestoreFaceTexture()
+        {
+            if (!initialized) Init();
+            if (faceMaterial == null || _defaultFaceTexture == null) return;
+            faceMaterial.mainTexture = _defaultFaceTexture;
         }
 
         public void SetCardIdentity(Rank rank, Suit suit)

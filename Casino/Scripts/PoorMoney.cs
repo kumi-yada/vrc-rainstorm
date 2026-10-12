@@ -155,12 +155,12 @@ public class PoorMoney : UdonSharpBehaviour
 
         if (remaining > 0f)
         {
-            int seconds = Mathf.CeilToInt(remaining);
-            InteractionText = _Text("WAIT") + " " + seconds + _Text("SECONDS");
+            string time = _FormatTime(remaining);
+            InteractionText = _Text("WAIT") + " " + time;
 
             if (timeLabel != null)
             {
-                timeLabel.SetPrefixKeyAndSuffix(seconds.ToString(), "SECONDS", "");
+                timeLabel.SetPrefixKeyAndSuffix(time, "", "");
             }
         }
         else
@@ -186,6 +186,14 @@ public class PoorMoney : UdonSharpBehaviour
     {
         if (localization == null) return key;
         return localization.GetText(key);
+    }
+
+    private string _FormatTime(float seconds)
+    {
+        int total = Mathf.CeilToInt(seconds);
+        int m = total / 60;
+        int s = total % 60;
+        return (m < 10 ? "0" + m : m.ToString()) + ":" + (s < 10 ? "0" + s : s.ToString());
     }
 
     public override void Interact()

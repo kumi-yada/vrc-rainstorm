@@ -12,6 +12,7 @@ public class CardTheme : UdonSharpBehaviour
 {
     public const string UnlockedKey = "_RAINSTORM/CARD_THEME_UNLOCKED";
     public const string EquippedKey = "_RAINSTORM/CARD_THEME_EQUIPPED";
+    public const string DarkKey = "_RAINSTORM/CARD_THEME_DARK";
 
     [Tooltip("Card back design sold by this theme.")]
     [SerializeField] private CardBack cardBack;
@@ -31,9 +32,17 @@ public class CardTheme : UdonSharpBehaviour
     [Tooltip("Label color for unlocked (buyable/usable) card backs.")]
     [SerializeField] private Color whiteColor = Color.white;
 
+    [Tooltip("Preview image showing this card back. Swaps to the dark variant when dark mode is on.")]
+    [SerializeField] private Image previewImage;
+
+    [Tooltip("Dark variant of the preview image sprite.")]
+    [SerializeField] private Sprite darkSprite;
+
     private bool _dataRestored = false;
     private int _unlockedFlags = 1 << (int)CardBack.White;
     private int _equipped = (int)CardBack.White;
+    private Sprite _lightSprite;
+    private bool _lightCaptured = false;
 
     void Start()
     {
@@ -143,6 +152,35 @@ public class CardTheme : UdonSharpBehaviour
     {
         _equipped = equipped;
         Refresh();
+    }
+
+    // Swaps the preview image between the default and dark sprite. The default is
+    // captured lazily on first call so it stays correct regardless of whether the
+    // dark toggle arrives before or after this behaviour's Start.
+    public void _SetDark(bool dark)
+    {
+        if (previewImage == null)
+        {
+            return;
+        }
+
+        if (!_lightCaptured)
+        {
+            _lightSprite = previewImage.sprite;
+            _lightCaptured = true;
+        }
+
+        if (dark)
+        {
+            if (darkSprite != null)
+            {
+                previewImage.sprite = darkSprite;
+            }
+        }
+        else
+        {
+            previewImage.sprite = _lightSprite;
+        }
     }
 
     private void Refresh()

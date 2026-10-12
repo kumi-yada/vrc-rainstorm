@@ -226,6 +226,6 @@ public class Supporters : UdonSharpBehaviour
     private void _UpdateSupporterText()
     {
         if (supporterText == null) return;
-        supporterText.SetPrefixKeyAndSuffix("", IsSupporter(Networking.LocalPlayer) ? supporterTextMessage : "", "");
+        supporterText.SetPrefixKeyAndSuffix("", IsSupporter(Networking.LocalPlayer) ? supporterTextMessage : "SUPPORTERS", "");
     }
 }

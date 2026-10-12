@@ -2,30 +2,36 @@
 using UdonSharp;
 using UnityEngine;
 using TMPro;
-using VRC.SDKBase;
-using VRC.Udon;
-using RBS.SleepKit2.Udon;
 
 public class Notification : UdonSharpBehaviour
 {
     [Header("References")]
-    [SerializeField] private ToastManager toast;
+    [SerializeField] private GameObject display;
+    [SerializeField] private TextMeshProUGUI messageText;
+    [SerializeField] private AudioPool audioPool;
+    [SerializeField] private AudioClip notificationClip;
+    [SerializeField] private float displayDuration = 3f;
 
     private string _currentMessage = "";
 
     public void Notify(string message)
     {
-        if (toast == null) return;
+        if (display == null || messageText == null) return;
         if (message == _currentMessage) return;
 
         _currentMessage = message;
-        toast.ShowToast("", message);
+        messageText.text = message;
+        display.SetActive(true);
 
-        SendCustomEventDelayedSeconds(nameof(ResetCurrentMessage), toast.displayDuration + toast.fadeOutDuration);
+        if (audioPool != null && notificationClip != null)
+            audioPool.PlayLocal(notificationClip, transform.position);
+
+        SendCustomEventDelayedSeconds(nameof(Hide), displayDuration);
     }
 
-    public void ResetCurrentMessage()
+    public void Hide()
     {
+        if (display != null) display.SetActive(false);
         _currentMessage = "";
     }
 }
