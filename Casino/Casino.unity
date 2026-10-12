@@ -1027,6 +1027,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: dc914a50bf65c665088554a5d8af89b4, type: 3}
   - {fileID: 8300000, guid: 18617d0b8d627928ebb44e302959b8f6, type: 3}
   - {fileID: 8300000, guid: 110ebcee71ce215abb75d4bedc5bda10, type: 3}
+  - {fileID: 8300000, guid: 38595ceec20cc2ef4be3ab65e01e8a9c, type: 3}
 --- !u!4 &48529228
 Transform:
   m_ObjectHideFlags: 0
@@ -19277,10 +19278,13 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 933217153}
-  display: {fileID: 2798421485810571924}
+  display: {fileID: 3783092910574418807}
+  canvasGroup: {fileID: 6883102006758245071}
   messageText: {fileID: 6749827127136902077}
   audioPool: {fileID: 48529227}
   notificationClip: {fileID: 8300000, guid: 4d44413d00df812929a3bf1b978ff5c3, type: 3}
+  fadeInDuration: 0.25
+  fadeOutDuration: 0.25
   displayDuration: 3
 --- !u!1 &938496275
 GameObject:
@@ -41162,10 +41166,10 @@ RectTransform:
   - {fileID: 5451225187928660503}
   m_Father: {fileID: 7864076649776667439}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1, y: 0.3}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1691952446715148589
 CanvasRenderer:
@@ -42054,10 +42058,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 706704742303182795}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0.9, y: 0.2}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &5503239468282416603
 MonoBehaviour:
@@ -42503,8 +42507,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Message
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 0bf7737ebd091caef88ad5cac4a0c3ed, type: 2}
-  m_sharedMaterial: {fileID: 5420860757379303271, guid: 0bf7737ebd091caef88ad5cac4a0c3ed,
+  m_fontAsset: {fileID: 11400000, guid: ad5a9c4bee9bdb5d38acbd46cf990608, type: 2}
+  m_sharedMaterial: {fileID: 5420860757379303271, guid: ad5a9c4bee9bdb5d38acbd46cf990608,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -42579,7 +42583,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6076893214750587052}
   m_Enabled: 1
-  m_Alpha: 0
+  m_Alpha: 1
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0

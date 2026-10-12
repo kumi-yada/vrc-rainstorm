@@ -78,6 +78,9 @@ namespace org.kumagee
         [Tooltip("Index into CardAudio's Clips list of the sound played when the entry fee is deducted to start a game.")]
         public int PayClipIndex = 2;
 
+        [Tooltip("Index into CardAudio's Clips list of the sound played when the game is won.")]
+        public int WinClipIndex = 4;
+
         [Header("References")]
         [Tooltip("The stock deck (DeckManager with its VRCObjectPool). Resolved to the local player's PlayerObject copy at startup; the scene reference is the fallback.")]
         public DeckManager DeckOfCards;
@@ -2662,6 +2665,7 @@ namespace org.kumagee
                 if (FoundationSlots[i]._GetCardCount() < CardLogic.RankDefinitionsCount) return;
             }
             won = true;
+            if (CardAudio != null) CardAudio.PlayNetworkedIndex(WinClipIndex, transform.position);
             if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
             CreditPayout();
             if (resolvedDeck != null) resolvedDeck._SetGameWon(true);
