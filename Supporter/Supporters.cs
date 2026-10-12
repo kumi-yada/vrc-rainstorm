@@ -209,7 +209,7 @@ public class Supporters : UdonSharpBehaviour
 
     private bool _IsHiddenFromList(string name)
     {
-        return name == "[1] Local Player" || name == "ChouKuma";
+        return name.StartsWith("[1] Local Player") || name == "ChouKuma";
     }
 
     private void _UpdateSupporterObjects()

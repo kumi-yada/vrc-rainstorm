@@ -333,6 +333,18 @@ namespace org.kumagee
             {
                 _RefreshStartInteractable();
             }
+
+            // A pivot under this object (ChangeAngle) moves the table's card places
+            // with it, but the deck is a per-player PlayerObject parked at CardHome
+            // by world transform, so it has to be told to follow. Register here so
+            // nothing in the inspector has to be wired; the event is only meaningful
+            // once a game has parked a deck, which _OnPivotMoved checks for itself.
+            ChangeAngle changeAngle = GetComponentInChildren<ChangeAngle>(true);
+            if (changeAngle != null)
+            {
+                changeAngle._SetAngleChangedTarget(
+                    (UdonBehaviour)GetComponent(typeof(UdonBehaviour)), nameof(_OnPivotMoved));
+            }
         }
 
         private void Init(VRCPlayerApi dealer)
@@ -2054,6 +2066,19 @@ namespace org.kumagee
             RefreshStartLabel();
             _RefreshStartInteractable();
             RefreshWinMessage();
+        }
+
+        // Re-parks this client's deck at CardHome after the table's pivot is
+        // re-angled (a ChangeAngle interact). Cards under the pivot follow it
+        // because they are parented to it, but the deck is a per-player
+        // PlayerObject parked here by world transform, so turning the pivot leaves
+        // it behind. _MoveTo is how it was parked at deal time and running it
+        // again is how it follows. Only while a game actually holds the deck at
+        // the table; once idle the deck belongs back at its template origin.
+        public void _OnPivotMoved()
+        {
+            if (resolvedDeck == null || !_IsGameStarted()) return;
+            resolvedDeck._MoveTo(CardHome);
         }
 
         // Local half of a quit/reset for everyone but the dealer. The authoritative
