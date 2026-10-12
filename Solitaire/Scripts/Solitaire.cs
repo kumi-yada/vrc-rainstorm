@@ -121,7 +121,7 @@ namespace org.kumagee
         public int ReserveCount = 13;
 
         [Header("Win")]
-        [Tooltip("Banner over the table. Once every foundation holds a complete 13-card pile it shows its win text; before any game starts it shows the entry fee instead (i.e. \"200 coins to start\") and stays hidden for the duration of a running game so nobody mistakes a spoiler for the current state.")]
+        [Tooltip("Banner over the table. Once every foundation holds a complete 13-card pile it shows its win text; before any game starts it shows the entry fee instead (i.e. \"200c to start\") and stays hidden for the duration of a running game so nobody mistakes a spoiler for the current state.")]
         public GameObject WinMessage;
 
         [Header("UI")]
@@ -2632,7 +2632,7 @@ namespace org.kumagee
         }
 
         // The banner under the start button (WinMessage) doubles as the idle
-        // prompt: before any game it says "200 coins to start" instead of floating
+        // prompt: before any game it says "200c to start" instead of floating
         // dead over the table. Once won it shows the win message, and the whole
         // banner hides while a game is dealt - the running table is thanks enough,
         // and showing the fee mid-game would read as a double charge.
@@ -2676,7 +2676,7 @@ namespace org.kumagee
 
             if (EntryFee > 0f)
             {
-                if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix(BuildEntryFeeAmount(), "COINS_TO_START", "");
+                if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix(BuildEntryFeeAmount() + "c", "COINS_TO_START", "");
                 WinMessage.SetActive(true);
             }
             else

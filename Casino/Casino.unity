@@ -732,7 +732,7 @@ MonoBehaviour:
   - You won
   - You earned
   - 'Payout:'
-  - coins to start
+  - ' to start'
   - Are you sure you want to quit this game?
   - Card Backs
   - Leaderboard
@@ -749,7 +749,7 @@ MonoBehaviour:
   - Already dealing cards.
   - Someone else's game is running.
   - You already have a game running. Quit it first.
-  - 'Not enough chips. Need '
+  - 'Not enough funds. Need '
   - Stock is empty.
   - Fill all columns before dealing.
   - No cards to recycle.
@@ -769,7 +769,7 @@ MonoBehaviour:
 
     - Only a King on
     an empty slot'
-  - 'Payout: 10 chips per card on foundation pile'
+  - 'Payout: 10c per card on foundation pile'
   - Spider - 2 Suit
   - "Goal: Move all 104 cards to 8 foundations, K \u2192 A by suit"
   - 'Rules:
@@ -782,7 +782,7 @@ MonoBehaviour:
     Any card on an empty slot
 
     - Stock: 1 card per column, none empty'
-  - 'Payout: 20 chips per foundation card + 1.5x win bonus'
+  - 'Payout: 20c per foundation card + 1.5x win bonus'
   - Canfield - Draw 3
   - 'Goal: Move all 52 cards to the 4 foundation piles'
   - 'Rules:
@@ -796,7 +796,7 @@ MonoBehaviour:
 
     - Empty
     slot fills from reserve'
-  - 'Payout: 100 chips per foundation card + 2x win bonus'
+  - 'Payout: 100c per foundation card + 2x win bonus'
 --- !u!1 &25539176
 GameObject:
   m_ObjectHideFlags: 0
@@ -14194,7 +14194,7 @@ MonoBehaviour:
   - {fileID: 1394088604}
   - {fileID: 1711637386}
   - {fileID: 1730757711}
-  moneyFormat: $ {0:F0}
+  moneyFormat: '{0:F0}c'
   refreshInterval: 3
 --- !u!1 &787439721 stripped
 GameObject:
@@ -33234,7 +33234,7 @@ MonoBehaviour:
   - "\u52DD\u5229!"
   - "\u7372\u5F97"
   - "\u914D\u5F53:"
-  - "\u30B3\u30A4\u30F3\u3067\u30B9\u30BF\u30FC\u30C8"
+  - "\u3067\u30B9\u30BF\u30FC\u30C8"
   - "\u30B2\u30FC\u30E0\u3092\u3084\u3081\u307E\u3059\u304B\uFF1F"
   - "\u30AB\u30FC\u30C9\u306E\u88CF\u9762"
   - "\u30E9\u30F3\u30AD\u30F3\u30B0"
@@ -33251,7 +33251,7 @@ MonoBehaviour:
   - "\u30AB\u30FC\u30C9\u3092\u914D\u3063\u3066\u3044\u307E\u3059\u3002"
   - "\u4ED6\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u30B2\u30FC\u30E0\u304C\u9032\u884C\u4E2D\u3067\u3059\u3002"
   - "\u65E2\u306B\u30B2\u30FC\u30E0\u3092\u9032\u884C\u4E2D\u3067\u3059\u3002\u5148\u306B\u7D42\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
-  - "\u30B3\u30A4\u30F3\u304C\u8DB3\u308A\u307E\u305B\u3093\u3002"
+  - "\u6B8B\u9AD8\u304C\u8DB3\u308A\u307E\u305B\u3093\u3002"
   - "\u5C71\u672D\u304C\u7A7A\u3067\u3059\u3002"
   - "\u5168\u3066\u306E\u5217\u3092\u57CB\u3081\u3066\u304B\u3089\u914D\u3063\u3066\u304F\u3060\u3055\u3044\u3002"
   - "\u623B\u3059\u30AB\u30FC\u30C9\u304C\u3042\u308A\u307E\u305B\u3093\u3002"
@@ -33267,21 +33267,21 @@ MonoBehaviour:
   - "\u76EE\u7684: 52\u679A\u3059\u3079\u3066\u30924\u3064\u306E\u7D44\u672D\u3078\u3001A\u2192K\u306E\u9806\u3067\u7A4D\u3080"
   - "\u30EB\u30FC\u30EB:\n- \u5834\u672D\u306F\u964D\u9806\u30FB\u8272\u4EA4\u4E92\u306B\u91CD\u306D\u308B\n-
     \u7A7A\u304D\u5217\u306B\u306FK\u306E\u307F\u7F6E\u3051\u308B"
-  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D10\u30C1\u30C3\u30D7"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D10c"
   - "\u30B9\u30D1\u30A4\u30C0\u30FC - 2\u30B9\u30FC\u30C4"
   - "\u76EE\u7684: 104\u679A\u3059\u3079\u3066\u30928\u3064\u306E\u7D44\u672D\u3078\u3001K\u2192A\u306E\u9806\u3067\u7A4D\u3080"
   - "\u30EB\u30FC\u30EB:\n- \u5834\u672D\u306F\u964D\u9806\u306B\u91CD\u306D\u308B\n-
     \u540C\u8272\u306E\u9023\u7D9A\u5217\u306E\u307F\u307E\u3068\u3081\u3066\u79FB\u52D5\n-
     \u7A7A\u304D\u5217\u306B\u306F\u3069\u306E\u30AB\u30FC\u30C9\u3082\u7F6E\u3051\u308B\n-
     \u5C71\u672D\u306F\u5404\u5217\u306B1\u679A\u3001\u7A7A\u304D\u5217\u306A\u3057\u306E\u3068\u304D\u306E\u307F"
-  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D20\u30C1\u30C3\u30D7 + \u52DD\u5229\u30DC\u30FC\u30CA\u30B91.5\u500D"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D20c + \u52DD\u5229\u30DC\u30FC\u30CA\u30B91.5\u500D"
   - "\u30AD\u30E3\u30F3\u30D5\u30A3\u30FC\u30EB\u30C9 - 3\u679A\u3081\u304F\u308A"
   - "\u76EE\u7684: 52\u679A\u3059\u3079\u3066\u30924\u3064\u306E\u7D44\u672D\u3078"
   - "\u30EB\u30FC\u30EB:\n- \u5834\u672D\u306F\u964D\u9806\u30FB\u8272\u4EA4\u4E92\u306B\u91CD\u306D\u308B\n-
     \u7D44\u672D\u306F\u57FA\u6E96\u30AB\u30FC\u30C9\u304B\u3089\u6607\u9806\u3001K\u306E\u6B21\u306FA\n-
     \u5C71\u672D\u304B\u30893\u679A\u3081\u304F\u308A\u3001\u4E00\u756A\u4E0A\u306E\u307F\u4F7F\u7528\u53EF\n-
     \u7A7A\u304D\u5217\u306F\u4E88\u5099\u672D\u304B\u3089\u81EA\u52D5\u88DC\u5145"
-  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D100\u30C1\u30C3\u30D7 + \u52DD\u5229\u30DC\u30FC\u30CA\u30B92\u500D"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D100c + \u52DD\u5229\u30DC\u30FC\u30CA\u30B92\u500D"
 --- !u!114 &1593721870
 MonoBehaviour:
   m_ObjectHideFlags: 2

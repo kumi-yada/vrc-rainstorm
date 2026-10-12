@@ -55,7 +55,7 @@ public class GameInteract : UdonSharpBehaviour
 
     private string PromptText()
     {
-        return storedEntryFee > 0 ? _Text("START") + " (" + storedEntryFee + " chips)" : _Text("START");
+        return storedEntryFee > 0 ? _Text("START") + " (" + storedEntryFee + "c)" : _Text("START");
     }
 
     private string _Text(string key)

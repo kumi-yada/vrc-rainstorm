@@ -203,7 +203,7 @@ public class CardTheme : UdonSharpBehaviour
 
         if (!unlocked)
         {
-            buttonLabel.SetPrefixKeyAndSuffix("", "BUY", " (" + price + ")");
+            buttonLabel.SetPrefixKeyAndSuffix("", "BUY", " (" + price + "c)");
         }
         else if (equipped)
         {

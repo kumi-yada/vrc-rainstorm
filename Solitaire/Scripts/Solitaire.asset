@@ -1516,8 +1516,8 @@ MonoBehaviour:
       Entry: 1
       Data: Banner over the table. Once every foundation holds a complete 13-card
         pile it shows its win text; before any game starts it shows the entry fee
-        instead (i.e. "200 coins to start") and stays hidden for the duration of
-        a running game so nobody mistakes a spoiler for the current state.
+        instead (i.e. "200c to start") and stays hidden for the duration of a running
+        game so nobody mistakes a spoiler for the current state.
     - Name: 
       Entry: 8
       Data: 
