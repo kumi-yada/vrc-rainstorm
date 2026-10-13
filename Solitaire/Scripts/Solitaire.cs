@@ -1,6 +1,7 @@
 using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Components;
+using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common;
@@ -253,6 +254,17 @@ namespace org.kumagee
         // difference is what a win bonus still owes (payoutEarned is multiplied by the
         // bonus before CreditPayout runs, so the gap is exactly the bonus).
         private float payoutCredited;
+
+        // PlayerData prefixes for the lifetime tally, one game/won counter per mode.
+        // The mode name is appended so Klondike, Spider and Canfield keep separate
+        // records for the local player, persisted across sessions by the SDK.
+        private const string GamesKeyPrefix = "Solitaire.Games.";
+        private const string WinsKeyPrefix = "Solitaire.Wins.";
+
+        // PlayerData may only be touched after OnPlayerRestored. The flag gates the
+        // counting so a record can never be written (or read) before the SDK has
+        // loaded this player's saved data.
+        private bool playerDataReady;
 
         private int dealCol;
         private int dealDepth;
@@ -1356,6 +1368,7 @@ namespace org.kumagee
             won = false;
             payoutEarned = 0f;
             payoutCredited = 0f;
+            RecordGameStarted();
             RefreshStartLabel();
             _RefreshStartInteractable();
             RefreshWinMessage();
@@ -2695,6 +2708,47 @@ namespace org.kumagee
             return $"{EntryFee}";
         }
 
+        // ---- Records
+        //
+        // Lifetime games/wins for the local player, tallied per mode in PlayerData so
+        // they survive across sessions. Only the dealer's client ever runs Deal and
+        // CheckWon, so the local player here is always the one whose record to bump.
+
+        public override void OnPlayerRestored(VRCPlayerApi player)
+        {
+            if (player == null || !player.IsValid() || !player.isLocal) return;
+            playerDataReady = true;
+        }
+
+        private void RecordGameStarted()
+        {
+            IncrementRecord(GamesKeyPrefix);
+        }
+
+        private void RecordGameWon()
+        {
+            IncrementRecord(WinsKeyPrefix);
+        }
+
+        private void IncrementRecord(string prefix)
+        {
+            if (!playerDataReady) return;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            string key = ModeRecordKey(prefix);
+            int count = 0;
+            if (PlayerData.TryGetInt(local, key, out int saved)) count = saved;
+            PlayerData.SetInt(local, key, count + 1);
+        }
+
+        private string ModeRecordKey(string prefix)
+        {
+            if (Mode == SolitaireMode.Spider) return prefix + "Spider";
+            if (Mode == SolitaireMode.Canfield) return prefix + "Canfield";
+            return prefix + "Klondike";
+        }
+
         private void CheckWon()
         {
             if (won || FoundationSlots == null) return;
@@ -2704,6 +2758,7 @@ namespace org.kumagee
                 if (FoundationSlots[i]._GetCardCount() < CardLogic.RankDefinitionsCount) return;
             }
             won = true;
+            RecordGameWon();
             if (CardAudio != null) CardAudio.PlayNetworkedIndex(WinClipIndex, transform.position);
             if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
             CreditPayout();
