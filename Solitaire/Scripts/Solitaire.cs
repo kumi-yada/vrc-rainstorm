@@ -2739,7 +2739,7 @@ namespace org.kumagee
             string key = ModeRecordKey(prefix);
             int count = 0;
             if (PlayerData.TryGetInt(local, key, out int saved)) count = saved;
-            PlayerData.SetInt(local, key, count + 1);
+            PlayerData.SetInt(key, count + 1);
         }
 
         private string ModeRecordKey(string prefix)
