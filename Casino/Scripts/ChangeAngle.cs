@@ -2,6 +2,7 @@
 using TMPro;
 using UdonSharp;
 using UnityEngine;
+using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
 
@@ -22,6 +23,9 @@ public class ChangeAngle : UdonSharpBehaviour
     [Tooltip("Label showing the other angle value.")]
     public TextMeshProUGUI angleText;
 
+    [Tooltip("Seconds the pivot takes to reach the toggled angle.")]
+    public float tweenDuration = 0.25f;
+
     // Objects parented under the pivot follow it for free, but something parked at
     // a transform beneath the pivot without being a child of it - a per-player deck
     // PlayerObject, say - has to be moved again by hand after every change. Such a
@@ -34,6 +38,10 @@ public class ChangeAngle : UdonSharpBehaviour
 
     private Quaternion _baseRotation;
     private bool _baseCaptured = false;
+
+    // The in-flight rotation tween, killed and recreated on every _Apply so a
+    // rapid re-toggle cuts the previous motion short instead of piling up.
+    private VRCTweenHandle _angleTween;
 
     // The interactable collider sharing this object. VRChat offers the "Rotate"
     // prompt off whatever collider sits on the behaviour's GameObject, so turning
@@ -140,7 +148,14 @@ public class ChangeAngle : UdonSharpBehaviour
         if (pivot != null)
         {
             _CaptureBase();
-            pivot.localRotation = _baseRotation * Quaternion.AngleAxis(angle, Vector3.right);
+            Quaternion target = _baseRotation * Quaternion.AngleAxis(angle, Vector3.right);
+            _angleTween.Kill();
+            _angleTween = pivot.TweenLocalRotation(target.eulerAngles, tweenDuration, VRCTweenEase.OutCubic)
+                .OnComplete(this, nameof(_FireAngleChanged));
+        }
+        else
+        {
+            _FireAngleChanged();
         }
 
         if (angleText != null)
@@ -148,9 +163,14 @@ public class ChangeAngle : UdonSharpBehaviour
             float shown = Mathf.Abs(_open ? angleB : angleA);
             angleText.text = shown.ToString() + "°";
         }
+    }
 
-        // Fires on the local client for its own toggles and, via OnDeserialization,
-        // for everyone else's - so every client re-parks its own copy of the deck.
+    // Fires on the local client for its own toggles and, via OnDeserialization,
+    // for everyone else's - so every client re-parks its own copy of the deck.
+    // Dispatched from the tween's OnComplete so the deck settles against the
+    // pivot's final angle, not the one it had when the interact landed.
+    public void _FireAngleChanged()
+    {
         if (_angleChangedTarget != null && !string.IsNullOrEmpty(_angleChangedEvent))
         {
             _angleChangedTarget.SendCustomEvent(_angleChangedEvent);

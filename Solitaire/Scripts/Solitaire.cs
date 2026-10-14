@@ -2935,6 +2935,18 @@ namespace org.kumagee
         public void _OnDoubleOrNothingDouble()
         {
             if (!_IsLocalGameOwner()) return;
+
+            // Re-staking claws the already-credited foundation payout back out of the
+            // wallet. If the player spent that part on another game while the dialog
+            // was up, the wallet no longer covers the claw-back, so refuse the double
+            // and collect what is left instead.
+            if (UdonChips != null && UdonChips.money < payoutCredited)
+            {
+                ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildPayoutAmount() + "c.");
+                _OnDoubleOrNothingCollect();
+                return;
+            }
+
             if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
 
             doubleStake = payoutEarned;
