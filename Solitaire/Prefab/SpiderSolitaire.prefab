@@ -6155,6 +6155,26 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: SendCustomEvent
       objectReference: {fileID: 0}
+    - target: {fileID: 6668638697316843568, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6668638697316843568, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6668638697316843568, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6668638697316843568, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6684080764399869352, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
       propertyPath: m_Pivot.x
@@ -6276,6 +6296,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: SendCustomEvent
+      objectReference: {fileID: 0}
+    - target: {fileID: 9054797646775160701, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9054797646775160701, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9054797646775160701, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9054797646775160701, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

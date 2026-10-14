@@ -368,6 +368,7 @@ namespace org.kumagee
                 RefreshWinMessage();
             }
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
             if (StartInteract != null) StartInteract._SetEntryFee((int)EntryFee);
 
             // A pivot under this object (ChangeAngle) moves the table's card places
@@ -487,6 +488,7 @@ namespace org.kumagee
             _RefreshStartInteractable();
             RefreshWinMessage();
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
             Debug.Log($"Solitaire: Initialized with {n} cards and {baseSlotCount} base slots.");
         }
 
@@ -2722,7 +2724,12 @@ namespace org.kumagee
 
             if (gameStarted)
             {
-                if (payoutEarned > 0f)
+                if (doubleOrNothingGame)
+                {
+                    if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix("", "DOUBLE_OR_NOTHING_SHORT", " " + BuildDoubleStakeAmount() + "c");
+                    WinMessage.SetActive(true);
+                }
+                else if (payoutEarned > 0f)
                 {
                     if (winMessageText != null) winMessageText.SetPrefixKeyAndSuffix("", "PAYOUT", " " + BuildPayoutAmount() + "c");
                     WinMessage.SetActive(true);
@@ -2753,6 +2760,16 @@ namespace org.kumagee
                 return $"{fee}";
             }
             return $"{EntryFee}";
+        }
+
+        private string BuildDoubleStakeAmount()
+        {
+            if (Mathf.Approximately(doubleStake, Mathf.Floor(doubleStake)))
+            {
+                int stake = (int)doubleStake;
+                return $"{stake}";
+            }
+            return $"{doubleStake}";
         }
 
         // ---- Records
