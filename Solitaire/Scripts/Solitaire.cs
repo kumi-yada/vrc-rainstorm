@@ -2812,17 +2812,17 @@ namespace org.kumagee
 
         // Bonus added to CompletePayoutMultiplier on a win, sized by how long the
         // current streak already is: the first win pays no streak bonus, then it
-        // climbs by 0.5x, 1x and 2x for the second, third and fourth, and plateaus
-        // at 4x from the fifth onward. `streak` is the win count including the one
-        // just recorded, so a first-ever win (streak 1) gets nothing and a second
-        // in a row (streak 2) gets the 0.5x step.
+        // climbs by 0.25x, 0.5x and 1x for the second, third and fourth, and
+        // plateaus at 3x from the fifth onward. `streak` is the win count including
+        // the one just recorded, so a first-ever win (streak 1) gets nothing and a
+        // second in a row (streak 2) gets the 0.25x step.
         private float _StreakWinMultiplier(int streak)
         {
             if (streak <= 1) return 0f;
-            if (streak == 2) return 0.5f;
-            if (streak == 3) return 1f;
-            if (streak == 4) return 2f;
-            return 4f;
+            if (streak == 2) return 0.25f;
+            if (streak == 3) return 0.5f;
+            if (streak == 4) return 1f;
+            return 3f;
         }
 
         private void IncrementRecord(string prefix)

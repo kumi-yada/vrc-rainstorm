@@ -77,15 +77,15 @@ namespace org.kumagee
 
         // Mirrors Solitaire._StreakWinMultiplier: the payout bonus a run of the
         // given length adds on a win. The first win pays nothing, then it steps up
-        // 0.5x, 1x and 2x, plateauing at 4x from the fifth win on. Kept in sync by
-        // hand. Callers pass the run length the next win would reach.
+        // 0.25x, 0.5x and 1x, plateauing at 3x from the fifth win on. Kept in sync
+        // by hand. Callers pass the run length the next win would reach.
         private string StreakBonusText(int winCount)
         {
             if (winCount <= 1) return "0";
-            if (winCount == 2) return "0.5";
-            if (winCount == 3) return "1";
-            if (winCount == 4) return "2";
-            return "4";
+            if (winCount == 2) return "0.25";
+            if (winCount == 3) return "0.5";
+            if (winCount == 4) return "1";
+            return "3";
         }
 
         private int ReadStreak()
