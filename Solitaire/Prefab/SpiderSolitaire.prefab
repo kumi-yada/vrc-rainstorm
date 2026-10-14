@@ -2271,7 +2271,7 @@ MonoBehaviour:
   WasteSlot: {fileID: 0}
   ReserveSlot: {fileID: 0}
   SnapDistance: 0.12
-  RunCollectDuration: 1
+  RunCollectDuration: 0.5
   DealDuration: 0.5
   DealDelay: 0.05
   DealCounts: 06000000060000000600000006000000050000000500000005000000050000000500000005000000

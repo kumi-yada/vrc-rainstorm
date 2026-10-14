@@ -593,6 +593,38 @@ namespace org.kumagee
             return false;
         }
 
+        // A won game at another table is finished but not cleared: the cards are
+        // still laid out and the table still belongs to the dealer. When the same
+        // player deals a fresh game elsewhere, that old table has to be torn down
+        // first or it stays locked to them with a dead board on it. Walk the
+        // player's decks - a won deck is that deck's own record of "won, not yet
+        // reset" - and reset whichever table each one points at.
+        private void ClearFinishedGames(VRCPlayerApi owner)
+        {
+            if (!Utilities.IsValid(owner)) return;
+
+            var objects = Networking.GetPlayerObjects(owner);
+            // Null while the player's objects are still spawning; the new game does
+            // not depend on this cleanup, so a miss just leaves the old table up.
+            if (objects == null) return;
+
+            for (int i = 0; i < objects.Length; i++)
+            {
+                if (!Utilities.IsValid(objects[i])) continue;
+                DeckManager[] found = objects[i].GetComponentsInChildren<DeckManager>(true);
+                if (found == null) continue;
+                for (int d = 0; d < found.Length; d++)
+                {
+                    DeckManager deck = found[d];
+                    if (!Utilities.IsValid(deck)) continue;
+                    if (!deck.GameWon) continue;
+
+                    Solitaire table = deck.Solitaire;
+                    if (table != null && table != this) table._ResetGame();
+                }
+            }
+        }
+
         private void RegisterBaseSlot(CardSlot slot, int id)
         {
             slotsById[id] = slot;
@@ -1377,6 +1409,11 @@ namespace org.kumagee
                 ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildEntryFeeAmount() + "c.");
                 return;
             }
+
+            // Tear down any game this player already won at another table before
+            // dealing here: a finished table left uncleared would otherwise stay
+            // locked to them with a dead board on it.
+            ClearFinishedGames(owner);
 
             // Re-resolve the deck and rebuild the card/slot registry on every deal:
             // the deck lives as a per-player PlayerObject copy, so whichever player
@@ -2220,6 +2257,8 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
+            if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
             RefreshStartLabel();
             _RefreshStartInteractable();
             resolvedDeck._RefreshInteractable();
