@@ -141,6 +141,13 @@ namespace org.kumagee
         [Tooltip("Notification popup for player-facing messages (illegal moves, insufficient chips, etc.). Leave unassigned to silence them.")]
         public Notification Notification;
 
+        [Header("Double or Nothing")]
+        [Tooltip("Canvas shown after a win, offering to collect the winnings or stake them on a double-or-nothing game. Leave unassigned to disable the feature and pay out immediately as before. Wire its two buttons to _OnDoubleOrNothingCollect and _OnDoubleOrNothingDouble.")]
+        public GameObject DoubleOrNothingDialog;
+
+        [Tooltip("Label on the dialog showing the amount on offer. Solitaire writes it with the DOUBLE_OR_NOTHING key plus a chip suffix; add that key to the localization table.")]
+        public LocalizedText DoubleOrNothingAmountLabel;
+
         [Tooltip("Localization manager used to translate notification text. Falls back to a scene search if empty.")]
         [SerializeField] private LocalizationManager localization;
 
@@ -254,6 +261,17 @@ namespace org.kumagee
         // difference is what a win bonus still owes (payoutEarned is multiplied by the
         // bonus before CreditPayout runs, so the gap is exactly the bonus).
         private float payoutCredited;
+
+        // Double-or-nothing state. Only the dealer's client ever runs the win/payout
+        // path, so none of this needs to sync - spectators see the same board either
+        // way and never touch the money.
+        //
+        // doubleStake is the amount carried over from a previous win and put at risk,
+        // including whatever the dealer clawed back out of their wallet to do so. A
+        // double-or-nothing win pays exactly twice this - no streak multiplier, no
+        // foundation accrual folded in - and a loss or quit forfeits it.
+        private bool doubleOrNothingGame;
+        private float doubleStake;
 
         // PlayerData prefixes for the lifetime tally, one game/won counter per mode.
         // The mode name is appended so Klondike, Spider and Canfield keep separate
@@ -1146,6 +1164,10 @@ namespace org.kumagee
 
                 if (won)
                 {
+                    // A pending double-or-nothing decision owns the flow; the canvas is
+                    // the only way forward, so the start button does nothing until the
+                    // player collects or doubles (which would otherwise drop the pot).
+                    if (DoubleOrNothingDialog != null && DoubleOrNothingDialog.activeSelf) return;
                     _ResetGame();
                     return;
                 }
@@ -1175,7 +1197,22 @@ namespace org.kumagee
                 return;
             }
             RecordGameLost();
-            float earned = CreditPayout();
+            float earned;
+            if (doubleOrNothingGame)
+            {
+                // Quitting a double-or-nothing game forfeits the whole pot: the stake
+                // carried over from the previous win and this game's deferred accrual.
+                // Nothing was credited, so there is nothing to claw back - just drop it.
+                doubleStake = 0f;
+                doubleOrNothingGame = false;
+                payoutEarned = 0f;
+                payoutCredited = 0f;
+                earned = 0f;
+            }
+            else
+            {
+                earned = CreditPayout();
+            }
             _ResetGame();
             if (WinMessage != null && UdonChips != null && earned > 0f)
             {
@@ -1255,6 +1292,9 @@ namespace org.kumagee
         private void AccumulateFoundationReward(int cardCount)
         {
             if (FoundationPayout <= 0f) return;
+            // Double-or-nothing is a pure bet on the staked amount: cards reaching a
+            // foundation accrue nothing, so the win is exactly twice the stake.
+            if (doubleOrNothingGame) return;
             float reward = FoundationPayout * cardCount;
             payoutEarned += reward;
             if (UdonChips != null)
@@ -1321,7 +1361,9 @@ namespace org.kumagee
                 return;
             }
 
-            if (!TryPayEntryFee())
+            // A double-or-nothing game stakes the previous win instead of charging a
+            // fresh entry fee - the winnings already in the pot are the buy-in.
+            if (!doubleOrNothingGame && !TryPayEntryFee())
             {
                 Debug.Log($"Solitaire: Not enough chips to start a {Mode} game (fee {_GetEntryFee()}).");
                 ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildEntryFeeAmount() + "c.");
@@ -2813,16 +2855,79 @@ namespace org.kumagee
             won = true;
             int streak = RecordGameWon();
             if (CardAudio != null) CardAudio.PlayNetworkedIndex(WinClipIndex, transform.position);
-            // The streak bonus rides on top of the base win multiplier rather than
-            // replacing it. A base of zero (or less) means "no bonus" and reads as
-            // 1x, so it never cancels the payout; the streak step is then added.
-            float multiplier = CompletePayoutMultiplier > 0f ? CompletePayoutMultiplier : 1f;
-            multiplier += _StreakWinMultiplier(streak);
-            payoutEarned *= multiplier;
-            CreditPayout();
+            // Double-or-nothing is a pure bet: the win pays exactly twice the staked
+            // amount, with no streak multiplier and no foundation accrual folded in.
+            if (doubleOrNothingGame)
+            {
+                payoutEarned = 2f * doubleStake;
+            }
+            else
+            {
+                // The streak bonus rides on top of the base win multiplier rather than
+                // replacing it. A base of zero (or less) means "no bonus" and reads as
+                // 1x, so it never cancels the payout; the streak step is then added.
+                float multiplier = CompletePayoutMultiplier > 0f ? CompletePayoutMultiplier : 1f;
+                multiplier += _StreakWinMultiplier(streak);
+                payoutEarned *= multiplier;
+            }
             if (resolvedDeck != null) resolvedDeck._SetGameWon(true);
-            RefreshWinMessage();
+
+            // No double-or-nothing UI means the old immediate payout: credit now and
+            // let the win banner report it. Otherwise defer the credit and offer the
+            // choice - collect, or stake the lot on another game.
+            if (DoubleOrNothingDialog != null)
+            {
+                ShowDoubleOrNothing();
+            }
+            else
+            {
+                CreditPayout();
+                RefreshWinMessage();
+            }
             _RefreshStartInteractable();
+        }
+
+        // Puts the amount on offer on the double-or-nothing dialog and shows it in
+        // place of the win banner, so the decision owns the screen until made.
+        private void ShowDoubleOrNothing()
+        {
+            if (DoubleOrNothingAmountLabel != null)
+            {
+                DoubleOrNothingAmountLabel.SetPrefixKeyAndSuffix("", "DOUBLE_OR_NOTHING", " " + BuildPayoutAmount() + "c");
+            }
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(true);
+            if (WinMessage != null) WinMessage.SetActive(false);
+        }
+
+        // Collect the current winnings and finish the game, paying out whatever
+        // payoutEarned still has that the wallet has not received. In a normal win
+        // that is the win bonus; in a double-or-nothing win it is the whole pot.
+        public void _OnDoubleOrNothingCollect()
+        {
+            if (!_IsLocalGameOwner()) return;
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
+            CreditPayout();
+            doubleStake = 0f;
+            doubleOrNothingGame = false;
+            RefreshWinMessage();
+        }
+
+        // Stake the winnings on another game. Any part already credited into the
+        // wallet is clawed back so the full amount is at risk, then a fresh game is
+        // dealt in double-or-nothing mode.
+        public void _OnDoubleOrNothingDouble()
+        {
+            if (!_IsLocalGameOwner()) return;
+            if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
+
+            doubleStake = payoutEarned;
+            if (UdonChips != null && payoutCredited > 0f) UdonChips.money -= payoutCredited;
+            payoutCredited = 0f;
+            payoutEarned = 0f;
+
+            _ResetGame();
+            doubleOrNothingGame = true;
+            Deal(Networking.LocalPlayer);
         }
     }
 }
