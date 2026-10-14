@@ -797,6 +797,7 @@ MonoBehaviour:
     - Empty
     slot fills from reserve'
   - 'Payout: 100c per foundation card + 2x win bonus'
+  - Win Streak
 --- !u!1 &25539176
 GameObject:
   m_ObjectHideFlags: 0
@@ -6162,6 +6163,7 @@ MonoBehaviour:
   - CANFIELD_GOAL
   - CANFIELD_RULES
   - CANFIELD_PAYOUT
+  - WIN_STREAK
 --- !u!1 &358170787
 GameObject:
   m_ObjectHideFlags: 0
@@ -8812,6 +8814,12 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[2]
       value: 
       objectReference: {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
+    - target: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 3135157700486997834, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -8926,6 +8934,12 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 7650923164703984175, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: m_text
@@ -8936,6 +8950,30 @@ PrefabInstance:
       propertyPath: m_text
       value: SPIDER_RULES
       objectReference: {fileID: 0}
+    - target: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -10196,6 +10234,12 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[2]
       value: 
       objectReference: {fileID: 2100000, guid: 3499aaa1083834501877d4c561fe5856, type: 2}
+    - target: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 3135157700486997834, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -10310,6 +10354,12 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 7650923164703984175, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: m_text
@@ -10320,6 +10370,30 @@ PrefabInstance:
       propertyPath: m_text
       value: CANFIELD_RULES
       objectReference: {fileID: 0}
+    - target: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -33564,6 +33638,7 @@ MonoBehaviour:
     \u5C71\u672D\u304B\u30893\u679A\u3081\u304F\u308A\u3001\u4E00\u756A\u4E0A\u306E\u307F\u4F7F\u7528\u53EF\n-
     \u7A7A\u304D\u5217\u306F\u4E88\u5099\u672D\u304B\u3089\u81EA\u52D5\u88DC\u5145"
   - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D100c + \u52DD\u5229\u30DC\u30FC\u30CA\u30B92\u500D"
+  - "\u9023\u52DD"
 --- !u!114 &1593721870
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -34277,7 +34352,7 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1603442832}
   udonChips: {fileID: 0}
-  maxMoney: 1000
+  maxMoney: 800
   supporterMaxMoney: 2000
   TimeLimit: 600
   supporters: {fileID: 1548720592}
@@ -40195,6 +40270,7 @@ MonoBehaviour:
     A\n- \u4ECE\u724C\u5806\u7FFB3\u5F20\uFF0C\u4EC5\u6700\u4E0A\u9762\u53EF\u7528\n-
     \u7A7A\u5217\u81EA\u52A8\u4ECE\u9884\u5907\u724C\u8865\u5145"
   - "\u6D3E\u5F69: \u6BCF\u5F20\u57FA\u7840\u724C100c + 2\u500D\u80DC\u5229\u5956\u52B1"
+  - "\u8FDE\u80DC"
 --- !u!1 &2012782626 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1764389879700159573, guid: 1b46aa654fe6f544d88760db32b1dd44,
@@ -42488,6 +42564,12 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 2353856234995880188, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 3135157700486997834, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -42581,11 +42663,41 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7574901135071751961, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 7792681892346117035, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     - target: {fileID: 7873887818472073885, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: _syncMethod
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 8603899196172555206, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9067783044411277465, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+    - target: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: serializationData.Prefab
+      value: 
+      objectReference: {fileID: 9195810753475027621, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

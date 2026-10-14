@@ -63,7 +63,7 @@ namespace org.kumagee
         [Tooltip("Chips awarded per card placed on a foundation.")]
         public float FoundationPayout = 0f;
 
-        [Tooltip("Multiplies the total accrued payout when the game is completed (won) rather than quit early. 1 means no bonus; 2 doubles the winnings only on a win, never on an early quit.")]
+        [Tooltip("Base multiplier on the total accrued payout when the game is completed (won) rather than quit early. 1 means no bonus; 2 doubles the winnings only on a win, never on an early quit. An in-progress win streak adds a further bonus on top of this (see _StreakWinMultiplier).")]
         public float CompletePayoutMultiplier = 1f;
 
         [Header("Audio")]
@@ -260,6 +260,10 @@ namespace org.kumagee
         // records for the local player, persisted across sessions by the SDK.
         private const string GamesKeyPrefix = "Solitaire.Games.";
         private const string WinsKeyPrefix = "Solitaire.Wins.";
+        // Consecutive wins: bumped on every win, dropped back to zero on every
+        // game the player abandons without finishing. Kept per mode alongside the
+        // games/wins counters, for the same reason.
+        private const string WinStreakKeyPrefix = "Solitaire.Streak.";
 
         // PlayerData may only be touched after OnPlayerRestored. The flag gates the
         // counting so a record can never be written (or read) before the SDK has
@@ -1170,6 +1174,7 @@ namespace org.kumagee
                 _ResetGame();
                 return;
             }
+            RecordGameLost();
             float earned = CreditPayout();
             _ResetGame();
             if (WinMessage != null && UdonChips != null && earned > 0f)
@@ -2725,9 +2730,57 @@ namespace org.kumagee
             IncrementRecord(GamesKeyPrefix);
         }
 
-        private void RecordGameWon()
+        // Returns the streak after this win, so CheckWon can size the payout bonus
+        // off it without having to read PlayerData back a second time.
+        private int RecordGameWon()
         {
             IncrementRecord(WinsKeyPrefix);
+            return IncrementWinStreak();
+        }
+
+        // A game that ended without a win - the player quit it part-way - breaks the
+        // run, so the streak goes back to zero rather than being left to carry over.
+        private void RecordGameLost()
+        {
+            SaveWinStreak(0);
+        }
+
+        private int IncrementWinStreak()
+        {
+            if (!playerDataReady) return 1;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return 1;
+
+            string key = ModeRecordKey(WinStreakKeyPrefix);
+            int streak = 0;
+            if (PlayerData.TryGetInt(local, key, out int saved)) streak = saved;
+            int next = streak + 1;
+            SaveWinStreak(next);
+            return next;
+        }
+
+        private void SaveWinStreak(int streak)
+        {
+            if (!playerDataReady) return;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            PlayerData.SetInt(ModeRecordKey(WinStreakKeyPrefix), streak);
+        }
+
+        // Bonus added to CompletePayoutMultiplier on a win, sized by how long the
+        // current streak already is: the first win pays no streak bonus, then it
+        // climbs by 0.5x, 1x and 2x for the second, third and fourth, and plateaus
+        // at 4x from the fifth onward. `streak` is the win count including the one
+        // just recorded, so a first-ever win (streak 1) gets nothing and a second
+        // in a row (streak 2) gets the 0.5x step.
+        private float _StreakWinMultiplier(int streak)
+        {
+            if (streak <= 1) return 0f;
+            if (streak == 2) return 0.5f;
+            if (streak == 3) return 1f;
+            if (streak == 4) return 2f;
+            return 4f;
         }
 
         private void IncrementRecord(string prefix)
@@ -2758,9 +2811,14 @@ namespace org.kumagee
                 if (FoundationSlots[i]._GetCardCount() < CardLogic.RankDefinitionsCount) return;
             }
             won = true;
-            RecordGameWon();
+            int streak = RecordGameWon();
             if (CardAudio != null) CardAudio.PlayNetworkedIndex(WinClipIndex, transform.position);
-            if (CompletePayoutMultiplier > 0f) payoutEarned *= CompletePayoutMultiplier;
+            // The streak bonus rides on top of the base win multiplier rather than
+            // replacing it. A base of zero (or less) means "no bonus" and reads as
+            // 1x, so it never cancels the payout; the streak step is then added.
+            float multiplier = CompletePayoutMultiplier > 0f ? CompletePayoutMultiplier : 1f;
+            multiplier += _StreakWinMultiplier(streak);
+            payoutEarned *= multiplier;
             CreditPayout();
             if (resolvedDeck != null) resolvedDeck._SetGameWon(true);
             RefreshWinMessage();

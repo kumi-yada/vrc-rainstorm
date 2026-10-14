@@ -367,9 +367,10 @@ MonoBehaviour:
       Data: 23|UnityEngine.TooltipAttribute, UnityEngine.CoreModule
     - Name: tooltip
       Entry: 1
-      Data: Multiplies the total accrued payout when the game is completed (won)
-        rather than quit early. 1 means no bonus; 2 doubles the winnings only on
-        a win, never on an early quit.
+      Data: Base multiplier on the total accrued payout when the game is completed
+        (won) rather than quit early. 1 means no bonus; 2 doubles the winnings only
+        on a win, never on an early quit. An in-progress win streak adds a further
+        bonus on top of this (see _StreakWinMultiplier).
     - Name: 
       Entry: 8
       Data: 

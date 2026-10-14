@@ -9,7 +9,7 @@ using UCS;
 public class PoorMoney : UdonSharpBehaviour
 {
     [SerializeField] private UdonChips udonChips;
-    [SerializeField] private float maxMoney = 1000f;
+    [SerializeField] private float maxMoney = 800f;
 
     [Tooltip("Higher money cap for supporters. Ignored if no supporter list is set.")]
     [SerializeField] private float supporterMaxMoney = 2000f;
