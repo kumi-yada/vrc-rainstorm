@@ -46958,6 +46958,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3240581812955761112, guid: b7b14cdee5073465fbb87749ad256415,
         type: 3}
+    - target: {fileID: 3281461237495813857, guid: b7b14cdee5073465fbb87749ad256415,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3423570925075231001, guid: b7b14cdee5073465fbb87749ad256415,
         type: 3}
       propertyPath: m_Name
@@ -47067,6 +47072,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4465105462248202197, guid: b7b14cdee5073465fbb87749ad256415,
+        type: 3}
+      propertyPath: _syncMethod
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8966799883416566107, guid: b7b14cdee5073465fbb87749ad256415,
         type: 3}
@@ -54622,12 +54632,12 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
   - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
   - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
+  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
+  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
+  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
   - {fileID: 2100000, guid: e62206080ef3052a6851b35069300595, type: 2}
   - {fileID: 2100000, guid: 3499aaa1083834501877d4c561fe5856, type: 2}
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
-  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
-  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
   - {fileID: 2100000, guid: 1b4219e8d6f34be54b999d981b5577d9, type: 2}
   - {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
   LightMapsNear: []
