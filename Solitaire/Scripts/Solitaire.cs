@@ -111,6 +111,12 @@ namespace org.kumagee
         [Tooltip("How close a dropped card has to be to a slot to snap into it.")]
         public float SnapDistance = 0.12f;
 
+        [Tooltip("Seconds a completed Spider run takes to glide from its column to a foundation. Purely visual: the board is committed instantly, only the card's world position eases over this window.")]
+        public float RunCollectDuration = 0.25f;
+
+        [Tooltip("Seconds a dealt card takes to glide from the deck to its slot. Purely visual, like RunCollectDuration: the card is committed instantly and eases over this window.")]
+        public float DealDuration = 0.2f;
+
         [Tooltip("Seconds to wait between dealing each card. Purely the pace of the animation - nothing per-card goes on the wire any more, so this is free to lower. Values below one frame just deal a card per frame. 0.05 gives a brisk Klondike deal in about 1.5s and a 54-card Spider one in under 3.")]
         public float DealDelay = 0.1f;
 
@@ -1505,23 +1511,35 @@ namespace org.kumagee
             return want > 0 ? want : 0;
         }
 
-        // Walks dealCol forward past every column that wants nothing more, so the
-        // dealer never has to special-case a null slot or a zero count. Terminates
-        // because each pass either returns or advances dealCol.
-        private bool AdvanceToNextDealColumn()
+        // Walks the deal forward in row-major order: every column gets its first
+        // card, then every column that wants a second, and so on. The dealer never
+        // has to special-case a null slot or a zero count. Terminates because
+        // dealDepth only ever climbs toward the deepest column's count.
+        private bool AdvanceToNextDealCard()
         {
             int columns = TableauSlots != null ? TableauSlots.Length : 0;
-            while (dealCol < columns)
+            int maxRows = 0;
+            for (int c = 0; c < columns; c++)
             {
-                if (dealDepth < DealCountFor(dealCol)) return true;
-                dealCol++;
-                dealDepth = 0;
+                int want = DealCountFor(c);
+                if (want > maxRows) maxRows = want;
+            }
+            while (dealDepth < maxRows)
+            {
+                while (dealCol < columns)
+                {
+                    if (DealCountFor(dealCol) > dealDepth) return true;
+                    dealCol++;
+                }
+                dealCol = 0;
+                dealDepth++;
             }
             return false;
         }
 
         // Deals exactly one card per call, then schedules the next after DealDelay.
-        // The tableau is dealt column by column, as deep as DealCounts asks for.
+        // The tableau is dealt row by row, so the columns fill up together rather
+        // than one column completing before the next begins.
         public void _DealNextCard()
         {
             if (!dealing) return;
@@ -1564,7 +1582,7 @@ namespace org.kumagee
                 return;
             }
 
-            if (!AdvanceToNextDealColumn())
+            if (!AdvanceToNextDealCard())
             {
                 FinalizeDeal();
                 return;
@@ -1583,12 +1601,12 @@ namespace org.kumagee
                 // Only the card that ends up on top of the column is face-up, which is
                 // the rule in every mode - Canfield deals one card per column, so
                 // there it means the whole tableau comes up face-up.
-                card._ForcePlace(slot._GetTopSlot(), dealDepth == DealCountFor(dealCol) - 1);
+                card._SlideFromWorld(cardGO.transform.position, slot._GetTopSlot(), dealDepth == DealCountFor(dealCol) - 1, DealDuration);
                 PlayCardAudio(DealClipIndex, card);
             }
-            dealDepth++;
+            dealCol++;
 
-            if (AdvanceToNextDealColumn())
+            if (AdvanceToNextDealCard())
             {
                 SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
             }
@@ -1620,7 +1638,7 @@ namespace org.kumagee
             CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
             if (card != null)
             {
-                card._ForcePlace(ReserveSlot._GetTopSlot(), dealDepth == want - 1);
+                card._SlideFromWorld(cardGO.transform.position, ReserveSlot._GetTopSlot(), dealDepth == want - 1, DealDuration);
                 PlayCardAudio(DealClipIndex, card);
             }
             dealDepth++;
@@ -1654,7 +1672,7 @@ namespace org.kumagee
                 CardLogic card = cardGO.GetComponentInChildren<CardLogic>(true);
                 if (card != null)
                 {
-                    card._ForcePlace(foundation._GetTopSlot(), true);
+                    card._SlideFromWorld(cardGO.transform.position, foundation._GetTopSlot(), true, DealDuration);
                     PlayCardAudio(DealClipIndex, card);
                     Debug.Log($"Solitaire: Canfield base rank is {card.CardRank}.");
                 }
@@ -1768,9 +1786,9 @@ namespace org.kumagee
             return -1;
         }
 
-        // Walks dealCol to the next column that actually exists. Mirrors
-        // AdvanceToNextDealColumn, but a stock row wants exactly one card per column
-        // rather than a per-column count.
+        // Walks dealCol to the next column that actually exists. A stock row wants
+        // exactly one card per column rather than a per-column count, so it keeps
+        // its own walker instead of sharing the row-major opening-deal one.
         private bool AdvanceToNextStockColumn()
         {
             int columns = TableauSlots != null ? TableauSlots.Length : 0;
@@ -1804,7 +1822,7 @@ namespace org.kumagee
             {
                 // Stock cards always land face-up in Spider - that is the whole cost
                 // of the row, and why burying an empty column matters.
-                card._ForcePlace(slot._GetTopSlot(), true);
+                card._SlideFromWorld(cardGO.transform.position, slot._GetTopSlot(), true, DealDuration);
                 PlayCardAudio(DealClipIndex, card);
             }
             dealCol++;
@@ -2638,7 +2656,7 @@ namespace org.kumagee
                         break;
                     }
 
-                    king._ForcePlace(foundation._GetTopSlot(), true);
+                    king._SlideToSlot(foundation._GetTopSlot(), true, RunCollectDuration);
                     _RepositionAbove(king);
                     PlayCardAudio(RunCompleteClipIndex, king);
                     AccumulateFoundationReward(CardLogic.RankDefinitionsCount);

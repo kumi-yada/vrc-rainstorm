@@ -119,6 +119,18 @@ namespace org.kumagee
         private bool suppressDrop;
         private int savedPrevSlotId = -1;
 
+        // A short world-space glide used by Spider run collection and the deal (and
+        // available to any move that wants a card to travel rather than teleport).
+        // The board is already committed before this starts, so nothing here needs to
+        // sync: the card's visual position is local-only and everyone else re-derives
+        // it from the board. Only position eases - rotation is already the slot's the
+        // whole way, so a card never spins as it travels.
+        private bool sliding;
+        private Vector3 slideFrom;
+        private Vector3 slideTo;
+        private float slideStart;
+        private float slideDuration;
+
         // Held state lives on Solitaire so that one synced pair of hand slots covers
         // the whole deck, rather than every card carrying a grab payload it almost
         // never uses.
@@ -480,6 +492,79 @@ namespace org.kumagee
             Solitaire._WriteCard(this, slot != null ? slot.SlotId : -1, faceUp, faceUp);
         }
 
+        // Like _ForcePlace, but the card glides from where it sits to the slot over
+        // `duration` seconds instead of teleporting. The board is committed up front
+        // (and with it the link, face state, parent and rotation), then the visual
+        // position is rewound to where the card started and eased back to its resting
+        // pose. Rotation is not animated: the card keeps its final slot orientation
+        // for the whole glide, so it never flips as it travels.
+        public void _SlideToSlot(CardSlot slot, bool faceUp, float duration)
+        {
+            if (!initialized) Init();
+            Transform mover = CardRoot;
+            if (mover == null) mover = transform;
+            _SlideFromWorld(mover.position, slot, faceUp, duration);
+        }
+
+        // Slide to a slot starting from an explicit world position. The deal uses
+        // this: a freshly spawned card's pool object may have been re-parented away
+        // from its pickup root by an earlier _ReturnHome, so reading the pickup's
+        // own position can find a stale spot from a previous game. The deal knows
+        // the deck position and supplies it, so the card always launches from there.
+        public void _SlideFromWorld(Vector3 fromWorld, CardSlot slot, bool faceUp, float duration)
+        {
+            if (!initialized) Init();
+            if (Solitaire == null)
+            {
+                _ForcePlace(slot, faceUp);
+                return;
+            }
+
+            Transform mover = CardRoot;
+            if (mover == null) mover = transform;
+
+            // Commit and place first, so the link, parent and rotation are correct
+            // and the resting position is whatever _ApplyPlacement just produced.
+            Solitaire._WriteCard(this, slot != null ? slot.SlotId : -1, faceUp, faceUp);
+
+            Vector3 to = mover.position;
+
+            // Already there - nothing to glide.
+            if ((to - fromWorld).sqrMagnitude < SlideEpsilonSqr) return;
+
+            // Rewind only the position and ease it back toward the slot.
+            mover.position = fromWorld;
+
+            slideFrom = fromWorld;
+            slideTo = to;
+            slideStart = Time.time;
+            slideDuration = duration > 0f ? duration : 0.001f;
+            sliding = true;
+        }
+
+        private void Update()
+        {
+            if (!sliding) return;
+
+            float elapsed = Time.time - slideStart;
+            float t = slideDuration > 0f ? elapsed / slideDuration : 1f;
+            if (t >= 1f)
+            {
+                sliding = false;
+                // Snap to the exact resting pose so the parent and offset agree with
+                // the board; the eased position is already there, so this is a no-op
+                // visually.
+                _ApplyPlacement();
+                return;
+            }
+
+            float e = t * t * (3f - 2f * t); // smoothstep
+
+            Transform mover = CardRoot;
+            if (mover == null) mover = transform;
+            mover.position = Vector3.Lerp(slideFrom, slideTo, e);
+        }
+
         // Unlink and send the card back to its pool parent.
         public void _Detach(Transform home)
         {
@@ -553,6 +638,10 @@ namespace org.kumagee
         // (0.1mm)^2. The offsets a fan window switches between are centimetres apart,
         // so this only has to be tighter than that and looser than float noise.
         private const float PlacementEpsilonSqr = 1e-8f;
+
+        // (1mm)^2. Below this the glide start and end are the same spot, so sliding
+        // would fight float noise for no visible reason.
+        private const float SlideEpsilonSqr = 1e-6f;
 
         // Refuse a pickup: put the card straight back where it came from.
         //
