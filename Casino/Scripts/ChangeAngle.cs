@@ -106,6 +106,7 @@ public class ChangeAngle : UdonSharpBehaviour
     {
         if (_interactCollider == null) _interactCollider = GetComponent<Collider>();
         if (_interactCollider != null) _interactCollider.enabled = _allowed;
+        if (angleText != null) angleText.enabled = _allowed;
     }
 
     public override void Interact()
