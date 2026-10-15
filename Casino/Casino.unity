@@ -829,6 +829,8 @@ MonoBehaviour:
   - Video
   - Mirror
   - Changelog
+  - Refund
+  - Refund the game?
 --- !u!1 &24509179 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2153547676376529198, guid: a4b4379c091e42941a6f1f2f9c186b74,
@@ -6888,6 +6890,8 @@ MonoBehaviour:
   - VIDEO
   - MIRROR
   - CHANGELOG
+  - REFUND
+  - REFUND_CONFIRM
 --- !u!1 &358170787
 GameObject:
   m_ObjectHideFlags: 0
@@ -42938,6 +42942,8 @@ MonoBehaviour:
   - "\u30D3\u30C7\u30AA"
   - "\u30DF\u30E9\u30FC"
   - "\u5909\u66F4\u5C65\u6B74"
+  - "\u8FD4\u91D1"
+  - "\u30B2\u30FC\u30E0\u3092\u8FD4\u91D1\u3057\u307E\u3059\u304B\uFF1F"
 --- !u!114 &1593721870
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -43761,7 +43767,7 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1603442832}
   udonChips: {fileID: 0}
-  maxMoney: 800
+  maxMoney: 1000
   supporterMaxMoney: 2000
   TimeLimit: 600
   supporters: {fileID: 1548720592}
@@ -52091,6 +52097,8 @@ MonoBehaviour:
   - "\u89C6\u9891"
   - "\u955C\u5B50"
   - "\u66F4\u65B0\u65E5\u5FD7"
+  - "\u9000\u6B3E"
+  - "\u9000\u8FD8\u672C\u5C40\u6E38\u620F\u5417\uFF1F"
 --- !u!1 &2012186693 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7557475430964789850, guid: 2674f268860583949b53b63df24489ea,
@@ -56143,15 +56151,15 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 6e2cb2c229e029bca99bc49f9cec3312, type: 2}
   - {fileID: 2100000, guid: 20c226751febba58480efe423b642507, type: 2}
   - {fileID: 2100000, guid: d8097a1fbc225618995010b5a2b4e8a2, type: 2}
-  - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
-  - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
-  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
-  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
-  - {fileID: 2100000, guid: 1b4219e8d6f34be54b999d981b5577d9, type: 2}
-  - {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
   - {fileID: 2100000, guid: e62206080ef3052a6851b35069300595, type: 2}
   - {fileID: 2100000, guid: 3499aaa1083834501877d4c561fe5856, type: 2}
+  - {fileID: 2100000, guid: 10f4ba6bb72ed06daa7f7e2fecb5f8e0, type: 2}
+  - {fileID: 2100000, guid: f628cbb9c5254c28aa5ca5c140297cdf, type: 2}
   - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 1b4219e8d6f34be54b999d981b5577d9, type: 2}
+  - {fileID: 2100000, guid: 8d666bd401a60fa6082a726c03a1ff57, type: 2}
+  - {fileID: 2100000, guid: 57579ada5e89e7921bbdd337b7262682, type: 2}
+  - {fileID: 2100000, guid: 75ddf9b7f21627ea68d0de84688a2436, type: 2}
   LightMapsNear: []
   LightMapsFar: []
   LightMode: 0

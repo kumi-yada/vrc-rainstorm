@@ -144,6 +144,9 @@ namespace org.kumagee
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
         public GameObject ConfirmDialog;
 
+        [Tooltip("Label inside the confirmation dialog. Solitaire appends the localized REFUND marker to it while the game can still be refunded (no card moved yet). Leave unassigned to resolve it from ConfirmDialog's children.")]
+        public LocalizedText ConfirmDialogLabel;
+
         [Tooltip("Notification popup for player-facing messages (illegal moves, insufficient chips, etc.). Leave unassigned to silence them.")]
         public Notification Notification;
 
@@ -256,6 +259,11 @@ namespace org.kumagee
         private bool dealing;
         private bool gameStarted;
         private bool won;
+
+        // True once the dealer has moved (or drawn) a single card this game. While
+        // false, an early quit refunds the entry fee, because the player paid for a
+        // game they never actually played.
+        private bool cardsMoved;
 
         // Total payout accrued by this game. Credited into the wallet as it is earned
         // (see AccumulateFoundationReward) rather than held to the finish: UdonChips
@@ -374,6 +382,7 @@ namespace org.kumagee
                 RefreshWinMessage();
             }
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+            if (ConfirmDialogLabel == null && ConfirmDialog != null) ConfirmDialogLabel = ConfirmDialog.GetComponentInChildren<LocalizedText>(true);
             if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
             if (StartInteract != null) StartInteract._SetEntryFee((int)EntryFee);
 
@@ -1219,6 +1228,7 @@ namespace org.kumagee
                         ConfirmDialog.SetActive(false);
                         return;
                     }
+                    _RefreshConfirmDialogText();
                     ConfirmDialog.SetActive(true);
                 }
                 return;
@@ -1251,6 +1261,9 @@ namespace org.kumagee
             }
             else
             {
+                // Nothing moved since the deal, so the player never actually played
+                // the game they paid to enter: give the entry fee straight back.
+                if (!cardsMoved && EntryFee > 0f && UdonChips != null) UdonChips.money += EntryFee;
                 earned = CreditPayout();
             }
             _ResetGame();
@@ -1274,6 +1287,36 @@ namespace org.kumagee
         public void _CancelNewGame()
         {
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+        }
+
+        // Whether the running game still qualifies for an entry-fee refund: no card
+        // has moved since the deal and an entry fee was actually charged. A
+        // double-or-nothing game never charges a fee, so it never refunds one.
+        private bool _CanRefundEntryFee()
+        {
+            if (cardsMoved) return false;
+            if (doubleOrNothingGame) return false;
+            if (EntryFee <= 0f) return false;
+            if (UdonChips == null) return false;
+            return true;
+        }
+
+        // Fires once on the dealer's first card move (or stock draw), so the
+        // start/quit label drops its refund marker the moment the game is actually
+        // played. Only the dealer moves cards, so this is never reached elsewhere.
+        private void _MarkCardsMoved()
+        {
+            if (cardsMoved) return;
+            cardsMoved = true;
+            RefreshStartLabel();
+        }
+
+        // Rewrites the confirmation dialog's message: while the game can still be
+        // refunded it asks "Refund the game?", otherwise the usual quit confirmation.
+        private void _RefreshConfirmDialogText()
+        {
+            if (ConfirmDialogLabel == null) return;
+            ConfirmDialogLabel.SetPrefixKeyAndSuffix("", _CanRefundEntryFee() ? "REFUND_CONFIRM" : "QUIT_CONFIRM", "");
         }
 
         public float _GetEntryFee()
@@ -1458,6 +1501,7 @@ namespace org.kumagee
             dealing = true;
             gameStarted = true;
             won = false;
+            cardsMoved = false;
             payoutEarned = 0f;
             payoutCredited = 0f;
             RecordGameStarted();
@@ -1760,6 +1804,8 @@ namespace org.kumagee
         {
             if (resolvedDeck == null || dealing) return;
             if (!_IsLocalGameOwner()) return;
+
+            _MarkCardsMoved();
 
             if (Mode == SolitaireMode.Spider)
             {
@@ -2080,9 +2126,15 @@ namespace org.kumagee
                 {
                     StartButtonLabel.SetPrefixKeyAndSuffix("", "", "");
                 }
+                else if (gameStarted)
+                {
+                    // The button reads "Refund" until the dealer's first move, then
+                    // "Quit" once the game has actually been played.
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", _CanRefundEntryFee() ? "REFUND" : "QUIT", "");
+                }
                 else
                 {
-                    StartButtonLabel.SetPrefixKeyAndSuffix("", gameStarted ? "QUIT" : "START", "");
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", "START", "");
                 }
             }
             if (StartInteract != null) StartInteract._SetRunning(gameStarted);
@@ -2441,6 +2493,9 @@ namespace org.kumagee
             CardSlot target = FindDropTarget(card);
             if (target != null)
             {
+                // Only a genuine relocation counts as a move: dropping back onto the
+                // same slot (or a snap-back with no valid target) changes nothing.
+                if (target.SlotId != card._GetSavedPrevSlotId()) _MarkCardsMoved();
                 card._SetPrevSlot(target);
                 PlayCardAudio(MoveClipIndex, card);
                 if (IsFoundationChain(target))

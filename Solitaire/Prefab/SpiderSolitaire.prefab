@@ -2281,6 +2281,7 @@ MonoBehaviour:
   StartButtonInteract: {fileID: 3543745364449709572}
   StartInteract: {fileID: 188899628847439214}
   ConfirmDialog: {fileID: 2452246828101581707}
+  ConfirmDialogLabel: {fileID: 5783614518267327728}
   Notification: {fileID: 0}
   DoubleOrNothingDialog: {fileID: 7943430664107631238}
   DoubleOrNothingAmountLabel: {fileID: 2621049832570070171}
@@ -4746,6 +4747,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
+        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
@@ -6163,6 +6169,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
@@ -6319,10 +6330,20 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
+    - target: {fileID: 8611097018499380056, guid: 405077858722e8135afb8a3591beb747,
+        type: 3}
+      propertyPath: localization
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 8611097018499380056, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -7374,6 +7395,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Cancel
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
+        type: 3}
+      propertyPath: localization
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
