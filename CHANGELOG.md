@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-16 - v1.3
+
+- add button to easier reshuffle a new game
+- fix win streak display for game mode
+
 ## 2026-10-16 - v1.2
 
 - prevent stock interact on dealing
