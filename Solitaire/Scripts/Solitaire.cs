@@ -300,6 +300,12 @@ namespace org.kumagee
         // game the player abandons without finishing. Kept per mode alongside the
         // games/wins counters, for the same reason.
         private const string WinStreakKeyPrefix = "Solitaire.Streak.";
+        // Set while a game is running, cleared when it is won or quit. Persisted so
+        // a player who leaves mid-game carries the marker with them; on rejoin their
+        // own client sees it and forfeits the streak they dodged by leaving. This is
+        // the only reliable place to do it: PlayerData can only be written by its
+        // owner, and the owner's client is only present again at OnPlayerRestored.
+        private const string WinStreakPendingKeyPrefix = "Solitaire.Streak.Pending.";
 
         // PlayerData may only be touched after OnPlayerRestored. The flag gates the
         // counting so a record can never be written (or read) before the SDK has
@@ -3030,11 +3036,30 @@ namespace org.kumagee
         {
             if (player == null || !player.IsValid() || !player.isLocal) return;
             playerDataReady = true;
+            _ReconcileStreakOnRestore();
+        }
+
+        // A pending marker left behind means the player quit the instance while a
+        // game was still running, before RecordGameLost could zero the streak. The
+        // rejoin is the moment their own client is back and can write its PlayerData
+        // again, so the forfeit is applied here rather than let the streak survive.
+        private void _ReconcileStreakOnRestore()
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            string pendingKey = ModeRecordKey(WinStreakPendingKeyPrefix);
+            if (PlayerData.TryGetInt(local, pendingKey, out int pending) && pending != 0)
+            {
+                SaveWinStreak(0);
+                PlayerData.SetInt(pendingKey, 0);
+            }
         }
 
         private void RecordGameStarted()
         {
             IncrementRecord(GamesKeyPrefix);
+            SetStreakPending(true);
         }
 
         // Returns the streak after this win, so CheckWon can size the payout bonus
@@ -3042,6 +3067,7 @@ namespace org.kumagee
         private int RecordGameWon()
         {
             IncrementRecord(WinsKeyPrefix);
+            SetStreakPending(false);
             return IncrementWinStreak();
         }
 
@@ -3049,7 +3075,17 @@ namespace org.kumagee
         // run, so the streak goes back to zero rather than being left to carry over.
         private void RecordGameLost()
         {
+            SetStreakPending(false);
             SaveWinStreak(0);
+        }
+
+        private void SetStreakPending(bool pending)
+        {
+            if (!playerDataReady) return;
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (!Utilities.IsValid(local)) return;
+
+            PlayerData.SetInt(ModeRecordKey(WinStreakPendingKeyPrefix), pending ? 1 : 0);
         }
 
         private int IncrementWinStreak()
