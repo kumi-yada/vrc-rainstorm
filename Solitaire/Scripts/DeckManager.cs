@@ -214,6 +214,11 @@ namespace org.kumagee
         // like when other players seemed able to touch a running game. Without the
         // third, anyone who had dealt at this table earlier kept a live collider on
         // their own parked deck for the whole of somebody else's game.
+        //
+        // And a fourth: not while cards are still landing. _OnStockClicked already
+        // refuses a click mid-deal, but refusing it after the prompt has lit up is
+        // what made the deck look clickable during the opening deal and during a
+        // Spider row - the deck offered itself and then ate the click in silence.
         public void _RefreshInteractable()
         {
             if (interactCollider == null) return;
@@ -222,6 +227,7 @@ namespace org.kumagee
             bool interactable = Solitaire != null
                 && Solitaire._IsGameStarted()
                 && Solitaire._IsLocalGameOwner()
+                && !Solitaire._IsDealing()
                 && Utilities.IsValid(local)
                 && Networking.IsOwner(local, gameObject);
             interactCollider.enabled = interactable;

@@ -1852,6 +1852,9 @@ namespace org.kumagee
             dealCol = 0;
             dealDepth = 0;
             dealOwner = local;
+            // Shut the stock before the first card of the row leaves it; a second
+            // click during the row is refused anyway, so stop offering one.
+            RefreshDeckInteractable();
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
         }
 
@@ -1926,6 +1929,7 @@ namespace org.kumagee
         {
             dealing = false;
             dealPhase = DealPhaseNone;
+            RefreshDeckInteractable();
             Debug.Log("Solitaire: Stock row abandoned; the deck or game owner went away mid-row.");
             // Cards placed before the bail-out were left ungrabbable by the
             // dealing gate; they are legal where they sit, so hand the flags
@@ -1941,6 +1945,7 @@ namespace org.kumagee
         {
             dealing = false;
             dealPhase = DealPhaseNone;
+            RefreshDeckInteractable();
             Debug.Log($"Solitaire: Dealt a stock row; {resolvedDeck.CardCount} cards left in the stock.");
             // A stock card lands on top of its column, which is the low end of a run -
             // so it is exactly the card that can complete one.
@@ -2014,6 +2019,9 @@ namespace org.kumagee
             dealPhase = DealPhaseDraw;
             drawRemaining = remaining;
             dealOwner = Networking.LocalPlayer;
+            // A Canfield draw is three cards over two DealDelays - long enough for a
+            // second click to land on a deck that would refuse it.
+            RefreshDeckInteractable();
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
         }
 
@@ -2056,6 +2064,7 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             drawRemaining = 0;
+            RefreshDeckInteractable();
             _RelayoutFannedPiles();
             RefreshAllPickupable();
             _FlushBoard();
@@ -2094,6 +2103,8 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
+            // The deal closed the stock on its way in; the finished table reopens it.
+            RefreshDeckInteractable();
             RefreshWinMessage();
             // A column that DealCounts left empty is one the reserve owes a card to.
             RefillTableauFromReserve();
@@ -2638,6 +2649,14 @@ namespace org.kumagee
                 if (card.Grabbed) continue;
                 card._RefreshPickupable();
             }
+        }
+
+        // The deck's own gate on `dealing` lives in its collider, so it only answers
+        // the question when something asks. Every flip of the flag is paired with
+        // this, the same way a move is paired with RefreshAllPickupable.
+        private void RefreshDeckInteractable()
+        {
+            if (Utilities.IsValid(resolvedDeck)) resolvedDeck._RefreshInteractable();
         }
 
         private void RevealTops()
