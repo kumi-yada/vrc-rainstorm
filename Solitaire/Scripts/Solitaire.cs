@@ -138,8 +138,11 @@ namespace org.kumagee
         [Tooltip("Interact collider on the start/quit button. While a game is running by another player it is disabled so they cannot start a competing game.")]
         public Collider StartButtonInteract;
 
-        [Tooltip("GameInteract behaviour on the start/quit button. It sets its hover text from the entry fee; Solitaire only feeds it the fee.")]
+        [Tooltip("Generic interact on the start/quit button. Solitaire builds its hover prompt and tells it whether a press has to go through the confirmation canvas.")]
         public GameInteract StartInteract;
+
+        [Tooltip("Generic interact on the reshuffle trigger. Shown only while the local player's running game can still be restarted for free - no card has moved since the deal - and hidden the rest of the time. Wire its GameInteract callback to _OnReshuffle.")]
+        public GameInteract ReshuffleInteract;
 
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
         public GameObject ConfirmDialog;
@@ -247,7 +250,8 @@ namespace org.kumagee
         private LocalizedText winMessageText;
 
         // The interactable behind the start/quit button is the GameInteract
-        // behaviour, which owns its hover text. This file only feeds it the fee.
+        // behaviour. Solitaire builds its hover prompt from the same state as the
+        // button label and decides when a press needs confirming.
         private int baseSlotCount;
         private Transform cardHome;
 
@@ -376,6 +380,9 @@ namespace org.kumagee
                 GameObject locGo = GameObject.Find("Localization");
                 if (locGo != null) localization = locGo.GetComponent<LocalizationManager>();
             }
+            // Registered so a language switch rebuilds the start button's hover
+            // prompt, which Solitaire now owns.
+            if (localization != null) localization.Register(this);
             if (WinMessage != null)
             {
                 winMessageText = WinMessage.GetComponentInChildren<LocalizedText>(true);
@@ -384,7 +391,13 @@ namespace org.kumagee
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             if (ConfirmDialogLabel == null && ConfirmDialog != null) ConfirmDialogLabel = ConfirmDialog.GetComponentInChildren<LocalizedText>(true);
             if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
-            if (StartInteract != null) StartInteract._SetEntryFee((int)EntryFee);
+            if (StartInteract != null)
+            {
+                StartInteract.CallbackEvent = nameof(_OnStartPressed);
+                // Fall back to the dialog on this table when the prefab leaves the
+                // generic slot unwired.
+                if (StartInteract.ConfirmCanvas == null) StartInteract.ConfirmCanvas = ConfirmDialog;
+            }
 
             // A pivot under this object (ChangeAngle) moves the table's card places
             // with it, but the deck is a per-player PlayerObject parked at CardHome
@@ -1200,6 +1213,11 @@ namespace org.kumagee
 
         // The interactable lives on the start button now (driven by GameInteract,
         // which forwards presses here), so only that button lights up on hover.
+        //
+        // Quitting a game in progress no longer lands here: GameInteract routes
+        // those presses through the confirmation canvas, whose buttons call
+        // _ConfirmNewGame/_CancelNewGame. Only the presses that fire straight
+        // through arrive here.
         public void _OnStartPressed()
         {
             if (gameStarted)
@@ -1221,16 +1239,6 @@ namespace org.kumagee
                     return;
                 }
 
-                if (ConfirmDialog != null)
-                {
-                    if (ConfirmDialog != null && ConfirmDialog.activeSelf)
-                    {
-                        ConfirmDialog.SetActive(false);
-                        return;
-                    }
-                    _RefreshConfirmDialogText();
-                    ConfirmDialog.SetActive(true);
-                }
                 return;
             }
             Deal(Networking.LocalPlayer);
@@ -1287,6 +1295,38 @@ namespace org.kumagee
         public void _CancelNewGame()
         {
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
+        }
+
+        // Restart the running game from scratch. Only offered while not a single
+        // card has moved since the deal, so the game was never actually played: the
+        // player gets a fresh deal for the fee they already paid, exactly as if they
+        // had quit for the refund and pressed Start again, but without the table
+        // ever leaving their game.
+        public void _OnReshuffle()
+        {
+            if (!_IsLocalGameOwner()) return;
+            if (!gameStarted || dealing || won) return;
+            if (!_CanReshuffle())
+            {
+                Debug.Log("Solitaire: Reshuffle is only available before any card has moved.");
+                return;
+            }
+
+            // Nothing was played, so the fee already taken for this game stands as
+            // payment for the fresh one: no wallet movement, no second charge.
+            ReshuffleDeal(Networking.LocalPlayer);
+        }
+
+        // Whether the running game can still be restarted for free. The same bar as
+        // the entry-fee refund - nothing moved and no stake riding on it - but a
+        // fee is not required, so a free table may reshuffle too. The local-owner
+        // test lives in the caller, since cardsMoved is only ever set on the
+        // dealer's own client.
+        private bool _CanReshuffle()
+        {
+            if (cardsMoved) return false;
+            if (doubleOrNothingGame) return false;
+            return true;
         }
 
         // Whether the running game still qualifies for an entry-fee refund: no card
@@ -1413,6 +1453,22 @@ namespace org.kumagee
 
         public void Deal(VRCPlayerApi owner = null)
         {
+            StartDeal(owner, false);
+        }
+
+        // Re-deal the game a player is already in, in place. Used by reshuffle: the
+        // table is already theirs and its fee is already paid, so the "someone else
+        // is playing / you already have a game / can you pay" guards are skipped and
+        // the synced dealer id is left untouched. That last part is what keeps the
+        // pivot on the angle the player chose - the table never goes idle, so
+        // neither it nor any spectator sees the game close and reopen.
+        private void ReshuffleDeal(VRCPlayerApi owner)
+        {
+            StartDeal(owner, true);
+        }
+
+        private void StartDeal(VRCPlayerApi owner, bool inPlace)
+        {
             if (dealing)
             {
                 Debug.Log("Solitaire: Already dealing cards.");
@@ -1420,37 +1476,40 @@ namespace org.kumagee
                 return;
             }
 
-            // Backstop for the start collider: a synced dealer id that is not ours
-            // means someone else's game is running at this table, so there is
-            // nothing for a local press to do. (The local gameStarted flag is only
-            // true on the dealer's client, so it cannot answer this on its own.)
-            if (syncedDealerId != -1)
+            if (!inPlace)
             {
-                Debug.Log("Solitaire: Another player's game is already running at this table.");
-                ShowNotification("NOTIFY_SOMEONE_ELSES_GAME");
-                return;
-            }
+                // Backstop for the start collider: a synced dealer id that is not ours
+                // means someone else's game is running at this table, so there is
+                // nothing for a local press to do. (The local gameStarted flag is only
+                // true on the dealer's client, so it cannot answer this on its own.)
+                if (syncedDealerId != -1)
+                {
+                    Debug.Log("Solitaire: Another player's game is already running at this table.");
+                    ShowNotification("NOTIFY_SOMEONE_ELSES_GAME");
+                    return;
+                }
 
-            // The dealer may not already have a game of their own running. Checked
-            // before Init, because Init repoints resolvedDeck and rebuilds the whole
-            // slot registry - a refused deal should not have moved anything, not even
-            // locally. An invalid owner falls through to the explicit check below.
-            bool busy = FindActiveDeckFor(owner);
-            if (busy)
-            {
-                string who = Utilities.IsValid(owner) ? owner.displayName : "this player";
-                Debug.Log($"Solitaire: {who} already has a game running, it has to be quit before dealing another.");
-                ShowNotification("NOTIFY_ALREADY_HAVE_GAME");
-                return;
-            }
+                // The dealer may not already have a game of their own running. Checked
+                // before Init, because Init repoints resolvedDeck and rebuilds the whole
+                // slot registry - a refused deal should not have moved anything, not even
+                // locally. An invalid owner falls through to the explicit check below.
+                bool busy = FindActiveDeckFor(owner);
+                if (busy)
+                {
+                    string who = Utilities.IsValid(owner) ? owner.displayName : "this player";
+                    Debug.Log($"Solitaire: {who} already has a game running, it has to be quit before dealing another.");
+                    ShowNotification("NOTIFY_ALREADY_HAVE_GAME");
+                    return;
+                }
 
-            // A double-or-nothing game stakes the previous win instead of charging a
-            // fresh entry fee - the winnings already in the pot are the buy-in.
-            if (!doubleOrNothingGame && !TryPayEntryFee())
-            {
-                Debug.Log($"Solitaire: Not enough chips to start a {Mode} game (fee {_GetEntryFee()}).");
-                ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildEntryFeeAmount() + "c.");
-                return;
+                // A double-or-nothing game stakes the previous win instead of charging a
+                // fresh entry fee - the winnings already in the pot are the buy-in.
+                if (!doubleOrNothingGame && !TryPayEntryFee())
+                {
+                    Debug.Log($"Solitaire: Not enough chips to start a {Mode} game (fee {_GetEntryFee()}).");
+                    ShowNotificationSuffix("NOTIFY_NOT_ENOUGH_CHIPS", BuildEntryFeeAmount() + "c.");
+                    return;
+                }
             }
 
             // Tear down any game this player already won at another table before
@@ -2112,6 +2171,9 @@ namespace org.kumagee
             // The deal placed every card without refreshing anything below them, so
             // the opening layout needs one sweep before the player can touch it.
             RefreshAllPickupable();
+            // A freshly dealt, untouched table is exactly the reshuffle window, so
+            // offer it now that the deal has closed.
+            RefreshReshuffleInteractable();
             // Out from under the mid-deal throttle, so the finished table lands on
             // everyone else now rather than up to DealFlushInterval later.
             _FlushBoard();
@@ -2148,7 +2210,62 @@ namespace org.kumagee
                     StartButtonLabel.SetPrefixKeyAndSuffix("", "START", "");
                 }
             }
-            if (StartInteract != null) StartInteract._SetRunning(gameStarted);
+            RefreshStartPrompt();
+            RefreshReshuffleInteractable();
+        }
+
+        // Builds the GameInteract hover prompt and tells it whether the press has
+        // to be confirmed first. The text mirrors the button label so the two
+        // never advertise different things, and it is rebuilt here rather than in
+        // GameInteract so the wording (and the entry-fee suffix) stays in one place.
+        //
+        // Quitting a game in progress is the only press that confirms; starting a
+        // game, or clearing a finished board, fires straight through.
+        private void RefreshStartPrompt()
+        {
+            if (StartInteract == null) return;
+
+            bool confirm = false;
+            string key;
+            if (gameStarted)
+            {
+                key = _CanRefundEntryFee() ? "REFUND" : "QUIT";
+                // A won game just resets, and a pending double-or-nothing choice owns
+                // the flow - neither needs a confirmation in front of it.
+                bool doNothing = DoubleOrNothingDialog != null && DoubleOrNothingDialog.activeSelf;
+                confirm = !won && !doNothing;
+            }
+            else
+            {
+                key = "START";
+            }
+
+            string prompt = _Text(key);
+            if (!gameStarted && EntryFee > 0f) prompt += " (" + (int)EntryFee + "c)";
+            StartInteract._SetInteractionText(prompt);
+
+            if (confirm) _RefreshConfirmDialogText();
+            StartInteract._SetConfirm(confirm);
+        }
+
+        // Shows the reshuffle trigger only while a fresh deal is still free: the
+        // local player owns the running game, no card has moved since the deal, and
+        // nothing is mid-deal or already won. Driven from every state change that
+        // rebuilds the start UI. The end of the deal calls it directly, since
+        // FinalizeDeal does not go through RefreshStartLabel.
+        private void RefreshReshuffleInteractable()
+        {
+            if (ReshuffleInteract == null) return;
+            bool available = gameStarted && !dealing && !won && _IsLocalGameOwner() && _CanReshuffle();
+            ReshuffleInteract._SetVisible(available);
+        }
+
+        // A language switch re-reads every localized string. The button label
+        // refreshes itself through LocalizedText's own registration; the hover
+        // prompt is plain text Solitaire built, so it has to be rebuilt.
+        public void _OnLanguageChanged()
+        {
+            RefreshStartPrompt();
         }
 
         // The start/quit button only invites an interact when no game is running
