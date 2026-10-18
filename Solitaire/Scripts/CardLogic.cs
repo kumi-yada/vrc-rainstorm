@@ -65,7 +65,7 @@ namespace org.kumagee
         private const int AtlasColumns = 13;
         private const int AtlasRows = 10;
         private const int JokerRowIndex = 4;
-        private const int HiddenColIndex = 2;
+        private const int HiddenColIndex = 9;
         public const int BackColumns = 9;
 
         public DeckManager DeckManager;

@@ -10030,6 +10030,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3700626012837496497, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
+    - target: {fileID: 3942528165557915203, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.001
+      objectReference: {fileID: 0}
     - target: {fileID: 4266810010053107656, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
       propertyPath: m_StaticEditorFlags
@@ -10054,6 +10059,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_text
+      value: Spider
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor.b
+      value: 0.24313726
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor.g
+      value: 0.13725491
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor.r
+      value: 0.90588236
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4282262503
       objectReference: {fileID: 0}
     - target: {fileID: 5297104562282316607, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
@@ -11683,6 +11713,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_text
+      value: Canfield
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor.g
+      value: 0.8117647
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor.r
+      value: 0.90588236
+      objectReference: {fileID: 0}
+    - target: {fileID: 4958894338784739650, guid: 8d9eb56f435fcf8918e8a7000f52b182,
+        type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4280537063
       objectReference: {fileID: 0}
     - target: {fileID: 5297104562282316607, guid: 8d9eb56f435fcf8918e8a7000f52b182,
         type: 3}
