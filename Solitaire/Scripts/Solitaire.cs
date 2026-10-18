@@ -1885,10 +1885,6 @@ namespace org.kumagee
         // Spider's stock click: one card face-up onto every column, throttled through
         // the same delayed loop as the opening deal because ten cards is ten pool
         // spawns and ten serializations.
-        //
-        // The standard rule refuses the row while any column is empty. That is worth
-        // enforcing rather than allowing: an empty column is the scarce resource in
-        // Spider, and burying it is usually what loses the game.
         public void _DealStockRow()
         {
             if (resolvedDeck == null || TableauSlots == null || dealing) return;
@@ -1904,14 +1900,6 @@ namespace org.kumagee
                 return;
             }
 
-            int empty = FindEmptyTableauColumn();
-            if (empty >= 0)
-            {
-                Debug.Log($"Solitaire: Column {empty} is empty - every column has to be filled before dealing another row from the stock.");
-                ShowNotification("NOTIFY_FILL_COLUMNS");
-                return;
-            }
-
             dealing = true;
             dealPhase = DealPhaseStockRow;
             dealCol = 0;
@@ -1921,20 +1909,6 @@ namespace org.kumagee
             // click during the row is refused anyway, so stop offering one.
             RefreshDeckInteractable();
             SendCustomEventDelayedSeconds(nameof(_DealNextCard), DealDelay);
-        }
-
-        // Index of the first assigned tableau column holding no cards, or -1 when all
-        // of them are occupied.
-        private int FindEmptyTableauColumn()
-        {
-            if (TableauSlots == null) return -1;
-            for (int s = 0; s < TableauSlots.Length; s++)
-            {
-                CardSlot slot = TableauSlots[s];
-                if (slot == null) continue;
-                if (!slot._IsOccupied()) return s;
-            }
-            return -1;
         }
 
         // Walks dealCol to the next column that actually exists. A stock row wants
