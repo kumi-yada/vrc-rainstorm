@@ -440,6 +440,14 @@ namespace org.kumagee
                 else if (mode == CardPickupMode.TopOnly && pileSlot._GetTopCard() != this) allowed = false;
             }
 
+            // A card under one that is still in hand is not free: the held card may
+            // snap back onto its saved slot, and lifting this one would move the
+            // group it sits on out from under that link.
+            if (allowed && Solitaire._IsCardUnderHeld(this))
+            {
+                allowed = false;
+            }
+
             // Spider will not let a group move unless the cards riding on this one
             // continue it as a same-suit run. Solitaire owns that rule and returns
             // true for modes that do not restrict it.

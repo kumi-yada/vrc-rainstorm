@@ -942,6 +942,10 @@ namespace org.kumagee
             CaptureGrabPose(useA);
             MarkBoardDirty();
 
+            // The card this one came off is now under a held card, so its pickup
+            // flag has to drop before the card is actually unlinked.
+            RefreshAllPickupable();
+
             // OnPickup runs before the attach, and on desktop AutoHold teleports the
             // card to a fixed hold pose straight afterwards, so what we just
             // captured is still the card lying in its pile. Take it again - hand and
@@ -1033,6 +1037,28 @@ namespace org.kumagee
             if (a != null && a != except && a._GetSavedPrevSlotId() == slotId) return true;
             CardLogic b = ResolveGrabbedCard(false);
             if (b != null && b != except && b._GetSavedPrevSlotId() == slotId) return true;
+            return false;
+        }
+
+        // True when `card` is still under a card that is in someone's hand, i.e. a
+        // held card's saved slot is somewhere above it in this same pile. That card
+        // can snap back at any moment, and lifting this one (with whatever rides on
+        // it) would leave the saved link pointing into a pile that has moved.
+        public bool _IsCardUnderHeld(CardLogic card)
+        {
+            if (card == null || card.Slot == null) return false;
+            if (grabCardA < 0 && grabCardB < 0) return false;
+
+            CardSlot current = card.Slot;
+            int guard = 0;
+            while (guard < ChainGuard)
+            {
+                if (_IsSlotReservedByHeld(current.SlotId, card)) return true;
+                CardLogic above = _GetCardOn(current);
+                if (above == null || above.Slot == null) return false;
+                current = above.Slot;
+                guard++;
+            }
             return false;
         }
 
@@ -2516,6 +2542,15 @@ namespace org.kumagee
 
             CardSlot below = card.PrevSlot;
             if (below == null) return; // loose card, no pile rules apply
+
+            // The card a held card came from may snap back onto this slot, so the
+            // card underneath it stays put until the held card actually lands.
+            if (_IsCardUnderHeld(card))
+            {
+                card._Reject();
+                ShowNotification("NOTIFY_TOP_CARD_ONLY");
+                return;
+            }
 
             // _RefreshPickupable should already have blocked this; it's a backstop
             // for the window between a card being uncovered and being turned over.
