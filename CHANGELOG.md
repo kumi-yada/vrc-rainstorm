@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-22 - v1.4
+
+- no autofill for canfield
+- prevent pickup for card below picked up card
+- add RESHUFFLE translation
+- visual fixes
+- remove empty slot check for spider solitaire
+- lose win streak on leaving on active game
+
 ## 2026-10-16 - v1.3
 
 - add button to easier reshuffle a new game
