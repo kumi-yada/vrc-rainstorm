@@ -104,7 +104,7 @@ namespace org.kumagee
         [Tooltip("Waste pile next to the stock; drawn cards land here.")]
         public CardSlot WasteSlot;
 
-        [Tooltip("Canfield's reserve pile: 13 cards dealt face-down with only the top one turned over, and the automatic filler for any tableau column that empties. Leave unassigned for Klondike and Spider. Wants Pickup = TopOnly, since only its top card is ever in play, and Drop = None - nothing ever goes back onto the reserve, and without it the pile would happily accept any card, having no SlotRule to turn one away.")]
+        [Tooltip("Canfield's reserve pile: 13 cards dealt face-down with only the top one turned over. Leave unassigned for Klondike and Spider. Wants Pickup = TopOnly, since only its top card is ever in play, and Drop = None - nothing ever goes back onto the reserve, and without it the pile would happily accept any card, having no SlotRule to turn one away.")]
         public CardSlot ReserveSlot;
 
         [Header("Placement")]
@@ -852,7 +852,7 @@ namespace org.kumagee
             // Mid-deal the writes come in a steady stream, so hold them to the
             // throttle. Otherwise a frame is enough to collect everything a single
             // move touched - the card that landed, the one it uncovered, a run
-            // collected off the back of it, a reserve refill.
+            // collected off the back of it.
             float wait = 0f;
             if (dealing)
             {
@@ -1877,16 +1877,6 @@ namespace org.kumagee
             return -1;
         }
 
-        // Whether a player may drop into an empty tableau column. In Canfield the
-        // reserve fills those automatically, so a column is only genuinely free once
-        // the reserve is spent. Every other mode leaves the decision to its SlotRule.
-        public bool _CanFillEmptyTableau()
-        {
-            if (Mode != SolitaireMode.Canfield) return true;
-            if (ReserveSlot == null) return true;
-            return !ReserveSlot._IsOccupied();
-        }
-
         // One click on the stock. Klondike draws the next card to the waste and turns
         // the waste back over once the stock runs dry; Canfield does the same three
         // cards at a time; Spider has no waste at all and deals a card to every column
@@ -2171,8 +2161,6 @@ namespace org.kumagee
             // The deal closed the stock on its way in; the finished table reopens it.
             RefreshDeckInteractable();
             RefreshWinMessage();
-            // A column that DealCounts left empty is one the reserve owes a card to.
-            RefillTableauFromReserve();
             _RelayoutFannedPiles();
             // The deal placed every card without refreshing anything below them, so
             // the opening layout needs one sweep before the player can touch it.
@@ -2654,7 +2642,6 @@ namespace org.kumagee
             _RepositionAbove(card);
             RevealTops();
             CollectCompletedRuns();
-            RefillTableauFromReserve();
             _RelayoutFannedPiles();
             // After the pile has settled, not before: the flags are derived from the
             // final layout.
@@ -2820,39 +2807,6 @@ namespace org.kumagee
             if (top == null || top.FaceUp) return;
             if (top.Slot != null && _IsSlotReservedByHeld(top.Slot.SlotId, null)) return;
             top.SetFaceUp(true);
-        }
-
-        // Canfield refills an empty column from the reserve rather than leaving it
-        // open: the reserve is the pile you are actually racing to clear, and handing
-        // it a free outlet is the whole shape of the game. Once it is spent the
-        // columns are genuinely free, which is what _CanFillEmptyTableau tells the
-        // tableau rule.
-        //
-        // Force-placed, so it bypasses that rule - this move is the game making itself,
-        // not the player asking for something.
-        private void RefillTableauFromReserve()
-        {
-            if (Mode != SolitaireMode.Canfield) return;
-            if (TableauSlots == null || ReserveSlot == null) return;
-
-            bool moved = false;
-            for (int s = 0; s < TableauSlots.Length; s++)
-            {
-                CardSlot column = TableauSlots[s];
-                if (column == null || column._IsOccupied()) continue;
-
-                // A column a held card just vacated is not genuinely empty - filling
-                // it would strand the held card when it snaps back.
-                if (_IsSlotReservedByHeld(column.SlotId, null)) continue;
-
-                CardLogic top = ReserveSlot._GetTopCard();
-                if (top == null) break; // reserve spent; the rest stay open
-                top._ForcePlace(column._GetTopSlot(), true);
-                moved = true;
-            }
-
-            // Taking the reserve's top card uncovers the one beneath it.
-            if (moved) RevealTops();
         }
 
         // True when this slot's pile is the reserve. Face-down reserve cards are no
