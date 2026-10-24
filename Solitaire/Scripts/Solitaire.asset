@@ -1179,11 +1179,10 @@ MonoBehaviour:
     - Name: tooltip
       Entry: 1
       Data: 'Canfield''s reserve pile: 13 cards dealt face-down with only the top
-        one turned over, and the automatic filler for any tableau column that empties.
-        Leave unassigned for Klondike and Spider. Wants Pickup = TopOnly, since only
-        its top card is ever in play, and Drop = None - nothing ever goes back onto
-        the reserve, and without it the pile would happily accept any card, having
-        no SlotRule to turn one away.'
+        one turned over. Leave unassigned for Klondike and Spider. Wants Pickup =
+        TopOnly, since only its top card is ever in play, and Drop = None - nothing
+        ever goes back onto the reserve, and without it the pile would happily accept
+        any card, having no SlotRule to turn one away.'
     - Name: 
       Entry: 8
       Data: 
