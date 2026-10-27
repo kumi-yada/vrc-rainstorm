@@ -2175,7 +2175,7 @@ MonoBehaviour:
   UdonChips: {fileID: 0}
   EntryFee: 200
   FoundationPayout: 10
-  CompletePayoutMultiplier: 1
+  CompletePayoutMultiplier: 1.25
   CardAudio: {fileID: 0}
   DealClipIndex: 0
   MoveClipIndex: 1
@@ -5129,11 +5129,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
@@ -6351,11 +6346,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
         type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 7144718472300167146, guid: c5812d88bd93bd7a3895cc547b8fc8d7,
@@ -7043,11 +7033,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8191964898766551069, guid: e3cd3070e3b3a46ddbf69e7f6ba3f444,
         type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8191964898766551069, guid: e3cd3070e3b3a46ddbf69e7f6ba3f444,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 8191964898766551069, guid: e3cd3070e3b3a46ddbf69e7f6ba3f444,
@@ -7329,11 +7314,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 6099506225905260016, guid: 405077858722e8135afb8a3591beb747,
@@ -7485,20 +7465,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
-        type: 3}
       propertyPath: serializationData.Prefab
       value: 
       objectReference: {fileID: 8468761216510122685, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
-    - target: {fileID: 8611097018499380056, guid: 405077858722e8135afb8a3591beb747,
-        type: 3}
-      propertyPath: localization
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 8611097018499380056, guid: 405077858722e8135afb8a3591beb747,
         type: 3}
       propertyPath: serializationData.Prefab
