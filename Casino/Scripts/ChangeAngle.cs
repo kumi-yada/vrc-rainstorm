@@ -29,6 +29,9 @@ public class ChangeAngle : UdonSharpBehaviour
     [Tooltip("Seconds the pivot takes to reach the toggled angle.")]
     public float tweenDuration = 0.25f;
 
+    [Tooltip("Localization manager translating the interact prompt. Falls back to a scene search if empty.")]
+    public LocalizationManager localization;
+
     // Objects parented under the pivot follow it for free, but something parked at
     // a transform beneath the pivot without being a child of it - a per-player deck
     // PlayerObject, say - has to be moved again by hand after every change. Such a
@@ -46,7 +49,7 @@ public class ChangeAngle : UdonSharpBehaviour
     // rapid re-toggle cuts the previous motion short instead of piling up.
     private VRCTweenHandle _angleTween;
 
-    // The interactable collider sharing this object. VRChat offers the "Rotate"
+    // The interactable collider sharing this object. VRChat offers the interact
     // prompt off whatever collider sits on the behaviour's GameObject, so turning
     // it off is how the pivot stops advertising itself to players whose game this
     // is not. Resolved lazily, because the whole object is deactivated while the
@@ -69,9 +72,24 @@ public class ChangeAngle : UdonSharpBehaviour
 
     private void Start()
     {
+        _ResolveLocalization();
+        // Registered so a language switch rebuilds the hover prompt, which this
+        // behaviour owns.
+        if (localization != null) localization.Register(this);
+
         _CaptureBase();
         _Apply();
         _RefreshInteractable();
+    }
+
+    // Found lazily rather than only in Start: the synced state can be applied on
+    // a freshly activated object before Start has run, and the prompt would
+    // otherwise be written while the manager is still unresolved.
+    private void _ResolveLocalization()
+    {
+        if (localization != null) return;
+        GameObject locGo = GameObject.Find("Localization");
+        if (locGo != null) localization = locGo.GetComponent<LocalizationManager>();
     }
 
     // Called by the table's game whenever its state changes. `running` is true
@@ -110,6 +128,29 @@ public class ChangeAngle : UdonSharpBehaviour
         if (_interactCollider == null) _interactCollider = GetComponent<Collider>();
         if (_interactCollider != null) _interactCollider.enabled = _allowed;
         if (angleImage != null) angleImage.enabled = _allowed;
+        _RefreshInteractText();
+    }
+
+    // The prompt names the move the next press will make - raising the pivot
+    // from its resting angle, or lowering it back down - so it flips with the
+    // synced state on every client.
+    private void _RefreshInteractText()
+    {
+        _ResolveLocalization();
+        InteractionText = _Text(_open ? "ANGLE_DOWN" : "ANGLE_UP");
+    }
+
+    private string _Text(string key)
+    {
+        if (localization == null) return key;
+        return localization.GetText(key);
+    }
+
+    // A language switch re-reads the prompt; the angle indicator is a sprite
+    // and needs no translation.
+    public void _OnLanguageChanged()
+    {
+        _RefreshInteractText();
     }
 
     public override void Interact()
@@ -167,8 +208,10 @@ public class ChangeAngle : UdonSharpBehaviour
             if (angleSprite != null) angleImage.sprite = angleSprite;
 
             float shown = Mathf.Abs(angle);
-            angleImage.color = shown == 0f ? Color.grey : Color.white;
+            angleImage.color = shown == 0f ? new Color(0.25f, 0.25f, 0.25f) : Color.white;
         }
+
+        _RefreshInteractText();
     }
 
     // Fires on the local client for its own toggles and, via OnDeserialization,

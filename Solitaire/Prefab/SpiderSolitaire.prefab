@@ -2288,7 +2288,7 @@ MonoBehaviour:
   StartButtonIcon: {fileID: 7275744099188865850}
   StartIcon: {fileID: 21300000, guid: ad7839334bdc0897884d53a2952280c7, type: 3}
   QuitIcon: {fileID: 21300000, guid: e2049563a0bb4a198e898096014a3be7, type: 3}
-  RefundIcon: {fileID: 21300000, guid: e2049563a0bb4a198e898096014a3be7, type: 3}
+  RefundIcon: {fileID: 21300000, guid: 241b4031d0f858c6ba5adcc325136425, type: 3}
   StartButtonInteract: {fileID: 3543745364449709572}
   StartInteract: {fileID: 188899628847439214}
   ReshuffleInteract: {fileID: 1378559057228698056}

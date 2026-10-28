@@ -160,6 +160,7 @@ MonoBehaviour:
   angleImage: {fileID: 8189404924162125964}
   angleSprite: {fileID: 21300000, guid: 74f61b55c206ca09d9ee3d87293c4d43, type: 3}
   tweenDuration: 0.25
+  localization: {fileID: 0}
 --- !u!114 &497100816183701799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173,7 +174,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactTextPlacement: {fileID: 0}
-  interactText: Rotate
+  interactText: Up
   interactTextGO: {fileID: 0}
   proximity: 1
   SynchronizePosition: 0
