@@ -144,6 +144,18 @@ namespace org.kumagee
         [Tooltip("Generic interact on the reshuffle trigger. Shown only while the local player's running game can still be restarted for free - no card has moved since the deal, in a normal game or a double-or-nothing one - and hidden the rest of the time. Wire its GameInteract callback to _OnReshuffle.")]
         public GameInteract ReshuffleInteract;
 
+        [Tooltip("Generic interact on the undo trigger. Always visible while the local player owns a running game; the icon swaps between filled and outline to show whether an undo is currently possible. Wire its GameInteract callback to _OnUndoPressed.")]
+        public GameInteract UndoInteract;
+
+        [Tooltip("Image on the undo button that shows the current undo state. Solitaire swaps its sprite between UndoIconActive and UndoIconInactive.")]
+        public UnityEngine.UI.Image UndoIconImage;
+
+        [Tooltip("Sprite shown on the undo button when an undo is possible (filled skip-start icon).")]
+        public Sprite UndoIconActive;
+
+        [Tooltip("Sprite shown on the undo button when no undo is possible (outline skip-start icon).")]
+        public Sprite UndoIconInactive;
+
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
         public GameObject ConfirmDialog;
 
@@ -269,6 +281,30 @@ namespace org.kumagee
         // fee in a normal game, the carried-over stake in a double-or-nothing one -
         // because the player never actually played.
         private bool cardsMoved;
+
+        // ---- Undo
+        //
+        // Single-level undo: the dealer's client remembers the last card move and
+        // offers to revert it, but only when that move revealed nothing - a
+        // face-down card turning over cannot be taken back, because the player has
+        // already seen it. Stock draws and deals always reveal cards, so they clear
+        // the undo state outright. Spectators never track undo: only the dealer
+        // moves cards, so only the dealer can undo.
+        //
+        // undoCardIndex is the pool index of the moved card, or -1 when there is
+        // nothing to undo (no move yet, an undo already spent, a reveal blocked it,
+        // or the game was reset). undoFromSlotId is the slot the card came from;
+        // the riders on top of it follow automatically because their links still
+        // point at the moved card's own slot.
+        private int undoCardIndex = -1;
+        private int undoFromSlotId = -1;
+        // Set when the move being tracked turned a face-down card face-up. Such a
+        // move is not undoable, so this disqualifies the captured state.
+        private bool undoMoveRevealed;
+        // Pool index of the card sitting directly under the moved card, when that
+        // card was face-down before the move. Used to detect a reveal after the
+        // move completes.
+        private int undoWatchCardIndex = -1;
 
         // Total payout accrued by this game. Credited into the wallet as it is earned
         // (see AccumulateFoundationReward) rather than held to the finish: UdonChips
@@ -1378,6 +1414,154 @@ namespace org.kumagee
             return true;
         }
 
+        // ---- Undo
+
+        // Press handler for the undo button. Reverts the last card move when one
+        // is available and revealed nothing; otherwise explains why not.
+        public void _OnUndoPressed()
+        {
+            if (!_IsLocalGameOwner()) return;
+            if (!gameStarted || dealing || won) return;
+
+            if (undoCardIndex < 0)
+            {
+                // No move to undo: either nothing has been moved yet, or the last
+                // undo was already spent (single-level).
+                ShowNotification("NOTIFY_ONLY_ONE_MOVE_REVERTED");
+                return;
+            }
+
+            if (undoMoveRevealed)
+            {
+                // The last move turned a face-down card face-up; that reveal cannot
+                // be taken back, so the move as a whole cannot be reverted.
+                ShowNotification("NOTIFY_CARD_REVEALS_NOT_REVERTED");
+                return;
+            }
+
+            CardLogic card = cards != null && undoCardIndex < cards.Length ? cards[undoCardIndex] : null;
+            if (card == null)
+            {
+                _ClearUndoState();
+                ShowNotification("NOTIFY_ONLY_ONE_MOVE_REVERTED");
+                return;
+            }
+
+            CardSlot fromSlot = _ResolveSlot(undoFromSlotId);
+            if (fromSlot == null)
+            {
+                _ClearUndoState();
+                ShowNotification("NOTIFY_ONLY_ONE_MOVE_REVERTED");
+                return;
+            }
+
+            // If the card landed on a foundation, the move earned a payout; claw
+            // it back so the undo is a true revert.
+            if (IsFoundationChain(card.PrevSlot) && FoundationPayout > 0f && !doubleOrNothingGame)
+            {
+                float reward = FoundationPayout;
+                payoutEarned -= reward;
+                if (UdonChips != null && payoutCredited >= reward)
+                {
+                    UdonChips.money -= reward;
+                    payoutCredited -= reward;
+                }
+                RefreshWinMessage();
+            }
+
+            // Move the card back. Riders follow automatically: their PrevSlot links
+            // still point at the moved card's own slot.
+            card._SetPrevSlot(fromSlot);
+            PlayCardAudio(MoveClipIndex, card);
+
+            _RepositionAbove(card);
+            _RelayoutFannedPiles();
+            RefreshAllPickupable();
+            CheckWon();
+
+            // Single-level: the undo is spent.
+            _ClearUndoState();
+            _RefreshUndoInteractable();
+        }
+
+        // Captures the undo state for a genuine card relocation: the card's pool
+        // index, the slot it came from, and the face-down card beneath it (if any)
+        // whose reveal would disqualify the undo.
+        private void _CaptureUndoState(CardLogic card)
+        {
+            undoCardIndex = card.PoolIndex;
+            undoFromSlotId = card._GetSavedPrevSlotId();
+            undoMoveRevealed = false;
+            undoWatchCardIndex = -1;
+
+            // The card under the moved one is the Owner of the slot it sat on.
+            // If that card was face-down, moving the card off it will turn it over
+            // in RevealTops - which disqualifies the undo.
+            CardSlot fromSlot = _ResolveSlot(undoFromSlotId);
+            if (fromSlot != null && fromSlot.Owner != null && !fromSlot.Owner.FaceUp)
+            {
+                undoWatchCardIndex = fromSlot.Owner.PoolIndex;
+            }
+        }
+
+        // Called after the move has fully settled (reveals, run collections). If
+        // the watched card turned face-up, or a Spider run was collected off the
+        // back of the move, the undo is marked as blocked by a reveal: the state
+        // is kept so the button can explain why, but the move is not reverted.
+        private void _FinalizeUndoState(bool runCollected)
+        {
+            if (undoCardIndex < 0) return;
+
+            if (runCollected)
+            {
+                // A Spider run collection moved cards beyond the player's own drop,
+                // which may have revealed cards underneath. Treat it as a reveal.
+                undoMoveRevealed = true;
+                _RefreshUndoInteractable();
+                return;
+            }
+
+            if (undoWatchCardIndex >= 0 && cards != null && undoWatchCardIndex < cards.Length)
+            {
+                CardLogic watched = cards[undoWatchCardIndex];
+                if (watched != null && watched.FaceUp)
+                {
+                    // The card under the moved one was revealed - undo not allowed.
+                    undoMoveRevealed = true;
+                    _RefreshUndoInteractable();
+                    return;
+                }
+            }
+
+            _RefreshUndoInteractable();
+        }
+
+        private void _ClearUndoState()
+        {
+            undoCardIndex = -1;
+            undoFromSlotId = -1;
+            undoMoveRevealed = false;
+            undoWatchCardIndex = -1;
+        }
+
+        // Shows or hides the undo trigger and swaps its icon. The button is visible
+        // whenever the local player owns a running, non-won game that is not
+        // mid-deal; the icon shows whether an undo is actually possible right now.
+        private void _RefreshUndoInteractable()
+        {
+            if (UndoInteract == null) return;
+            bool visible = gameStarted && !dealing && !won && _IsLocalGameOwner();
+            UndoInteract._SetVisible(visible);
+            if (visible) UndoInteract._SetInteractionText(_Text("UNDO"));
+
+            if (UndoIconImage != null)
+            {
+                bool canUndo = undoCardIndex >= 0 && !undoMoveRevealed;
+                Sprite icon = canUndo ? UndoIconActive : UndoIconInactive;
+                if (icon != null) UndoIconImage.sprite = icon;
+            }
+        }
+
         // Whether the running game still qualifies for a refund: no card has moved
         // since the deal, and something is actually at risk - the entry fee in a
         // normal game, or the carried-over stake in a double-or-nothing one. A
@@ -1611,6 +1795,7 @@ namespace org.kumagee
             gameStarted = true;
             won = false;
             cardsMoved = false;
+            _ClearUndoState();
             payoutEarned = 0f;
             payoutCredited = 0f;
             RecordGameStarted();
@@ -1905,6 +2090,9 @@ namespace org.kumagee
             if (!_IsLocalGameOwner()) return;
 
             _MarkCardsMoved();
+            // A stock draw, recycle or Spider row always moves cards in a way that
+            // reveals new faces, so it consumes any pending undo.
+            _ClearUndoState();
 
             if (Mode == SolitaireMode.Spider)
             {
@@ -2008,6 +2196,7 @@ namespace org.kumagee
             // dealing gate; they are legal where they sit, so hand the flags
             // back.
             RefreshAllPickupable();
+            _RefreshUndoInteractable();
             _FlushBoard();
         }
 
@@ -2023,10 +2212,13 @@ namespace org.kumagee
             // A stock card lands on top of its column, which is the low end of a run -
             // so it is exactly the card that can complete one.
             CollectCompletedRuns();
+            // A stock row reveals cards (they land face-up), so no undo survives it.
+            _ClearUndoState();
             _RelayoutFannedPiles();
             // A dealt row buries the card under it in every column, so most of the
             // table's grabbability just changed.
             RefreshAllPickupable();
+            _RefreshUndoInteractable();
             CheckWon();
             _FlushBoard();
         }
@@ -2140,6 +2332,7 @@ namespace org.kumagee
             RefreshDeckInteractable();
             _RelayoutFannedPiles();
             RefreshAllPickupable();
+            _RefreshUndoInteractable();
             _FlushBoard();
         }
 
@@ -2186,6 +2379,9 @@ namespace org.kumagee
             // A freshly dealt, untouched table is exactly the reshuffle window, so
             // offer it now that the deal has closed.
             RefreshReshuffleInteractable();
+            // No moves yet on a fresh deal, so the undo button shows its inactive
+            // icon (or stays hidden for spectators).
+            _RefreshUndoInteractable();
             // Out from under the mid-deal throttle, so the finished table lands on
             // everyone else now rather than up to DealFlushInterval later.
             _FlushBoard();
@@ -2224,6 +2420,7 @@ namespace org.kumagee
             }
             RefreshStartPrompt();
             RefreshReshuffleInteractable();
+            _RefreshUndoInteractable();
         }
 
         // Builds the GameInteract hover prompt and tells it whether the press has
@@ -2278,6 +2475,7 @@ namespace org.kumagee
         public void _OnLanguageChanged()
         {
             RefreshStartPrompt();
+            _RefreshUndoInteractable();
         }
 
         // The start/quit button only invites an interact when no game is running
@@ -2293,6 +2491,7 @@ namespace org.kumagee
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
             if (StartButtonInteract != null) StartButtonInteract.enabled = !running || localOwner;
             RefreshStartLabel();
+            _RefreshUndoInteractable();
 
             // The pivot follows the same rule as the start button: only the player
             // whose game is running may turn it, and it returns to its default angle
@@ -2412,6 +2611,7 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
+            _ClearUndoState();
             ClearBoard();
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             if (Utilities.IsValid(resolvedDeck))
@@ -2449,10 +2649,12 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
+            _ClearUndoState();
             if (ConfirmDialog != null) ConfirmDialog.SetActive(false);
             if (DoubleOrNothingDialog != null) DoubleOrNothingDialog.SetActive(false);
             RefreshStartLabel();
             _RefreshStartInteractable();
+            _RefreshUndoInteractable();
             resolvedDeck._RefreshInteractable();
             RefreshWinMessage();
             Debug.Log("Solitaire: Game reset to initial state.");
@@ -2479,6 +2681,7 @@ namespace org.kumagee
             dealing = false;
             dealPhase = DealPhaseNone;
             won = false;
+            _ClearUndoState();
             resolvedDeck = null;
             // Their cards died with them, so the board describes nothing. Leaving it
             // would have the next deal briefly lay this game back out over whoever
@@ -2644,7 +2847,11 @@ namespace org.kumagee
             {
                 // Only a genuine relocation counts as a move: dropping back onto the
                 // same slot (or a snap-back with no valid target) changes nothing.
-                if (target.SlotId != card._GetSavedPrevSlotId()) _MarkCardsMoved();
+                if (target.SlotId != card._GetSavedPrevSlotId())
+                {
+                    _MarkCardsMoved();
+                    _CaptureUndoState(card);
+                }
                 card._SetPrevSlot(target);
                 PlayCardAudio(MoveClipIndex, card);
                 if (IsFoundationChain(target))
@@ -2659,12 +2866,22 @@ namespace org.kumagee
             // from the pile they're now in, so re-derive it.
             _RepositionAbove(card);
             RevealTops();
-            CollectCompletedRuns();
+            bool runCollected = CollectCompletedRuns();
             _RelayoutFannedPiles();
             // After the pile has settled, not before: the flags are derived from the
             // final layout.
             RefreshAllPickupable();
             CheckWon();
+
+            // A genuine move captured undo state above; settle it now that reveals
+            // and run collections have run. A snap-back (no undo captured) leaves
+            // the previous undo state untouched, so only finalize when this drop
+            // actually moved a card.
+            if (target != null && target.SlotId != card._GetSavedPrevSlotId())
+            {
+                _FinalizeUndoState(runCollected);
+            }
+            _RefreshUndoInteractable();
         }
 
         // Nearest slot that will take this card. Cards stacked on top of the dragged
@@ -2844,10 +3061,12 @@ namespace org.kumagee
         // That is one card's worth of network traffic instead of thirteen - and
         // thirteen serializations in a single frame is precisely what DealDelay
         // exists to spread out.
-        private void CollectCompletedRuns()
+        // Returns true when at least one run was collected, so the caller can
+        // disqualify an undo (the board changed beyond the player's own move).
+        private bool CollectCompletedRuns()
         {
-            if (Mode != SolitaireMode.Spider) return;
-            if (TableauSlots == null || FoundationSlots == null) return;
+            if (Mode != SolitaireMode.Spider) return false;
+            if (TableauSlots == null || FoundationSlots == null) return false;
 
             bool collected = false;
             bool foundationsFull = false;
@@ -2886,6 +3105,7 @@ namespace org.kumagee
 
             // Pulling a run off a column uncovers whatever was under it.
             if (collected) RevealTops();
+            return collected;
         }
 
         // Walks down from a column's top card looking for a complete same-suit
