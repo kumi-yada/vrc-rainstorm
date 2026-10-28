@@ -49717,6 +49717,8 @@ MonoBehaviour:
   _udonSharpBackingUdonBehaviour: {fileID: 1884237437}
   changelogUrl:
     url: https://raw.githubusercontent.com/kumi-yada/vrc-rainstorm/master/CHANGELOG.md
+  languageEntries: []
+  localization: {fileID: 356741924}
   changelogText: {fileID: 336526023}
   titleText: {fileID: 1332977752}
   titleMessage: CHANGELOG

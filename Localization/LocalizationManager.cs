@@ -24,6 +24,7 @@ public class LocalizationManager : UdonSharpBehaviour
     public int LanguageCount => tables.Length;
     public int CurrentLanguage => _language;
     public string CurrentLanguageName => tables[_language].DisplayName;
+    public string CurrentLanguageCode => tables[_language].LanguageCode;
 
     private void Start()
     {
@@ -86,6 +87,17 @@ public class LocalizationManager : UdonSharpBehaviour
         string s = tables[_language].GetTextAt(index);
         if (string.IsNullOrEmpty(s) && _language != 0) s = tables[0].GetTextAt(index);
         return string.IsNullOrEmpty(s) ? key : s;
+    }
+
+    public string[] GetAllLanguageCodes()
+    {
+        if (tables == null) return new string[0];
+        string[] codes = new string[tables.Length];
+        for (int i = 0; i < tables.Length; i++)
+        {
+            codes[i] = tables[i] != null ? tables[i].LanguageCode : "";
+        }
+        return codes;
     }
 
     public void Register(UdonSharpBehaviour listener)
