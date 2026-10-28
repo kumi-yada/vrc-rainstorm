@@ -132,8 +132,20 @@ namespace org.kumagee
         public GameObject WinMessage;
 
         [Header("UI")]
-        [Tooltip("Label on the start/quit trigger. Shows \"Start\" before a game, \"Quit\" while one is running.")]
+        [Tooltip("Label on the start/quit trigger. Shows \"Start\" before a game, \"Quit\" while one is running. Cleared when StartButtonIcon is assigned so the icon shows alone.")]
         public LocalizedText StartButtonLabel;
+
+        [Tooltip("Image on the start/quit button that shows the current action icon. Solitaire swaps its sprite between StartIcon, QuitIcon and RefundIcon. Leave unassigned to fall back to the text label.")]
+        public UnityEngine.UI.Image StartButtonIcon;
+
+        [Tooltip("Sprite shown on the start button before a game (bootstrap play-fill icon).")]
+        public Sprite StartIcon;
+
+        [Tooltip("Sprite shown on the button while a game is running and cannot be refunded (bootstrap escape icon).")]
+        public Sprite QuitIcon;
+
+        [Tooltip("Sprite shown on the button while the game can still be refunded (bootstrap arrow-counterclockwise icon). Leave unassigned to fall back to the text label for the refund state.")]
+        public Sprite RefundIcon;
 
         [Tooltip("Interact collider on the start/quit button. While a game is running by another player it is disabled so they cannot start a competing game.")]
         public Collider StartButtonInteract;
@@ -144,7 +156,7 @@ namespace org.kumagee
         [Tooltip("Generic interact on the reshuffle trigger. Shown only while the local player's running game can still be restarted for free - no card has moved since the deal, in a normal game or a double-or-nothing one - and hidden the rest of the time. Wire its GameInteract callback to _OnReshuffle.")]
         public GameInteract ReshuffleInteract;
 
-        [Tooltip("Generic interact on the undo trigger. Always visible while the local player owns a running game; the icon swaps between filled and outline to show whether an undo is currently possible. Wire its GameInteract callback to _OnUndoPressed.")]
+        [Tooltip("Generic interact on the undo trigger. Hidden until the local player's first move (when reshuffling is no longer possible); once visible it stays for the rest of the game, with the icon swapping between filled and outline to show whether an undo is currently possible. Wire its GameInteract callback to _OnUndoPressed.")]
         public GameInteract UndoInteract;
 
         [Tooltip("Image on the undo button that shows the current undo state. Solitaire swaps its sprite between UndoIconActive and UndoIconInactive.")]
@@ -441,6 +453,23 @@ namespace org.kumagee
                 // Fall back to the dialog on this table when the prefab leaves the
                 // generic slot unwired.
                 if (StartInteract.ConfirmCanvas == null) StartInteract.ConfirmCanvas = ConfirmDialog;
+            }
+
+            // The undo and reshuffle triggers are generic prefabs whose Callback
+            // slot cannot be wired in the prefab - it has to point at this
+            // behaviour, which only exists per instance - so claim them here the
+            // way StartInteract's event name is claimed above. Without this the
+            // press never reaches _OnUndoPressed/_OnReshuffle and the player gets
+            // no notification explaining why nothing happened.
+            if (UndoInteract != null)
+            {
+                UndoInteract.Callback = (UdonBehaviour)GetComponent(typeof(UdonBehaviour));
+                UndoInteract.CallbackEvent = nameof(_OnUndoPressed);
+            }
+            if (ReshuffleInteract != null)
+            {
+                ReshuffleInteract.Callback = (UdonBehaviour)GetComponent(typeof(UdonBehaviour));
+                ReshuffleInteract.CallbackEvent = nameof(_OnReshuffle);
             }
 
             // A pivot under this object (ChangeAngle) moves the table's card places
@@ -1544,13 +1573,15 @@ namespace org.kumagee
             undoWatchCardIndex = -1;
         }
 
-        // Shows or hides the undo trigger and swaps its icon. The button is visible
-        // whenever the local player owns a running, non-won game that is not
-        // mid-deal; the icon shows whether an undo is actually possible right now.
+        // Shows or hides the undo trigger and swaps its icon. The button stays
+        // hidden until the local player's first move - the same moment the
+        // reshuffle button disappears - then remains visible for the rest of the
+        // running, non-won game that is not mid-deal; the icon shows whether an
+        // undo is actually possible right now.
         private void _RefreshUndoInteractable()
         {
             if (UndoInteract == null) return;
-            bool visible = gameStarted && !dealing && !won && _IsLocalGameOwner();
+            bool visible = gameStarted && !dealing && !won && _IsLocalGameOwner() && cardsMoved;
             UndoInteract._SetVisible(visible);
             if (visible) UndoInteract._SetInteractionText(_Text("UNDO"));
 
@@ -2379,8 +2410,8 @@ namespace org.kumagee
             // A freshly dealt, untouched table is exactly the reshuffle window, so
             // offer it now that the deal has closed.
             RefreshReshuffleInteractable();
-            // No moves yet on a fresh deal, so the undo button shows its inactive
-            // icon (or stays hidden for spectators).
+            // No moves yet on a fresh deal, so the undo button stays hidden until
+            // the first move (spectators never see it either).
             _RefreshUndoInteractable();
             // Out from under the mid-deal throttle, so the finished table lands on
             // everyone else now rather than up to DealFlushInterval later.
@@ -2391,6 +2422,11 @@ namespace org.kumagee
         // mid-game, so a spectator sees neither the "Start" prompt nor a button
         // that they can't press anyway. Shares its state with the interact text of
         // the Start/quit trigger.
+        //
+        // When StartButtonIcon is assigned the button shows a sprite instead of
+        // text: play-fill before a game, escape while one runs, and a refund icon
+        // in the window where quitting returns the entry fee. The hover prompt
+        // (RefreshStartPrompt) still carries the translated words.
         private void RefreshStartLabel()
         {
             // The synced dealer id, not the local gameStarted flag: a spectator's
@@ -2401,9 +2437,42 @@ namespace org.kumagee
             bool localOwner = false;
             VRCPlayerApi local = Networking.LocalPlayer;
             if (Utilities.IsValid(local)) localOwner = ownerId == local.playerId;
+
+            bool spectator = running && !localOwner;
+            bool refund = gameStarted && _CanRefund();
+            bool quit = gameStarted && !_CanRefund();
+            bool start = !gameStarted;
+
+            // Swap the icon sprite when an Image is wired up. The refund icon is
+            // optional: without it the text label covers that state instead.
+            if (StartButtonIcon != null)
+            {
+                Sprite icon = null;
+                if (refund) icon = RefundIcon;
+                else if (quit) icon = QuitIcon;
+                else if (start) icon = StartIcon;
+
+                if (icon != null) StartButtonIcon.sprite = icon;
+                StartButtonIcon.enabled = !spectator && icon != null;
+            }
+
             if (StartButtonLabel != null)
             {
-                if (running && !localOwner)
+                if (StartButtonIcon != null)
+                {
+                    // An icon is showing (or the button is hidden for a
+                    // spectator); the text label only covers the refund state
+                    // when no refund icon was assigned.
+                    if (spectator || !refund || RefundIcon == null)
+                    {
+                        StartButtonLabel.SetPrefixKeyAndSuffix("", "", "");
+                    }
+                    else
+                    {
+                        StartButtonLabel.SetPrefixKeyAndSuffix("", "REFUND", "");
+                    }
+                }
+                else if (spectator)
                 {
                     StartButtonLabel.SetPrefixKeyAndSuffix("", "", "");
                 }
@@ -2411,7 +2480,7 @@ namespace org.kumagee
                 {
                     // The button reads "Refund" until the dealer's first move, then
                     // "Quit" once the game has actually been played.
-                    StartButtonLabel.SetPrefixKeyAndSuffix("", _CanRefund() ? "REFUND" : "QUIT", "");
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", refund ? "REFUND" : "QUIT", "");
                 }
                 else
                 {
@@ -2467,6 +2536,7 @@ namespace org.kumagee
             if (ReshuffleInteract == null) return;
             bool available = gameStarted && !dealing && !won && _IsLocalGameOwner() && _CanReshuffle();
             ReshuffleInteract._SetVisible(available);
+            if (available) ReshuffleInteract._SetInteractionText(_Text("RESHUFFLE"));
         }
 
         // A language switch re-reads every localized string. The button label
@@ -2476,6 +2546,7 @@ namespace org.kumagee
         {
             RefreshStartPrompt();
             _RefreshUndoInteractable();
+            RefreshReshuffleInteractable();
         }
 
         // The start/quit button only invites an interact when no game is running

@@ -19,22 +19,15 @@ using VRC.Udon.Common.Interfaces;
 [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
 public class ChangelogView : UdonSharpBehaviour
 {
-    [System.Serializable]
-    public class LanguageEntry
-    {
-        [Tooltip("Language code matching a LocalizationManager table, e.g. ja, zh-CN")]
-        public string languageCode;
-
-        [Tooltip("Raw URL of the localized changelog, e.g. https://raw.githubusercontent.com/<user>/<repo>/<branch>/CHANGELOG-ja.md")]
-        public VRCUrl url;
-    }
-
     [Header("Changelog Source")]
     [Tooltip("Default (fallback) changelog URL, e.g. https://raw.githubusercontent.com/<user>/<repo>/<branch>/CHANGELOG.md. Must be a VRCUrl because Udon blocks building URLs from runtime strings.")]
     public VRCUrl changelogUrl;
 
-    [Tooltip("Localized changelog URLs. Auto-generated in the Editor from the LocalizationManager tables. The entry whose languageCode matches the current language is loaded; if none matches, changelogUrl is used.")]
-    public LanguageEntry[] languageEntries;
+    [Tooltip("Language codes for localized changelogs. Auto-generated in the Editor from the LocalizationManager tables. Index-matched with languageUrls.")]
+    public string[] languageCodes;
+
+    [Tooltip("Localized changelog URLs. Auto-generated in the Editor from the LocalizationManager tables. Index-matched with languageCodes. The URL whose language code matches the current language is loaded; if none matches, changelogUrl is used.")]
+    public VRCUrl[] languageUrls;
 
     [Header("Localization")]
     [Tooltip("LocalizationManager that drives language selection. Auto-wired in the Editor; also found automatically at runtime via GameObject.Find(\"Localization\").")]
@@ -83,14 +76,15 @@ public class ChangelogView : UdonSharpBehaviour
         if (localization == null) return changelogUrl;
 
         string code = localization.CurrentLanguageCode;
-        if (languageEntries != null)
+        if (languageCodes != null && languageUrls != null)
         {
-            for (int i = 0; i < languageEntries.Length; i++)
+            int count = languageCodes.Length;
+            if (languageUrls.Length < count) count = languageUrls.Length;
+            for (int i = 0; i < count; i++)
             {
-                LanguageEntry entry = languageEntries[i];
-                if (entry != null && entry.languageCode == code && entry.url != null)
+                if (languageCodes[i] == code && languageUrls[i] != null)
                 {
-                    return entry.url;
+                    return languageUrls[i];
                 }
             }
         }
@@ -174,7 +168,7 @@ public class ChangelogView : UdonSharpBehaviour
         AutoWireLocalization();
         // Only auto-generate when entries are empty (first-time setup or after manual clear).
         // Use the context menu to regenerate after changing changelogUrl or language tables.
-        if (languageEntries == null || languageEntries.Length == 0)
+        if (languageCodes == null || languageCodes.Length == 0)
         {
             AutoGenerateLanguageEntries();
         }
@@ -185,27 +179,26 @@ public class ChangelogView : UdonSharpBehaviour
     {
         if (localization == null) AutoWireLocalization();
         if (localization == null) return;
-        if (changelogUrl == null || string.IsNullOrEmpty(changelogUrl.url)) return;
+        if (changelogUrl == null || string.IsNullOrEmpty(changelogUrl.Get())) return;
 
         string[] codes = localization.GetAllLanguageCodes();
         if (codes == null || codes.Length <= 1) return;
 
         // Skip index 0 (the fallback/default language) — changelogUrl already covers it
-        var entries = new System.Collections.Generic.List<LanguageEntry>();
+        var codeList = new System.Collections.Generic.List<string>();
+        var urlList = new System.Collections.Generic.List<VRCUrl>();
         for (int i = 1; i < codes.Length; i++)
         {
             if (string.IsNullOrEmpty(codes[i])) continue;
-            string urlString = BuildLocalizedUrl(changelogUrl.url, codes[i]);
+            string urlString = BuildLocalizedUrl(changelogUrl.Get(), codes[i]);
             if (string.IsNullOrEmpty(urlString)) continue;
 
-            var entry = new LanguageEntry();
-            entry.languageCode = codes[i];
-            entry.url = new VRCUrl();
-            entry.url.url = urlString;
-            entries.Add(entry);
+            codeList.Add(codes[i]);
+            urlList.Add(new VRCUrl(urlString));
         }
 
-        languageEntries = entries.ToArray();
+        languageCodes = codeList.ToArray();
+        languageUrls = urlList.ToArray();
     }
 
     private void AutoWireLocalization()

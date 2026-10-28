@@ -1,7 +1,7 @@
 ﻿
-using TMPro;
-using UdonSharp;
 using UnityEngine;
+using UnityEngine.UI;
+using UdonSharp;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -20,8 +20,11 @@ public class ChangeAngle : UdonSharpBehaviour
     [Tooltip("Angle in degrees applied when toggled on.")]
     public float angleB = 45f;
 
-    [Tooltip("Label showing the other angle value.")]
-    public TextMeshProUGUI angleText;
+    [Tooltip("Image shown as the angle indicator (bi_alt.png). Grey at 0°, white otherwise.")]
+    public Image angleImage;
+
+    [Tooltip("Sprite assigned to angleImage (Casino/Images/bi_alt.png).")]
+    public Sprite angleSprite;
 
     [Tooltip("Seconds the pivot takes to reach the toggled angle.")]
     public float tweenDuration = 0.25f;
@@ -81,12 +84,12 @@ public class ChangeAngle : UdonSharpBehaviour
         _allowed = running && localOwner;
 
         // The whole control goes away while the table is idle - not just its
-        // collider. The label would otherwise float over a table nobody is using,
-        // and a disabled-but-visible control is not the same as a hidden one. It
-        // comes back for everyone once a game is on, since the label is the current
-        // angle; only the player whose game it is gets a live collider. The pivot it
-        // turns is a separate transform, so hiding this object leaves the table
-        // alone.
+        // collider. The indicator would otherwise float over a table nobody is
+        // using, and a disabled-but-visible control is not the same as a hidden
+        // one. It comes back for everyone once a game is on, since the indicator
+        // reflects the current angle; only the player whose game it is gets a
+        // live collider. The pivot it turns is a separate transform, so hiding
+        // this object leaves the table alone.
         if (gameObject.activeSelf != running) gameObject.SetActive(running);
         _RefreshInteractable();
 
@@ -106,7 +109,7 @@ public class ChangeAngle : UdonSharpBehaviour
     {
         if (_interactCollider == null) _interactCollider = GetComponent<Collider>();
         if (_interactCollider != null) _interactCollider.enabled = _allowed;
-        if (angleText != null) angleText.enabled = _allowed;
+        if (angleImage != null) angleImage.enabled = _allowed;
     }
 
     public override void Interact()
@@ -159,10 +162,12 @@ public class ChangeAngle : UdonSharpBehaviour
             _FireAngleChanged();
         }
 
-        if (angleText != null)
+        if (angleImage != null)
         {
-            float shown = Mathf.Abs(_open ? angleB : angleA);
-            angleText.text = shown.ToString() + "°";
+            if (angleSprite != null) angleImage.sprite = angleSprite;
+
+            float shown = Mathf.Abs(angle);
+            angleImage.color = shown == 0f ? Color.grey : Color.white;
         }
     }
 
