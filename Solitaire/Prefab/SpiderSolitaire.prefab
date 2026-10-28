@@ -265,7 +265,7 @@ Transform:
   m_GameObject: {fileID: 1497832954513680140}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.032, y: -0.0028, z: -0.18300015}
+  m_LocalPosition: {x: 0.032, y: -0.0028, z: -0.3397}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2286,7 +2286,7 @@ MonoBehaviour:
   WinMessage: {fileID: 2682924764504615210}
   StartButtonLabel: {fileID: 2721433753177739635}
   StartButtonIcon: {fileID: 7275744099188865850}
-  StartIcon: {fileID: 21300000, guid: 027070c4139148b497c4fe67d056d600, type: 3}
+  StartIcon: {fileID: 21300000, guid: ad7839334bdc0897884d53a2952280c7, type: 3}
   QuitIcon: {fileID: 21300000, guid: e2049563a0bb4a198e898096014a3be7, type: 3}
   RefundIcon: {fileID: 21300000, guid: e2049563a0bb4a198e898096014a3be7, type: 3}
   StartButtonInteract: {fileID: 3543745364449709572}
@@ -4206,7 +4206,7 @@ PrefabInstance:
     - target: {fileID: 1493144397868564058, guid: 4a793dea6d07bd763add83da1283b1e0,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.3287
+      value: -0.1713
       objectReference: {fileID: 0}
     - target: {fileID: 1493144397868564058, guid: 4a793dea6d07bd763add83da1283b1e0,
         type: 3}

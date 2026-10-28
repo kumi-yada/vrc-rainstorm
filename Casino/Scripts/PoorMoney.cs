@@ -54,7 +54,7 @@ public class PoorMoney : UdonSharpBehaviour
     [Tooltip("How fast the object scales toward its target size.")]
     [SerializeField] private float scaleLerpSpeed = 5f;
 
-    private const string LastTakeKey = "_RAINSTORM/POOR_MONEY_LAST_TAKE";
+    public const string LastTakeKey = "_RAINSTORM/POOR_MONEY_LAST_TAKE";
 
     private bool _dataRestored = false;
     private long _lastTakeTime = 0;
