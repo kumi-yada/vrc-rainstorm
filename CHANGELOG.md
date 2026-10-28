@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-28 - v1.5
+
+- Add undo button to solitaire games
+- Allow refund and reshuffle in Double or Nothing mode when no cards have been moved
+- Add a first-time hint pointing new players to free money
+- Fix cards showing their front face upside down
+- Various UI improvements: icon-based buttons, adjusted button positions, no auto-play music on entry, and changelog now displays in your selected language
+
 ## 2026-10-22 - v1.4
 
 - Adjust solitaire rules: disable auto-fill in Canfield, allow empty slots in Spider Solitaire
