@@ -21,21 +21,8 @@ public class PoorMoneySign : UdonSharpBehaviour
     [Tooltip("Sign object toggled while the sign is shown. Assign a child object, not this GameObject.")]
     [SerializeField] private GameObject signObject;
 
-    [Header("Floating Bob")]
-    [Tooltip("Object to float up and down. Falls back to this GameObject's transform if empty.")]
-    [SerializeField] private Transform floatTarget;
-
-    [Tooltip("Float speed multiplier.")]
-    [SerializeField] private float floatSpeed = 1f;
-
-    [Tooltip("How far up and down the object travels, in parent-local units.")]
-    [SerializeField] private float floatAmount = 0.1f;
-
     private bool _dataRestored = false;
     private bool _hasTakenMoney = false;
-
-    private Transform _bobTransform;
-    private Vector3 _bobStartLocalPos;
 
     void Start()
     {
@@ -47,9 +34,6 @@ public class PoorMoneySign : UdonSharpBehaviour
                 udonChips = chips.GetComponent<UdonChips>();
             }
         }
-
-        _bobTransform = floatTarget != null ? floatTarget : transform;
-        _bobStartLocalPos = _bobTransform.localPosition;
     }
 
     public override void OnPlayerRestored(VRCPlayerApi player)
@@ -75,12 +59,6 @@ public class PoorMoneySign : UdonSharpBehaviour
         if (signObject != null)
         {
             signObject.SetActive(showSign);
-        }
-
-        if (_bobTransform != null)
-        {
-            float y = Mathf.Sin(Time.time * floatSpeed) * floatAmount;
-            _bobTransform.localPosition = _bobStartLocalPos + Vector3.up * y;
         }
     }
 }
