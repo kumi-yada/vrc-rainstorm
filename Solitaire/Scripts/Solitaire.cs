@@ -141,7 +141,7 @@ namespace org.kumagee
         [Tooltip("Generic interact on the start/quit button. Solitaire builds its hover prompt and tells it whether a press has to go through the confirmation canvas.")]
         public GameInteract StartInteract;
 
-        [Tooltip("Generic interact on the reshuffle trigger. Shown only while the local player's running game can still be restarted for free - no card has moved since the deal - and hidden the rest of the time. Wire its GameInteract callback to _OnReshuffle.")]
+        [Tooltip("Generic interact on the reshuffle trigger. Shown only while the local player's running game can still be restarted for free - no card has moved since the deal, in a normal game or a double-or-nothing one - and hidden the rest of the time. Wire its GameInteract callback to _OnReshuffle.")]
         public GameInteract ReshuffleInteract;
 
         [Tooltip("Confirmation dialog shown when pressing Quit would abandon the game in progress.")]
@@ -265,8 +265,9 @@ namespace org.kumagee
         private bool won;
 
         // True once the dealer has moved (or drawn) a single card this game. While
-        // false, an early quit refunds the entry fee, because the player paid for a
-        // game they never actually played.
+        // false, an early quit refunds whatever the game put at risk - the entry
+        // fee in a normal game, the carried-over stake in a double-or-nothing one -
+        // because the player never actually played.
         private bool cardsMoved;
 
         // Total payout accrued by this game. Credited into the wallet as it is earned
@@ -287,7 +288,8 @@ namespace org.kumagee
         // doubleStake is the amount carried over from a previous win and put at risk,
         // including whatever the dealer clawed back out of their wallet to do so. A
         // double-or-nothing win pays exactly twice this - no streak multiplier, no
-        // foundation accrual folded in - and a loss or quit forfeits it.
+        // foundation accrual folded in - and a loss forfeits it. Quitting before a
+        // single card has moved refunds it instead (see _ConfirmNewGame).
         private bool doubleOrNothingGame;
         private float doubleStake;
 
@@ -1290,14 +1292,29 @@ namespace org.kumagee
             float earned;
             if (doubleOrNothingGame)
             {
-                // Quitting a double-or-nothing game forfeits the whole pot: the stake
-                // carried over from the previous win and this game's deferred accrual.
-                // Nothing was credited, so there is nothing to claw back - just drop it.
+                if (!cardsMoved && doubleStake > 0f && UdonChips != null)
+                {
+                    // Nothing was played, so the stake never went at risk: hand the
+                    // whole pot straight back, exactly as it stood before the double.
+                    // The banner reads payoutEarned, so park the refund there - and
+                    // mark it credited, so no later CreditPayout pays it out twice.
+                    UdonChips.money += doubleStake;
+                    payoutEarned = doubleStake;
+                    payoutCredited = doubleStake;
+                    earned = doubleStake;
+                }
+                else
+                {
+                    // Quitting a double-or-nothing game forfeits the whole pot: the
+                    // stake carried over from the previous win and this game's
+                    // deferred accrual. Nothing was credited, so there is nothing
+                    // to claw back - just drop it.
+                    payoutEarned = 0f;
+                    payoutCredited = 0f;
+                    earned = 0f;
+                }
                 doubleStake = 0f;
                 doubleOrNothingGame = false;
-                payoutEarned = 0f;
-                payoutCredited = 0f;
-                earned = 0f;
             }
             else
             {
@@ -1331,9 +1348,10 @@ namespace org.kumagee
 
         // Restart the running game from scratch. Only offered while not a single
         // card has moved since the deal, so the game was never actually played: the
-        // player gets a fresh deal for the fee they already paid, exactly as if they
-        // had quit for the refund and pressed Start again, but without the table
-        // ever leaving their game.
+        // player gets a fresh deal for whatever the game already cost them - the
+        // entry fee, or the double-or-nothing stake - exactly as if they had quit
+        // for the refund and pressed Start again, but without the table ever
+        // leaving their game.
         public void _OnReshuffle()
         {
             if (!_IsLocalGameOwner()) return;
@@ -1344,30 +1362,30 @@ namespace org.kumagee
                 return;
             }
 
-            // Nothing was played, so the fee already taken for this game stands as
-            // payment for the fresh one: no wallet movement, no second charge.
+            // Nothing was played, so whatever this game already cost stands for the
+            // fresh deal: no wallet movement, no second charge.
             ReshuffleDeal(Networking.LocalPlayer);
         }
 
-        // Whether the running game can still be restarted for free. The same bar as
-        // the entry-fee refund - nothing moved and no stake riding on it - but a
-        // fee is not required, so a free table may reshuffle too. The local-owner
-        // test lives in the caller, since cardsMoved is only ever set on the
-        // dealer's own client.
+        // Whether the running game can still be restarted for free: no card has
+        // moved since the deal. A double-or-nothing stake riding on the game is not
+        // a bar - the fresh deal is the same bet, so the stake simply stays at risk
+        // across the reshuffle. The local-owner test lives in the caller, since
+        // cardsMoved is only ever set on the dealer's own client.
         private bool _CanReshuffle()
         {
             if (cardsMoved) return false;
-            if (doubleOrNothingGame) return false;
             return true;
         }
 
-        // Whether the running game still qualifies for an entry-fee refund: no card
-        // has moved since the deal and an entry fee was actually charged. A
-        // double-or-nothing game never charges a fee, so it never refunds one.
-        private bool _CanRefundEntryFee()
+        // Whether the running game still qualifies for a refund: no card has moved
+        // since the deal, and something is actually at risk - the entry fee in a
+        // normal game, or the carried-over stake in a double-or-nothing one. A
+        // free table's normal game has nothing to refund, so it just quits.
+        private bool _CanRefund()
         {
             if (cardsMoved) return false;
-            if (doubleOrNothingGame) return false;
+            if (doubleOrNothingGame) return doubleStake > 0f && UdonChips != null;
             if (EntryFee <= 0f) return false;
             if (UdonChips == null) return false;
             return true;
@@ -1388,7 +1406,7 @@ namespace org.kumagee
         private void _RefreshConfirmDialogText()
         {
             if (ConfirmDialogLabel == null) return;
-            ConfirmDialogLabel.SetPrefixKeyAndSuffix("", _CanRefundEntryFee() ? "REFUND_CONFIRM" : "QUIT_CONFIRM", "");
+            ConfirmDialogLabel.SetPrefixKeyAndSuffix("", _CanRefund() ? "REFUND_CONFIRM" : "QUIT_CONFIRM", "");
         }
 
         public float _GetEntryFee()
@@ -2197,7 +2215,7 @@ namespace org.kumagee
                 {
                     // The button reads "Refund" until the dealer's first move, then
                     // "Quit" once the game has actually been played.
-                    StartButtonLabel.SetPrefixKeyAndSuffix("", _CanRefundEntryFee() ? "REFUND" : "QUIT", "");
+                    StartButtonLabel.SetPrefixKeyAndSuffix("", _CanRefund() ? "REFUND" : "QUIT", "");
                 }
                 else
                 {
@@ -2223,7 +2241,7 @@ namespace org.kumagee
             string key;
             if (gameStarted)
             {
-                key = _CanRefundEntryFee() ? "REFUND" : "QUIT";
+                key = _CanRefund() ? "REFUND" : "QUIT";
                 // A won game just resets, and a pending double-or-nothing choice owns
                 // the flow - neither needs a confirmation in front of it.
                 bool doNothing = DoubleOrNothingDialog != null && DoubleOrNothingDialog.activeSelf;
@@ -2242,11 +2260,11 @@ namespace org.kumagee
             StartInteract._SetConfirm(confirm);
         }
 
-        // Shows the reshuffle trigger only while a fresh deal is still free: the
-        // local player owns the running game, no card has moved since the deal, and
-        // nothing is mid-deal or already won. Driven from every state change that
-        // rebuilds the start UI. The end of the deal calls it directly, since
-        // FinalizeDeal does not go through RefreshStartLabel.
+        // Shows the reshuffle trigger only while the running game can still be
+        // restarted without moving money: the local player owns the game, no card
+        // has moved since the deal, and nothing is mid-deal or already won. Driven
+        // from every state change that rebuilds the start UI. The end of the deal
+        // calls it directly, since FinalizeDeal does not go through RefreshStartLabel.
         private void RefreshReshuffleInteractable()
         {
             if (ReshuffleInteract == null) return;
