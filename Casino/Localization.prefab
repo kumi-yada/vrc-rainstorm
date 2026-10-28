@@ -1,0 +1,667 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1268594127010552841
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5757910987973375507}
+  - component: {fileID: 2898444132291132046}
+  - component: {fileID: 7263494941092799630}
+  m_Layer: 0
+  m_Name: Localization
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5757910987973375507
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1268594127010552841}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.77229226, y: 2.208938, z: 1.2111379}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8284915535679581837}
+  - {fileID: 7696502479781991252}
+  - {fileID: 8446840380396637806}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2898444132291132046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1268594127010552841}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 338c5d496af9a52dfb8e47e01db05307, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  _udonSharpBackingUdonBehaviour: {fileID: 7263494941092799630}
+  tables:
+  - {fileID: 3142273953368372526}
+  - {fileID: 1990446961238126745}
+  - {fileID: 5772579236065731372}
+  keys:
+  - THANK_YOU_SUPPORT
+  - START
+  - QUIT
+  - BUY
+  - EQUIPPED
+  - USE
+  - WAIT
+  - ONLY_FOR_LESS_THAN
+  - TAKE
+  - SECONDS
+  - YOU_WON
+  - YOU_EARNED
+  - PAYOUT
+  - COINS_TO_START
+  - QUIT_CONFIRM
+  - CARD_BACKS
+  - LEADERBOARD
+  - CREDITS
+  - SUPPORTERS
+  - LANGUAGES
+  - SETTINGS
+  - YES
+  - NO
+  - POST_PROCESS
+  - SFX
+  - BGM
+  - NOTIFY_ONLY_OWNER_CAN_QUIT
+  - NOTIFY_ALREADY_DEALING
+  - NOTIFY_SOMEONE_ELSES_GAME
+  - NOTIFY_ALREADY_HAVE_GAME
+  - NOTIFY_NOT_ENOUGH_CHIPS
+  - NOTIFY_STOCK_EMPTY
+  - NOTIFY_FILL_COLUMNS
+  - NOTIFY_NO_CARDS_TO_RECYCLE
+  - NOTIFY_NOT_YOUR_GAME
+  - NOTIFY_CARD_FACE_DOWN
+  - NOTIFY_TOP_CARD_ONLY
+  - NOTIFY_TOP_CARD_FROM_FOUNDATION
+  - NOTIFY_GROUP_SAME_SUIT
+  - DARK_MODE
+  - LIGHT_MODE
+  - FOR_SUPPORTERS_ONLY
+  - KLONDIKE_TITLE
+  - KLONDIKE_GOAL
+  - KLONDIKE_RULES
+  - KLONDIKE_PAYOUT
+  - SPIDER_TITLE
+  - SPIDER_GOAL
+  - SPIDER_RULES
+  - SPIDER_PAYOUT
+  - CANFIELD_TITLE
+  - CANFIELD_GOAL
+  - CANFIELD_RULES
+  - CANFIELD_PAYOUT
+  - WIN_STREAK
+  - DOUBLE_OR_NOTHING
+  - DOUBLE_OR_NOTHING_SHORT
+  - PEN
+  - VIDEO
+  - MIRROR
+  - CHANGELOG
+  - REFUND
+  - REFUND_CONFIRM
+  - RESHUFFLE
+  - GET_FREE_MONEY
+  - UNDO
+  - NOTIFY_ONLY_ONE_MOVE_REVERTED
+  - NOTIFY_CARD_REVEALS_NOT_REVERTED
+  - ANGLE_UP
+  - ANGLE_DOWN
+  - GAME_GUIDE
+--- !u!114 &7263494941092799630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1268594127010552841}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45115577ef41a5b4ca741ed302693907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactTextPlacement: {fileID: 0}
+  interactText: Use
+  interactTextGO: {fileID: 0}
+  proximity: 2
+  SynchronizePosition: 0
+  AllowCollisionOwnershipTransfer: 0
+  Reliable: 0
+  _syncMethod: 2
+  serializedProgramAsset: {fileID: 11400000, guid: 64e1a3f7d8519d5d087b642e676fc386,
+    type: 2}
+  programSource: {fileID: 11400000, guid: ae7c4ab0afae1a416a8eca937fac083f, type: 2}
+  serializedPublicVariablesBytesString: Ai8AAAAAATIAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAFQAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AAAAAAAYBAAAAAAAAACcBBAAAAHQAeQBwAGUAAWgAAABTAHkAcwB0AGUAbQAuAEMAbwBsAGwAZQBjAHQAaQBvAG4AcwAuAEcAZQBuAGUAcgBpAGMALgBMAGkAcwB0AGAAMQBbAFsAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4ALgBJAG4AdABlAHIAZgBhAGMAZQBzAC4ASQBVAGQAbwBuAFYAYQByAGkAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AXQBdACwAIABtAHMAYwBvAHIAbABpAGIAAQEJAAAAVgBhAHIAaQBhAGIAbABlAHMALwEAAAABaAAAAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ARwBlAG4AZQByAGkAYwAuAEwAaQBzAHQAYAAxAFsAWwBWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAEkAbgB0AGUAcgBmAGEAYwBlAHMALgBJAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlACwAIABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgBdAF0ALAAgAG0AcwBjAG8AcgBsAGkAYgABAAAABgEAAAAAAAAAAi8CAAAAAUkAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAGAAMQBbAFsAUwB5AHMAdABlAG0ALgBJAG4AdAAzADIALAAgAG0AcwBjAG8AcgBsAGkAYgBdAF0ALAAgAFYAUgBDAC4AVQBkAG8AbgAuAEMAbwBtAG0AbwBuAAIAAAAGAgAAAAAAAAAnAQQAAAB0AHkAcABlAAEXAAAAUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwAsACAAbQBzAGMAbwByAGwAaQBiACcBCgAAAFMAeQBtAGIAbwBsAE4AYQBtAGUAAR8AAABfAF8AXwBVAGQAbwBuAFMAaABhAHIAcABCAGUAaABhAHYAaQBvAHUAcgBWAGUAcgBzAGkAbwBuAF8AXwBfACcBBAAAAHQAeQBwAGUAARYAAABTAHkAcwB0AGUAbQAuAEkAbgB0ADMAMgAsACAAbQBzAGMAbwByAGwAaQBiABcBBQAAAFYAYQBsAHUAZQACAAAABwUHBQcF
+  publicVariablesUnityEngineObjects: []
+  publicVariablesSerializationDataFormat: 0
+--- !u!1 &1862888551100021406
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8446840380396637806}
+  - component: {fileID: 5772579236065731372}
+  - component: {fileID: 3449573099265861406}
+  m_Layer: 0
+  m_Name: Chinese
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8446840380396637806
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1862888551100021406}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5757910987973375507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5772579236065731372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1862888551100021406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d5c49bc7fa3f9569c9105241a3c375, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  _udonSharpBackingUdonBehaviour: {fileID: 3449573099265861406}
+  languageCode: zh-CN
+  displayName: Chinese
+  texts:
+  - "\u611F\u8C22\u60A8\u7684\u652F\u6301"
+  - "\u5F00\u59CB"
+  - "\u9000\u51FA"
+  - "\u8D2D\u4E70"
+  - "\u5DF2\u88C5\u5907"
+  - "\u4F7F\u7528"
+  - "\u8BF7\u7A0D\u5019"
+  - "\u4EC5\u9650 <"
+  - "\u9886\u53D6"
+  - "\u79D2"
+  - "\u4F60\u8D62\u4E86"
+  - "\u4F60\u83B7\u5F97\u4E86"
+  - "\u6D3E\u5F69:"
+  - " \u5F00\u59CB"
+  - "\u786E\u5B9A\u8981\u9000\u51FA\u672C\u5C40\u6E38\u620F\u5417\uFF1F"
+  - "\u724C\u80CC"
+  - "\u6392\u884C\u699C"
+  - "\u5236\u4F5C\u4EBA\u5458"
+  - "\u652F\u6301\u8005"
+  - "\u8BED\u8A00"
+  - "\u8BBE\u7F6E"
+  - "\u662F"
+  - "\u5426"
+  - "\u540E\u671F\u5904\u7406"
+  - "\u97F3\u6548"
+  - "\u80CC\u666F\u97F3\u4E50"
+  - "\u53EA\u6709\u6E38\u620F\u6240\u6709\u8005\u624D\u80FD\u9000\u51FA\u3002"
+  - "\u6B63\u5728\u53D1\u724C\u3002"
+  - "\u5176\u4ED6\u73A9\u5BB6\u7684\u6E38\u620F\u6B63\u5728\u8FDB\u884C\u4E2D\u3002"
+  - "\u4F60\u5DF2\u6709\u4E00\u5C40\u6E38\u620F\u6B63\u5728\u8FDB\u884C\uFF0C\u8BF7\u5148\u9000\u51FA\u3002"
+  - "\u8D44\u91D1\u4E0D\u8DB3\uFF0C\u9700\u8981 "
+  - "\u724C\u5806\u5DF2\u7A7A\u3002"
+  - "\u53D1\u724C\u524D\u8BF7\u586B\u6EE1\u6240\u6709\u5217\u3002"
+  - "\u6CA1\u6709\u53EF\u56DE\u6536\u7684\u724C\u3002"
+  - "\u8FD9\u4E0D\u662F\u4F60\u7684\u6E38\u620F\u3002"
+  - "\u724C\u662F\u80CC\u9762\u671D\u4E0A\u7684\u3002"
+  - "\u53EA\u80FD\u62FF\u8D77\u6700\u4E0A\u9762\u7684\u724C\u3002"
+  - "\u53EA\u80FD\u79FB\u52A8\u57FA\u7840\u724C\u5806\u6700\u4E0A\u9762\u7684\u724C\u3002"
+  - "\u53EA\u80FD\u79FB\u52A8\u540C\u82B1\u8272\u7684\u8FDE\u7EED\u724C\u7EC4\u3002"
+  - "\u6DF1\u8272\u6A21\u5F0F"
+  - "\u6D45\u8272\u6A21\u5F0F"
+  - " \uFF08\u4EC5\u9650\u652F\u6301\u8005\uFF09"
+  - "\u514B\u6717\u4EE3\u514B - \u5355\u5F20\u7FFB\u724C"
+  - "\u5728\u9876\u90E8\u6309 A \u2192 K \u7684\u987A\u5E8F\u5EFA\u7ACB\u56DB\u4E2A\u57FA\u7840\u724C\u5806"
+  - "\u89C4\u5219:\n- \u5DE6\u4E0A\u89D2\u7684\u724C\u5806\u53EF\u4EE5\u4E00\u6B21\u7FFB1\u5F20\uFF0C\u6B21\u6570\u4E0D\u9650\n-
+    \u4E0B\u65B9\u7684\u724C\u5217\u53EA\u80FD\u6309\u964D\u5E8F\u548C\u4EA4\u66FF\u989C\u8272\u653E\u7F6E\n-
+    \u4E0B\u65B9\u7684\u7A7A\u4F4D\u53EA\u80FD\u653E K"
+  - "\u6D3E\u5F69: \u6BCF\u5F20\u57FA\u7840\u724C10c + 1.25\u500D\u52DD\u5229\u5956\u52B1"
+  - "\u8718\u86DB\u7EB8\u724C - \u53CC\u82B1\u8272"
+  - "\u6309 K \u2192 A \u7684\u987A\u5E8F\u5EFA\u7ACB8\u4E2A\u57FA\u7840\u724C\u5806"
+  - "\u89C4\u5219:\n- \u6574\u4E2A\u724C\u5806\u9700\u8981\u5728\u573A\u4E0A\u5EFA\u7ACB\u540E\u624D\u80FD\u79FB\u5230\u57FA\u7840\u724C\u5806\n-
+    \u53EA\u6709\u540C\u8272\u7684\u8FDE\u7EED\u724C\u7EC4\u53EF\u4EE5\u4E00\u8D77\u79FB\u52A8\n-
+    \u7A7A\u4F4D\u53EF\u4EE5\u653E\u7F6E\u4EFB\u4F55\u724C"
+  - "\u6D3E\u5F69: \u6BCF\u5F20\u57FA\u7840\u724C20c + 1.5\u500D\u80DC\u5229\u5956\u52B1"
+  - "\u574E\u83F2\u5C14\u5FB7 - \u4E09\u5F20\u7FFB\u724C"
+  - "\u5728\u9876\u90E8\u5EFA\u7ACB\u56DB\u4E2A\u57FA\u7840\u724C"
+  - "\u89C4\u5219:\n- \u5DE6\u4E0A\u89D2\u7684\u724C\u5806\u53EF\u4EE5\u4E00\u6B21\u7FFB3\u5F20\uFF0C\u6B21\u6570\u4E0D\u9650\uFF0C\u4EC5\u6700\u4E0A\u9762\u53EF\u7528\n-
+    \u4E0B\u65B9\u7684\u724C\u5217\u53EA\u80FD\u6309\u964D\u5E8F\u548C\u4EA4\u66FF\u989C\u8272\u653E\u7F6E\n-
+    \u57FA\u7840\u724C\u53EF\u4EE5\u4ECE\u4EFB\u4F55\u724C\u5F00\u59CB\uFF0CK \u4E4B\u540E\u63A5
+    A"
+  - "\u6D3E\u5F69: \u6BCF\u5F20\u57FA\u7840\u724C 100c + 2\u500D\u52DD\u5229\u5956\u52B1"
+  - "\u8FDE\u80DC"
+  - "\u53CC\u500D\u6216\u5F52\u96F6\uFF1F \u62BC\u4E0A\u5F53\u524D\u6D3E\u5F69\uFF0C\u4E0B\u4E00\u5C40\u83B7\u80DC\u7FFB\u500D\uFF0C\u5426\u5219\u5168\u90E8\u8F93\u5149\u3002"
+  - "\u53CC\u500D\u6216\u5F52\u96F6"
+  - "\u753B\u7B14"
+  - "\u89C6\u9891"
+  - "\u955C\u5B50"
+  - "\u66F4\u65B0\u65E5\u5FD7"
+  - "\u9000\u6B3E"
+  - "\u9000\u8FD8\u672C\u5C40\u6E38\u620F\u5417\uFF1F"
+  - "\u91CD\u65B0\u53D1\u724C"
+  - "\u514D\u8D39\u8D44\u91D1"
+  - "\u64A4\u9500"
+  - "\u53EA\u80FD\u64A4\u9500\u4E00\u6B65"
+  - "\u65E0\u6CD5\u64A4\u9500\u7FFB\u724C"
+  - "\u4E0A"
+  - "\u4E0B"
+  - "\u6E38\u620F\u6307\u5357"
+--- !u!114 &3449573099265861406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1862888551100021406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45115577ef41a5b4ca741ed302693907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactTextPlacement: {fileID: 0}
+  interactText: Use
+  interactTextGO: {fileID: 0}
+  proximity: 2
+  SynchronizePosition: 0
+  AllowCollisionOwnershipTransfer: 0
+  Reliable: 0
+  _syncMethod: 2
+  serializedProgramAsset: {fileID: 11400000, guid: 64f1442047a40fd74bbb7568c0b4b0f1,
+    type: 2}
+  programSource: {fileID: 11400000, guid: dc1a88eb10341f9d4821779046236d86, type: 2}
+  serializedPublicVariablesBytesString: Ai8AAAAAATIAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAFQAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AAAAAAAYBAAAAAAAAACcBBAAAAHQAeQBwAGUAAWgAAABTAHkAcwB0AGUAbQAuAEMAbwBsAGwAZQBjAHQAaQBvAG4AcwAuAEcAZQBuAGUAcgBpAGMALgBMAGkAcwB0AGAAMQBbAFsAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4ALgBJAG4AdABlAHIAZgBhAGMAZQBzAC4ASQBVAGQAbwBuAFYAYQByAGkAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AXQBdACwAIABtAHMAYwBvAHIAbABpAGIAAQEJAAAAVgBhAHIAaQBhAGIAbABlAHMALwEAAAABaAAAAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ARwBlAG4AZQByAGkAYwAuAEwAaQBzAHQAYAAxAFsAWwBWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAEkAbgB0AGUAcgBmAGEAYwBlAHMALgBJAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlACwAIABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgBdAF0ALAAgAG0AcwBjAG8AcgBsAGkAYgABAAAABgEAAAAAAAAAAi8CAAAAAUkAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAGAAMQBbAFsAUwB5AHMAdABlAG0ALgBJAG4AdAAzADIALAAgAG0AcwBjAG8AcgBsAGkAYgBdAF0ALAAgAFYAUgBDAC4AVQBkAG8AbgAuAEMAbwBtAG0AbwBuAAIAAAAGAgAAAAAAAAAnAQQAAAB0AHkAcABlAAEXAAAAUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwAsACAAbQBzAGMAbwByAGwAaQBiACcBCgAAAFMAeQBtAGIAbwBsAE4AYQBtAGUAAR8AAABfAF8AXwBVAGQAbwBuAFMAaABhAHIAcABCAGUAaABhAHYAaQBvAHUAcgBWAGUAcgBzAGkAbwBuAF8AXwBfACcBBAAAAHQAeQBwAGUAARYAAABTAHkAcwB0AGUAbQAuAEkAbgB0ADMAMgAsACAAbQBzAGMAbwByAGwAaQBiABcBBQAAAFYAYQBsAHUAZQACAAAABwUHBQcF
+  publicVariablesUnityEngineObjects: []
+  publicVariablesSerializationDataFormat: 0
+--- !u!1 &3299343129572381541
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8284915535679581837}
+  - component: {fileID: 3142273953368372526}
+  - component: {fileID: 2650886696041933557}
+  m_Layer: 0
+  m_Name: English
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8284915535679581837
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3299343129572381541}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5757910987973375507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3142273953368372526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3299343129572381541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d5c49bc7fa3f9569c9105241a3c375, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  _udonSharpBackingUdonBehaviour: {fileID: 2650886696041933557}
+  languageCode: en
+  displayName: English
+  texts:
+  - Thank you for your support
+  - Start
+  - Quit
+  - Buy
+  - Equipped
+  - Use
+  - Wait
+  - Only for <
+  - Take
+  - s
+  - You won
+  - You earned
+  - 'Payout:'
+  - ' to start'
+  - Are you sure you want to quit this game?
+  - Card Backs
+  - Leaderboard
+  - Credits
+  - Supporters
+  - Languages
+  - Settings
+  - Yes
+  - No
+  - Post Processsing
+  - SFX
+  - BGM
+  - Only the game owner can quit.
+  - Already dealing cards.
+  - Someone else's game is running.
+  - You already have a game running. Quit it first.
+  - 'Not enough funds. Need '
+  - Stock is empty.
+  - Fill all columns before dealing.
+  - No cards to recycle.
+  - Not your game.
+  - Card is face down.
+  - Can only pick up top card.
+  - Can only move top card from foundation.
+  - Group must be same suit to move.
+  - Dark Mode
+  - Light Mode
+  - ' (for supporters only)'
+  - Klondike - Draw 1
+  - "Build the four foundation cards at the top from A \u2192 K"
+  - 'Rules:
+
+    - The deck on the top left can be turned 1 card at a time as many
+    times
+
+    - The card stacks below can only be placed in descending order and
+    alternating colors
+
+    - The empty slots below can only be filled by a K'
+  - 'Payout: 10c per card on foundation pile + 1.25x win bonus'
+  - Spider - 2 Suit
+  - "Build the 8 foundations from K \u2192 A"
+  - 'Rules:
+
+    - The whole card stack needs to be build on the field before its
+    moved to the foundation
+
+    - Only continuous card groups of the same color
+    can be moved together
+
+    - Any cards can be placed on empty slots'
+  - 'Payout: 20c per foundation card + 1.5x win bonus'
+  - Canfield - Draw 3
+  - Build the four foundation cards at the top
+  - 'Rules:
+
+    - The deck on the top left can be turned 3 cards at a time as many
+    times, only top card is playable
+
+    - The card stacks below can only be placed
+    in descending order and alternating colors
+
+    - The foundation can start with
+    any card, K wraps back to A'
+  - 'Payout: 100c per foundation card + 2x win bonus'
+  - Win Streak
+  - Double or Nothing? Pay the payout of the current game and double it on your next
+    win, or lose it all.
+  - Double or nothing
+  - Pen
+  - Video
+  - Mirror
+  - Changelog
+  - Refund
+  - Refund the game?
+  - RESHUFFLE
+  - Free money
+  - UNDO
+  - Only one move can be reverted
+  - Card reveals cannot be reverted
+  - Up
+  - Down
+  - Game Guide
+--- !u!114 &2650886696041933557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3299343129572381541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45115577ef41a5b4ca741ed302693907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactTextPlacement: {fileID: 0}
+  interactText: Use
+  interactTextGO: {fileID: 0}
+  proximity: 2
+  SynchronizePosition: 0
+  AllowCollisionOwnershipTransfer: 0
+  Reliable: 0
+  _syncMethod: 2
+  serializedProgramAsset: {fileID: 11400000, guid: 64f1442047a40fd74bbb7568c0b4b0f1,
+    type: 2}
+  programSource: {fileID: 11400000, guid: dc1a88eb10341f9d4821779046236d86, type: 2}
+  serializedPublicVariablesBytesString: Ai8AAAAAATIAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAFQAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AAAAAAAYBAAAAAAAAACcBBAAAAHQAeQBwAGUAAWgAAABTAHkAcwB0AGUAbQAuAEMAbwBsAGwAZQBjAHQAaQBvAG4AcwAuAEcAZQBuAGUAcgBpAGMALgBMAGkAcwB0AGAAMQBbAFsAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4ALgBJAG4AdABlAHIAZgBhAGMAZQBzAC4ASQBVAGQAbwBuAFYAYQByAGkAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AXQBdACwAIABtAHMAYwBvAHIAbABpAGIAAQEJAAAAVgBhAHIAaQBhAGIAbABlAHMALwEAAAABaAAAAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ARwBlAG4AZQByAGkAYwAuAEwAaQBzAHQAYAAxAFsAWwBWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAEkAbgB0AGUAcgBmAGEAYwBlAHMALgBJAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlACwAIABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgBdAF0ALAAgAG0AcwBjAG8AcgBsAGkAYgABAAAABgEAAAAAAAAAAi8CAAAAAUkAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAGAAMQBbAFsAUwB5AHMAdABlAG0ALgBJAG4AdAAzADIALAAgAG0AcwBjAG8AcgBsAGkAYgBdAF0ALAAgAFYAUgBDAC4AVQBkAG8AbgAuAEMAbwBtAG0AbwBuAAIAAAAGAgAAAAAAAAAnAQQAAAB0AHkAcABlAAEXAAAAUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwAsACAAbQBzAGMAbwByAGwAaQBiACcBCgAAAFMAeQBtAGIAbwBsAE4AYQBtAGUAAR8AAABfAF8AXwBVAGQAbwBuAFMAaABhAHIAcABCAGUAaABhAHYAaQBvAHUAcgBWAGUAcgBzAGkAbwBuAF8AXwBfACcBBAAAAHQAeQBwAGUAARYAAABTAHkAcwB0AGUAbQAuAEkAbgB0ADMAMgAsACAAbQBzAGMAbwByAGwAaQBiABcBBQAAAFYAYQBsAHUAZQACAAAABwUHBQcF
+  publicVariablesUnityEngineObjects: []
+  publicVariablesSerializationDataFormat: 0
+--- !u!1 &5099107062849729960
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7696502479781991252}
+  - component: {fileID: 1990446961238126745}
+  - component: {fileID: 3838494669122239583}
+  m_Layer: 0
+  m_Name: Japanese
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7696502479781991252
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5099107062849729960}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5757910987973375507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1990446961238126745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5099107062849729960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d5c49bc7fa3f9569c9105241a3c375, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  _udonSharpBackingUdonBehaviour: {fileID: 3838494669122239583}
+  languageCode: ja
+  displayName: Japanese
+  texts:
+  - "\u3054\u652F\u63F4\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059"
+  - "\u30B9\u30BF\u30FC\u30C8"
+  - "\u3084\u3081\u308B"
+  - "\u8CFC\u5165"
+  - "\u88C5\u5099\u4E2D"
+  - "\u4F7F\u7528"
+  - "\u304A\u5F85\u3061\u304F\u3060\u3055\u3044"
+  - "\u672A\u6E80\u306E\u65B9\u306E\u307F <"
+  - "\u53D7\u3051\u53D6\u308B"
+  - "\u79D2"
+  - "\u52DD\u5229!"
+  - "\u7372\u5F97"
+  - "\u914D\u5F53:"
+  - "\u3067\u30B9\u30BF\u30FC\u30C8"
+  - "\u30B2\u30FC\u30E0\u3092\u3084\u3081\u307E\u3059\u304B\uFF1F"
+  - "\u30AB\u30FC\u30C9\u306E\u88CF\u9762"
+  - "\u30E9\u30F3\u30AD\u30F3\u30B0"
+  - "\u30AF\u30EC\u30B8\u30C3\u30C8"
+  - "\u30B5\u30DD\u30FC\u30BF\u30FC"
+  - "\u8A00\u8A9E"
+  - "\u8A2D\u5B9A"
+  - "\u306F\u3044"
+  - "\u3044\u3044\u3048"
+  - "\u30DD\u30B9\u30C8\u30D7\u30ED\u30BB\u30C3\u30B7\u30F3\u30B0"
+  - "\u52B9\u679C\u97F3"
+  - BGM
+  - "\u3053\u306E\u30B2\u30FC\u30E0\u306E\u30AA\u30FC\u30CA\u30FC\u306E\u307F\u7D42\u4E86\u3067\u304D\u307E\u3059\u3002"
+  - "\u30AB\u30FC\u30C9\u3092\u914D\u3063\u3066\u3044\u307E\u3059\u3002"
+  - "\u4ED6\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u30B2\u30FC\u30E0\u304C\u9032\u884C\u4E2D\u3067\u3059\u3002"
+  - "\u65E2\u306B\u30B2\u30FC\u30E0\u3092\u9032\u884C\u4E2D\u3067\u3059\u3002\u5148\u306B\u7D42\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+  - "\u6B8B\u9AD8\u304C\u8DB3\u308A\u307E\u305B\u3093\u3002"
+  - "\u5C71\u672D\u304C\u7A7A\u3067\u3059\u3002"
+  - "\u5168\u3066\u306E\u5217\u3092\u57CB\u3081\u3066\u304B\u3089\u914D\u3063\u3066\u304F\u3060\u3055\u3044\u3002"
+  - "\u623B\u3059\u30AB\u30FC\u30C9\u304C\u3042\u308A\u307E\u305B\u3093\u3002"
+  - "\u3042\u306A\u305F\u306E\u30B2\u30FC\u30E0\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002"
+  - "\u30AB\u30FC\u30C9\u306F\u88CF\u5411\u304D\u3067\u3059\u3002"
+  - "\u4E00\u756A\u4E0A\u306E\u30AB\u30FC\u30C9\u306E\u307F\u53D6\u308C\u307E\u3059\u3002"
+  - "\u57FA\u790E\u306E\u4E00\u756A\u4E0A\u306E\u30AB\u30FC\u30C9\u306E\u307F\u52D5\u304B\u305B\u307E\u3059\u3002"
+  - "\u540C\u3058\u30B9\u30FC\u30C4\u306E\u30B0\u30EB\u30FC\u30D7\u306E\u307F\u52D5\u304B\u305B\u307E\u3059\u3002"
+  - "\u30C0\u30FC\u30AF\u30E2\u30FC\u30C9"
+  - "\u30E9\u30A4\u30C8\u30E2\u30FC\u30C9"
+  - " (\u30B5\u30DD\u30FC\u30BF\u30FC\u9650\u5B9A)"
+  - "\u30AF\u30ED\u30F3\u30C0\u30A4\u30AF - 1\u679A\u3081\u304F\u308A"
+  - "\u4E0A\u90E8\u306E4\u3064\u306E\u57FA\u790E\u30AB\u30FC\u30C9\u3092A\u2192K\u306E\u9806\u3067\u4F5C\u308B"
+  - "\u30EB\u30FC\u30EB:\n- \u5DE6\u4E0A\u306E\u5C71\u672D\u306F1\u679A\u305A\u3064\u3001\u4F55\u5EA6\u3067\u3082\u3081\u304F\u308C\u308B\n-
+    \u4E0B\u306E\u30AB\u30FC\u30C9\u5217\u306F\u964D\u9806\u30FB\u8272\u4EA4\u4E92\u3067\u306E\u307F\u7F6E\u3051\u308B\n-
+    \u4E0B\u306E\u7A7A\u304D\u30B9\u30ED\u30C3\u30C8\u306B\u306FK\u306E\u307F\u7F6E\u3051\u308B"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D10c + 1.25\u500D\u52DD\u5229\u30DC\u30FC\u30CA\u30B9"
+  - "\u30B9\u30D1\u30A4\u30C0\u30FC - 2\u30B9\u30FC\u30C4"
+  - "8\u3064\u306E\u7D44\u672D\u3092K\u2192A\u306E\u9806\u3067\u4F5C\u308B"
+  - "\u30EB\u30FC\u30EB:\n- \u30D5\u30A3\u30FC\u30EB\u30C9\u4E0A\u3067\u30AB\u30FC\u30C9\u306E\u5C71\u5168\u4F53\u3092\u4F5C\u3063\u3066\u304B\u3089\u7D44\u672D\u306B\u79FB\u52D5\u3059\u308B\n-
+    \u540C\u3058\u8272\u306E\u9023\u7D9A\u3057\u305F\u30AB\u30FC\u30C9\u306E\u30B0\u30EB\u30FC\u30D7\u306E\u307F\u4E00\u7DD2\u306B\u79FB\u52D5\u3067\u304D\u308B\n-
+    \u7A7A\u304D\u30B9\u30ED\u30C3\u30C8\u306B\u306F\u3069\u306E\u30AB\u30FC\u30C9\u3067\u3082\u7F6E\u3051\u308B"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D20c + \u52DD\u5229\u30DC\u30FC\u30CA\u30B91.5\u500D"
+  - "\u30AD\u30E3\u30F3\u30D5\u30A3\u30FC\u30EB\u30C9 - 3\u679A\u3081\u304F\u308A"
+  - "\u4E0A\u90E8\u306E4\u3064\u306E\u57FA\u790E\u30AB\u30FC\u30C9\u3092\u4F5C\u308B"
+  - "\u30EB\u30FC\u30EB:\n- \u5DE6\u4E0A\u306E\u5C71\u672D\u306F3\u679A\u305A\u3064\u3001\u4F55\u5EA6\u3067\u3082\u3081\u304F\u308C\u3001\u4E00\u756A\u4E0A\u306E\u307F\u4F7F\u7528\u53EF\u80FD\n-
+    \u4E0B\u306E\u30AB\u30FC\u30C9\u5217\u306F\u964D\u9806\u30FB\u8272\u4EA4\u4E92\u3067\u306E\u307F\u7F6E\u3051\u308B\n-
+    \u7D44\u672D\u306F\u3069\u306E\u30AB\u30FC\u30C9\u304B\u3089\u3067\u3082\u59CB\u3081\u3089\u308C\u3001K\u306E\u6B21\u306FA"
+  - "\u914D\u5F53: \u7D44\u672D1\u679A\u306B\u3064\u304D100c + 2\u500D\u52DD\u5229\u30DC\u30FC\u30CA\u30B9"
+  - "\u9023\u52DD"
+  - "\u30C0\u30D6\u30EB\u30FB\u30AA\u30A2\u30FB\u30CA\u30C3\u30B7\u30F3\u30B0\uFF1F
+    \u73FE\u5728\u306E\u914D\u5F53\u3092\u8CED\u3051\u3066\u3001\u6B21\u306B\u52DD\u3066\u30702\u500D\u3001\u8CA0\u3051\u308C\u3070\u3059\u3079\u3066\u3092\u5931\u3044\u307E\u3059\u3002"
+  - "\u30C0\u30D6\u30EB\u30FB\u30AA\u30A2\u30FB\u30CA\u30C3\u30B7\u30F3\u30B0"
+  - "\u30DA\u30F3"
+  - "\u30D3\u30C7\u30AA"
+  - "\u30DF\u30E9\u30FC"
+  - "\u5909\u66F4\u5C65\u6B74"
+  - "\u8FD4\u91D1"
+  - "\u30B2\u30FC\u30E0\u3092\u8FD4\u91D1\u3057\u307E\u3059\u304B\uFF1F"
+  - "\u914D\u308A\u76F4\u3057"
+  - "\u7121\u6599\u306E\u304A\u91D1"
+  - "\u5143\u306B\u623B\u3059"
+  - "\u5143\u306B\u623B\u305B\u308B\u306E\u306F1\u624B\u3060\u3051\u3067\u3059"
+  - "\u30AB\u30FC\u30C9\u306E\u516C\u958B\u306F\u5143\u306B\u623B\u305B\u307E\u305B\u3093"
+  - "\u4E0A"
+  - "\u4E0B"
+  - "\u30B2\u30FC\u30E0\u30AC\u30A4\u30C9"
+--- !u!114 &3838494669122239583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5099107062849729960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45115577ef41a5b4ca741ed302693907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactTextPlacement: {fileID: 0}
+  interactText: Use
+  interactTextGO: {fileID: 0}
+  proximity: 2
+  SynchronizePosition: 0
+  AllowCollisionOwnershipTransfer: 0
+  Reliable: 0
+  _syncMethod: 2
+  serializedProgramAsset: {fileID: 11400000, guid: 64f1442047a40fd74bbb7568c0b4b0f1,
+    type: 2}
+  programSource: {fileID: 11400000, guid: dc1a88eb10341f9d4821779046236d86, type: 2}
+  serializedPublicVariablesBytesString: Ai8AAAAAATIAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAFQAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AAAAAAAYBAAAAAAAAACcBBAAAAHQAeQBwAGUAAWgAAABTAHkAcwB0AGUAbQAuAEMAbwBsAGwAZQBjAHQAaQBvAG4AcwAuAEcAZQBuAGUAcgBpAGMALgBMAGkAcwB0AGAAMQBbAFsAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4ALgBJAG4AdABlAHIAZgBhAGMAZQBzAC4ASQBVAGQAbwBuAFYAYQByAGkAYQBiAGwAZQAsACAAVgBSAEMALgBVAGQAbwBuAC4AQwBvAG0AbQBvAG4AXQBdACwAIABtAHMAYwBvAHIAbABpAGIAAQEJAAAAVgBhAHIAaQBhAGIAbABlAHMALwEAAAABaAAAAFMAeQBzAHQAZQBtAC4AQwBvAGwAbABlAGMAdABpAG8AbgBzAC4ARwBlAG4AZQByAGkAYwAuAEwAaQBzAHQAYAAxAFsAWwBWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAEkAbgB0AGUAcgBmAGEAYwBlAHMALgBJAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlACwAIABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgBdAF0ALAAgAG0AcwBjAG8AcgBsAGkAYgABAAAABgEAAAAAAAAAAi8CAAAAAUkAAABWAFIAQwAuAFUAZABvAG4ALgBDAG8AbQBtAG8AbgAuAFUAZABvAG4AVgBhAHIAaQBhAGIAbABlAGAAMQBbAFsAUwB5AHMAdABlAG0ALgBJAG4AdAAzADIALAAgAG0AcwBjAG8AcgBsAGkAYgBdAF0ALAAgAFYAUgBDAC4AVQBkAG8AbgAuAEMAbwBtAG0AbwBuAAIAAAAGAgAAAAAAAAAnAQQAAAB0AHkAcABlAAEXAAAAUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwAsACAAbQBzAGMAbwByAGwAaQBiACcBCgAAAFMAeQBtAGIAbwBsAE4AYQBtAGUAAR8AAABfAF8AXwBVAGQAbwBuAFMAaABhAHIAcABCAGUAaABhAHYAaQBvAHUAcgBWAGUAcgBzAGkAbwBuAF8AXwBfACcBBAAAAHQAeQBwAGUAARYAAABTAHkAcwB0AGUAbQAuAEkAbgB0ADMAMgAsACAAbQBzAGMAbwByAGwAaQBiABcBBQAAAFYAYQBsAHUAZQACAAAABwUHBQcF
+  publicVariablesUnityEngineObjects: []
+  publicVariablesSerializationDataFormat: 0
