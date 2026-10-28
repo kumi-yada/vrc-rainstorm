@@ -1,12 +1,12 @@
 # Changelog
 
-## 2026-10-28 - v1.5
+## 2026-10-29 - v1.5
 
 - Add undo button to solitaire games
 - Allow refund and reshuffle in Double or Nothing mode when no cards have been moved
-- Add a first-time hint pointing new players to free money
+- Add first-time hints for new players
 - Fix cards showing their front face upside down
-- Various UI improvements: icon-based buttons, adjusted button positions, no auto-play music on entry, and changelog now displays in your selected language
+- Rework interactable buttons on table
 
 ## 2026-10-22 - v1.4
 
