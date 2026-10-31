@@ -50174,13 +50174,13 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1884237437}
   changelogUrl:
-    url: https://raw.githubusercontent.com/kumi-yada/vrc-rainstorm/master/CHANGELOG.md
+    url: https://raw.githubusercontent.com/kumi-yada/vrc-solitaire/master/CHANGELOG.md
   languageCodes:
   - ja
   - zh-CN
   languageUrls:
-  - url: https://raw.githubusercontent.com/kumi-yada/vrc-rainstorm/master/CHANGELOG-ja.md
-  - url: https://raw.githubusercontent.com/kumi-yada/vrc-rainstorm/master/CHANGELOG-zh-CN.md
+  - url: https://raw.githubusercontent.com/kumi-yada/vrc-solitaire/master/CHANGELOG-ja.md
+  - url: https://raw.githubusercontent.com/kumi-yada/vrc-solitaire/master/CHANGELOG-zh-CN.md
   localization: {fileID: 356741924}
   changelogText: {fileID: 336526023}
   titleText: {fileID: 1332977752}
